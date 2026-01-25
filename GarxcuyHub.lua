@@ -1,59 +1,97 @@
--- Gar xcuy Hub
--- No Key System
+-- Garxcuy Hub | Fish It
+-- No Key | Delta Supported
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
+-- Anti duplicate
 if player.PlayerGui:FindFirstChild("GarxcuyHub") then
     player.PlayerGui.GarxcuyHub:Destroy()
 end
 
-local ScreenGui = Instance.new("ScreenGui")
+-- UI
+local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
 ScreenGui.Name = "GarxcuyHub"
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 320, 0, 200)
-Main.Position = UDim2.new(0.5, -160, 0.5, -100)
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0,360,0,220)
+Main.Position = UDim2.new(0.5,-180,0.5,-110)
+Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Main.Active = true
 Main.Draggable = true
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1,0,0,40)
 Title.BackgroundTransparency = 1
-Title.Text = "Gar xcuy Hub"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "Garxcuy Hub | Fish It"
+Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.Parent = Main
+Title.TextSize = 16
 
-local Btn1 = Instance.new("TextButton")
-Btn1.Size = UDim2.new(0.85, 0, 0, 40)
-Btn1.Position = UDim2.new(0.075, 0, 0.35, 0)
-Btn1.Text = "Test Button"
-Btn1.Font = Enum.Font.Gotham
-Btn1.TextSize = 14
-Btn1.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Btn1.TextColor3 = Color3.fromRGB(255, 255, 255)
-Btn1.Parent = Main
+-- Button creator
+local function Btn(text,y)
+    local b = Instance.new("TextButton", Main)
+    b.Size = UDim2.new(0.9,0,0,40)
+    b.Position = UDim2.new(0.05,0,0,y)
+    b.Text = text
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 14
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+    return b
+end
 
-Btn1.MouseButton1Click:Connect(function()
-    print("Gar xcuy Hub aktif 🔥")
+local AutoFishBtn = Btn("Auto Fish [OFF]", 60)
+local AutoSellBtn = Btn("Auto Sell [OFF]", 110)
+local CloseBtn = Btn("Close", 160)
+
+-- STATES
+local autofish = false
+local autosell = false
+
+-- AUTO FISH
+task.spawn(function()
+    while task.wait(1) do
+        if autofish then
+            for _,v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                if v:IsA("RemoteEvent") and v.Name:lower():find("fish") then
+                    pcall(function()
+                        v:FireServer()
+                    end)
+                end
+            end
+        end
+    end
 end)
 
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0, 30, 0, 30)
-Close.Position = UDim2.new(1, -35, 0, 5)
-Close.Text = "X"
-Close.Font = Enum.Font.GothamBold
-Close.TextSize = 14
-Close.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
-Close.TextColor3 = Color3.fromRGB(255, 255, 255)
-Close.Parent = Main
+-- AUTO SELL
+task.spawn(function()
+    while task.wait(2) do
+        if autosell then
+            for _,v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                if v:IsA("RemoteEvent") and v.Name:lower():find("sell") then
+                    pcall(function()
+                        v:FireServer()
+                    end)
+                end
+            end
+        end
+    end
+end)
 
-Close.MouseButton1Click:Connect(function()
+AutoFishBtn.MouseButton1Click:Connect(function()
+    autofish = not autofish
+    AutoFishBtn.Text = autofish and "Auto Fish [ON]" or "Auto Fish [OFF]"
+end)
+
+AutoSellBtn.MouseButton1Click:Connect(function()
+    autosell = not autosell
+    AutoSellBtn.Text = autosell and "Auto Sell [ON]" or "Auto Sell [OFF]"
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
