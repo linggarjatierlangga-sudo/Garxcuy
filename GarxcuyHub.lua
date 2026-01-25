@@ -1,5 +1,5 @@
--- Garxcuy Hub | Full Lynx UI + Engine (SAFE)
--- No Key | Delta Friendly | Save Settings
+-- Garxcuy Hub | Full Lynx UI Demo Cheat
+-- Aman 100% | Delta Friendly | Save Settings
 
 -- ===== SERVICES =====
 local Players = game:GetService("Players")
@@ -8,11 +8,10 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
-
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- ===== CLEAN =====
+-- ===== CLEAN OLD GUI =====
 pcall(function()
     player.PlayerGui:FindFirstChild("GarxcuyHub"):Destroy()
 end)
@@ -92,7 +91,7 @@ Instance.new("UICorner", Main).CornerRadius = UDim.new(0,18)
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1,0,0,45)
 Title.BackgroundTransparency = 1
-Title.Text = "🐺 Garxcuy Hub | Lynx Style"
+Title.Text = "🐺 Garxcuy Hub | Lynx Demo"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 Title.TextColor3 = Color3.new(1,1,1)
@@ -115,59 +114,118 @@ end)
 
 -- ===== KEYBIND =====
 UserInputService.InputBegan:Connect(function(i,g)
-    if not g and i.KeyCode == Settings.UIKey then
+    if g then return end
+    if i.KeyCode == Settings.UIKey then
         UIState = not UIState
         Main.Visible = UIState
+    elseif i.KeyCode == Enum.KeyCode.Insert then
+        UIState = not UIState
+        Main.Visible = UIState
+        LogoBtn.Visible = UIState
     end
 end)
 
--- ===== ENGINE (STUBS – AMAN) =====
+-- ===== TABS & PAGES =====
+local Side = Instance.new("Frame", Main)
+Side.Size = UDim2.new(0,120,1,-45)
+Side.Position = UDim2.new(0,0,0,45)
+Side.BackgroundColor3 = Color3.fromRGB(18,18,18)
+Side.BorderSizePixel = 0
+
+local Pages = Instance.new("Frame", Main)
+Pages.Size = UDim2.new(1,-120,1,-45)
+Pages.Position = UDim2.new(0,120,0,45)
+Pages.BackgroundTransparency = 1
+
+local function createPage() 
+    local f = Instance.new("Frame", Pages)
+    f.Size = UDim2.new(1,0,1,0)
+    f.BackgroundTransparency = 1
+    f.Visible = false
+    return f
+end
+
+local MainP = createPage()
+local FishP = createPage()
+local MiscP = createPage()
+MainP.Visible = true
+
+local function switch(page)
+    MainP.Visible = false
+    FishP.Visible = false
+    MiscP.Visible = false
+    page.Visible = true
+end
+
+local function tab(text, y, pg)
+    local b = Instance.new("TextButton", Side)
+    b.Size = UDim2.new(1,-10,0,40)
+    b.Position = UDim2.new(0,5,0,y)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 13
+    b.TextColor3 = Color3.fromRGB(220,220,220)
+    b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    b.BorderSizePixel = 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    b.MouseButton1Click:Connect(function() switch(pg) end)
+end
+
+tab("Main", 10, MainP)
+tab("Fishing", 55, FishP)
+tab("Misc", 100, MiscP)
+
+-- ===== TOGGLE FUNCTION =====
+local function createToggle(parent, text, y)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.85,0,0,40)
+    btn.Position = UDim2.new(0.075,0,0,y)
+    btn.Text = text.." : OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(32,32,32)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
+    local on = false
+    btn.MouseButton1Click:Connect(function()
+        on = not on
+        btn.Text = text..(on and " : ON" or " : OFF")
+        -- SIMULASI DEMO
+        print(text.." = "..tostring(on))
+    end)
+end
+
+-- ===== ADD DEMO TOGGLES =====
+createToggle(MainP, "Walkspeed / Jump", 20)
+createToggle(MainP, "Anti AFK", 70)
+createToggle(MainP, "FPS Boost", 120)
+
+createToggle(FishP, "Auto Fish", 20)
+createToggle(FishP, "Instant Reel", 70)
+createToggle(FishP, "Auto Sell", 120)
+createToggle(FishP, "ESP Fish / Rare", 170)
+createToggle(FishP, "ESP Player", 220)
+
+-- ===== DEMO HEARTBEAT LOGIC (AMAN) =====
 RunService.Heartbeat:Connect(function()
     if Settings.AutoFish then
-        -- Auto Fish engine (stub)
+        print("Auto Fish ACTIVE!")
     end
     if Settings.InstantReel then
-        -- Instant Reel engine (stub)
+        print("Instant Reel ACTIVE!")
     end
     if Settings.AutoSell then
-        -- Auto Sell engine (stub)
+        print("Auto Sell ACTIVE!")
     end
 end)
 
--- ===== ESP ENGINE (SAFE TEMPLATE) =====
+-- ===== DEMO ESP LOGIC =====
 RunService.RenderStepped:Connect(function()
-    if Settings.ESPPlayer then
-        -- ESP Player renderer (stub)
-    end
     if Settings.ESPFish then
-        -- ESP Fish / Rare renderer (stub)
+        print("ESP Fish ACTIVE!")
+    end
+    if Settings.ESPPlayer then
+        print("ESP Player ACTIVE!")
     end
 end)
-
--- ===== WALKSPEED / JUMP =====
-RunService.Stepped:Connect(function()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        local h = player.Character.Humanoid
-        h.WalkSpeed = Settings.WalkSpeed
-        h.JumpPower = Settings.JumpPower
-    end
-end)
-
--- ===== ANTI AFK =====
-player.Idled:Connect(function()
-    if Settings.AntiAFK then
-        VirtualUser:Button2Down(Vector2.new(0,0), camera.CFrame)
-        task.wait(1)
-        VirtualUser:Button2Up(Vector2.new(0,0), camera.CFrame)
-    end
-end)
-
--- ===== FPS BOOST =====
-if Settings.FPSBoost then
-    for _,v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.Material = Enum.Material.Plastic
-            v.Reflectance = 0
-        end
-    end
-end
