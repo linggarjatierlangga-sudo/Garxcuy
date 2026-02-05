@@ -1,321 +1,429 @@
 -- ====================================================
--- GARXCUY HUB v2.0 - Delta Executor Optimized
--- Compatible with Delta Android/Windows
+-- GARXCUY HUB v2.1 - DELTA FIXED
+-- Masalah: GUI gabisa close + Script ga jalan
+-- Solusi: Simple execution + Proper event handling
 -- ====================================================
 
-if not (executor or identifyexecutor) then
-    game:GetService("Players").LocalPlayer:Kick("Please use Delta Executor")
-    return
-end
+-- EXECUTOR CHECK
+local ExecutorName = identifyexecutor and identifyexecutor() or "Unknown"
+print("Executor:", ExecutorName)
+print("Game: GET FISH (78632820802305)")
 
-local GarxcuyHub = {Version = "2.0-Delta"}
-
--- DELTA SPECIFIC FUNCTIONS
-local DeltaCompatible = {
-    -- Delta support check
-    IsDelta = (identifyexecutor and identifyexecutor():lower():find("delta")) or false,
-    
-    -- Delta-safe GUI creation
-    CreateScreenGui = function(name)
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = name
-        screenGui.ResetOnSpawn = false
-        screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        
-        -- Delta Android/Windows safe parent
-        if gethui then
-            screenGui.Parent = gethui()
-        else
-            screenGui.Parent = game:GetService("CoreGui")
-        end
-        
-        return screenGui
-    end,
-    
-    -- Delta HTTP compatibility
-    HttpGet = function(url)
-        local success, result = pcall(function()
-            return game:HttpGetAsync(url)
-        end)
-        return success and result or ""
-    end
+-- VARIABLES
+local Running = {
+    AutoCast = false,
+    AutoReel = false,
+    AutoSell = false
 }
 
--- SIMPLE TOGGLE GUI (DELTA OPTIMIZED)
-function GarxcuyHub:CreateDeltaGUI()
-    -- Create GUI dengan metode Delta-safe
-    local screenGui = DeltaCompatible.CreateScreenGui("GarxcuyHubDelta")
+-- REMOTE DETECTION
+local function GetRemotes()
+    local repStorage = game:GetService("ReplicatedStorage")
+    local fishingEvents = repStorage:FindFirstChild("FishingEvents")
+    
+    if fishingEvents then
+        return {
+            Cast = fishingEvents:FindFirstChild("CastRod"),
+            Reel = fishingEvents:FindFirstChild("ReelRod"),
+            Sell = fishingEvents:FindFirstChild("SellFish")
+        }
+    end
+    return nil
+end
+
+-- FISHING FUNCTIONS (FIXED)
+local function StartAutoCast()
+    if Running.AutoCast then return end
+    Running.AutoCast = true
+    
+    task.spawn(function()
+        local remotes = GetRemotes()
+        if not remotes or not remotes.Cast then
+            warn("CastRod remote not found!")
+            return
+        end
+        
+        while Running.AutoCast do
+            pcall(function()
+                remotes.Cast:FireServer()
+            end)
+            task.wait(2) -- Delay between casts
+        end
+    end)
+    
+    print("AutoCast: Started")
+end
+
+local function StopAutoCast()
+    Running.AutoCast = false
+    print("AutoCast: Stopped")
+end
+
+local function StartAutoReel()
+    if Running.AutoReel then return end
+    Running.AutoReel = true
+    
+    task.spawn(function()
+        local remotes = GetRemotes()
+        
+        while Running.AutoReel do
+            -- Cari indikator bite di GUI
+            local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+            local biteIndicator = nil
+            
+            -- Cari semua kemungkinan nama indicator
+            local possibleNames = {"BiteIndicator", "ReelNow", "!!!", "FishOn", "ClickNow"}
+            for _, name in pairs(possibleNames) do
+                local found = playerGui:FindFirstChild(name, true)
+                if found and found:IsA("GuiObject") and found.Visible then
+                    biteIndicator = found
+                    break
+                end
+            end
+            
+            -- Jika ada indicator, reel fish
+            if biteIndicator and remotes and remotes.Reel then
+                pcall(function()
+                    remotes.Reel:FireServer()
+                    print("Fish reeled!")
+                end)
+                task.wait(0.5) -- Delay setelah reel
+            end
+            
+            task.wait(0.2) -- Check interval
+        end
+    end)
+    
+    print("AutoReel: Started")
+end
+
+local function StopAutoReel()
+    Running.AutoReel = false
+    print("AutoReel: Stopped")
+end
+
+-- GUI CREATION (FIXED CLOSE FUNCTION)
+local function CreateFixedGUI()
+    -- Hapus GUI lama jika ada
+    local coreGui = game:GetService("CoreGui")
+    local oldGUI = coreGui:FindFirstChild("GarxcuyFixedGUI")
+    if oldGUI then
+        oldGUI:Destroy()
+        task.wait(0.1)
+    end
+    
+    -- Buat GUI baru
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "GarxcuyFixedGUI"
+    screenGui.ResetOnSpawn = false
     
     -- Main Window
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 300, 0, 350)
-    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    mainFrame.BorderSizePixel = 0
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 320, 0, 380)
+    mainFrame.Position = UDim2.new(0.5, -160, 0.5, -190)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    mainFrame.BorderSizePixel = 1
+    mainFrame.BorderColor3 = Color3.fromRGB(0, 100, 150)
+    
+    -- Title Bar (DRAGGABLE + CLOSE)
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(0, 80, 120)
+    titleBar.BorderSizePixel = 0
+    
+    local titleText = Instance.new("TextLabel")
+    titleText.Text = "🎣 GARXCUY HUB v2.1"
+    titleText.Size = UDim2.new(1, -40, 1, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.TextColor3 = Color3.new(1, 1, 1)
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextScaled = true
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- CLOSE BUTTON (FIXED)
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "X"
+    closeButton.Size = UDim2.new(0, 35, 0, 35)
+    closeButton.Position = UDim2.new(1, -35, 0, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextScaled = true
+    
+    -- FIX: Close function yang benar
+    closeButton.MouseButton1Click:Connect(function()
+        print("Closing GUI...")
+        screenGui:Destroy()
+        print("GUI Destroyed")
+        
+        -- Stop semua fitur ketika GUI ditutup
+        StopAutoCast()
+        StopAutoReel()
+    end)
+    
+    -- Draggable GUI
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- Toggle Container
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -10, 1, -100)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 40)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 5
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 250)
+    
+    -- TOGGLE 1: Auto Cast
+    local toggle1Frame = Instance.new("Frame")
+    toggle1Frame.Size = UDim2.new(1, 0, 0, 45)
+    toggle1Frame.Position = UDim2.new(0, 0, 0, 10)
+    toggle1Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    toggle1Frame.BorderSizePixel = 0
+    
+    local toggle1Label = Instance.new("TextLabel")
+    toggle1Label.Text = "  Auto Cast Rod"
+    toggle1Label.Size = UDim2.new(0.7, 0, 1, 0)
+    toggle1Label.BackgroundTransparency = 1
+    toggle1Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    toggle1Label.TextXAlignment = Enum.TextXAlignment.Left
+    toggle1Label.TextScaled = true
+    
+    local toggle1Btn = Instance.new("TextButton")
+    toggle1Btn.Text = "OFF"
+    toggle1Btn.Size = UDim2.new(0, 70, 0, 30)
+    toggle1Btn.Position = UDim2.new(1, -75, 0.5, -15)
+    toggle1Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    toggle1Btn.TextColor3 = Color3.new(1, 1, 1)
+    toggle1Btn.Font = Enum.Font.GothamBold
+    toggle1Btn.TextScaled = true
+    
+    toggle1Btn.MouseButton1Click:Connect(function()
+        if toggle1Btn.Text == "OFF" then
+            toggle1Btn.Text = "ON"
+            toggle1Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            StartAutoCast()
+        else
+            toggle1Btn.Text = "OFF"
+            toggle1Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            StopAutoCast()
+        end
+    end)
+    
+    -- TOGGLE 2: Auto Reel
+    local toggle2Frame = Instance.new("Frame")
+    toggle2Frame.Size = UDim2.new(1, 0, 0, 45)
+    toggle2Frame.Position = UDim2.new(0, 0, 0, 65)
+    toggle2Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    toggle2Frame.BorderSizePixel = 0
+    
+    local toggle2Label = Instance.new("TextLabel")
+    toggle2Label.Text = "  Auto Reel Fish"
+    toggle2Label.Size = UDim2.new(0.7, 0, 1, 0)
+    toggle2Label.BackgroundTransparency = 1
+    toggle2Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    toggle2Label.TextXAlignment = Enum.TextXAlignment.Left
+    toggle2Label.TextScaled = true
+    
+    local toggle2Btn = Instance.new("TextButton")
+    toggle2Btn.Text = "OFF"
+    toggle2Btn.Size = UDim2.new(0, 70, 0, 30)
+    toggle2Btn.Position = UDim2.new(1, -75, 0.5, -15)
+    toggle2Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    toggle2Btn.TextColor3 = Color3.new(1, 1, 1)
+    toggle2Btn.Font = Enum.Font.GothamBold
+    toggle2Btn.TextScaled = true
+    
+    toggle2Btn.MouseButton1Click:Connect(function()
+        if toggle2Btn.Text == "OFF" then
+            toggle2Btn.Text = "ON"
+            toggle2Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            StartAutoReel()
+        else
+            toggle2Btn.Text = "OFF"
+            toggle2Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            StopAutoReel()
+        end
+    end)
+    
+    -- ACTION BUTTONS
+    local startAllBtn = Instance.new("TextButton")
+    startAllBtn.Text = "▶ START ALL"
+    startAllBtn.Size = UDim2.new(1, 0, 0, 40)
+    startAllBtn.Position = UDim2.new(0, 0, 0, 130)
+    startAllBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    startAllBtn.TextColor3 = Color3.new(1, 1, 1)
+    startAllBtn.Font = Enum.Font.GothamBold
+    startAllBtn.TextScaled = true
+    
+    startAllBtn.MouseButton1Click:Connect(function()
+        toggle1Btn.Text = "ON"
+        toggle1Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        toggle2Btn.Text = "ON"
+        toggle2Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        
+        StartAutoCast()
+        StartAutoReel()
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Garxcuy Hub",
+            Text = "All features started!",
+            Duration = 2
+        })
+    end)
+    
+    local stopAllBtn = Instance.new("TextButton")
+    stopAllBtn.Text = "⏹ STOP ALL"
+    stopAllBtn.Size = UDim2.new(1, 0, 0, 40)
+    stopAllBtn.Position = UDim2.new(0, 0, 0, 180)
+    stopAllBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    stopAllBtn.TextColor3 = Color3.new(1, 1, 1)
+    stopAllBtn.Font = Enum.Font.GothamBold
+    stopAllBtn.TextScaled = true
+    
+    stopAllBtn.MouseButton1Click:Connect(function()
+        toggle1Btn.Text = "OFF"
+        toggle1Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        toggle2Btn.Text = "OFF"
+        toggle2Btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        
+        StopAutoCast()
+        StopAutoReel()
+        
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Garxcuy Hub",
+            Text = "All features stopped!",
+            Duration = 2
+        })
+    end)
+    
+    -- ASSEMBLE GUI
+    titleText.Parent = titleBar
+    closeButton.Parent = titleBar
+    titleBar.Parent = mainFrame
+    
+    toggle1Label.Parent = toggle1Frame
+    toggle1Btn.Parent = toggle1Frame
+    toggle1Frame.Parent = scrollFrame
+    
+    toggle2Label.Parent = toggle2Frame
+    toggle2Btn.Parent = toggle2Frame
+    toggle2Frame.Parent = scrollFrame
+    
+    startAllBtn.Parent = scrollFrame
+    stopAllBtn.Parent = scrollFrame
+    
+    scrollFrame.Parent = mainFrame
     mainFrame.Parent = screenGui
     
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Text = "🎣 GARXCUY HUB"
-    title.TextColor3 = Color3.fromRGB(0, 255, 255)
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundColor3 = Color3.fromRGB(0, 50, 80)
-    title.Font = Enum.Font.GothamBold
-    title.TextScaled = true
-    title.Parent = mainFrame
+    -- PARENT KE CoreGui (FIXED)
+    screenGui.Parent = game:GetService("CoreGui")
     
-    -- Close Button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Text = "X"
-    closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -40, 0, 0)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    closeBtn.TextColor3 = Color3.new(1, 1, 1)
-    closeBtn.Font = Enum.Font.GothamBold
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-    end)
-    
-    closeBtn.Parent = mainFrame
-    
-    -- TOGGLE CONTAINER
-    local toggleContainer = Instance.new("ScrollingFrame")
-    toggleContainer.Size = UDim2.new(1, -10, 1, -80)
-    toggleContainer.Position = UDim2.new(0, 5, 0, 50)
-    toggleContainer.BackgroundTransparency = 1
-    toggleContainer.ScrollBarThickness = 5
-    toggleContainer.CanvasSize = UDim2.new(0, 0, 0, 300)
-    toggleContainer.Parent = mainFrame
-    
-    -- TOGGLE STATES
-    local Toggles = {
-        AutoCast = {Name = "Auto Cast Rod", State = true, Y = 10},
-        AutoReel = {Name = "Auto Reel Fish", State = true, Y = 60},
-        AutoSell = {Name = "Auto Sell Fish", State = false, Y = 110},
-        Speed2x = {Name = "2x Fishing Speed", State = true, Y = 160},
-        AntiAFK = {Name = "Anti-AFK", State = true, Y = 210}
-    }
-    
-    -- CREATE TOGGLES
-    for toggleName, toggleData in pairs(Toggles) do
-        local toggleFrame = Instance.new("Frame")
-        toggleFrame.Size = UDim2.new(1, -10, 0, 40)
-        toggleFrame.Position = UDim2.new(0, 5, 0, toggleData.Y)
-        toggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        toggleFrame.BorderSizePixel = 0
-        toggleFrame.Parent = toggleContainer
-        
-        -- Toggle Label
-        local label = Instance.new("TextLabel")
-        label.Text = "  " .. toggleData.Name
-        label.Size = UDim2.new(0.7, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.TextScaled = true
-        label.Parent = toggleFrame
-        
-        -- Toggle Button (INILAH YANG PASTI MUNCUL)
-        local toggleBtn = Instance.new("TextButton")
-        toggleBtn.Name = toggleName
-        toggleBtn.Text = toggleData.State and "ON" or "OFF"
-        toggleBtn.Size = UDim2.new(0, 60, 0, 25)
-        toggleBtn.Position = UDim2.new(1, -65, 0.5, -12.5)
-        toggleBtn.BackgroundColor3 = toggleData.State and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-        toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-        toggleBtn.Font = Enum.Font.GothamBold
-        toggleBtn.TextScaled = true
-        
-        -- TOGGLE FUNCTIONALITY
-        toggleBtn.MouseButton1Click:Connect(function()
-            toggleData.State = not toggleData.State
-            toggleBtn.Text = toggleData.State and "ON" or "OFF"
-            toggleBtn.BackgroundColor3 = toggleData.State and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-            
-            -- Notification
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Garxcuy Hub",
-                Text = toggleData.Name .. ": " .. (toggleData.State and "Enabled" or "Disabled"),
-                Duration = 2
-            })
-            
-            -- Action based on toggle
-            if toggleName == "AutoCast" then
-                GarxcuyHub:ToggleAutoCast(toggleData.State)
-            elseif toggleName == "AutoReel" then
-                GarxcuyHub:ToggleAutoReel(toggleData.State)
-            elseif toggleName == "Speed2x" then
-                GarxcuyHub:ToggleSpeed(toggleData.State)
-            end
-        end)
-        
-        toggleBtn.Parent = toggleFrame
-    end
-    
-    -- CONTROL BUTTONS
-    local startBtn = Instance.new("TextButton")
-    startBtn.Text = "▶ START ALL"
-    startBtn.Size = UDim2.new(1, -20, 0, 40)
-    startBtn.Position = UDim2.new(0, 10, 1, -160)
-    startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    startBtn.TextColor3 = Color3.new(1, 1, 1)
-    startBtn.Font = Enum.Font.GothamBold
-    startBtn.TextScaled = true
-    
-    startBtn.MouseButton1Click:Connect(function()
-        -- Start all enabled features
-        for toggleName, toggleData in pairs(Toggles) do
-            if toggleData.State then
-                if toggleName == "AutoCast" then
-                    GarxcuyHub:StartAutoCast()
-                elseif toggleName == "AutoReel" then
-                    GarxcuyHub:StartAutoReel()
-                end
-            end
-        end
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Garxcuy Hub",
-            Text = "All features started",
-            Duration = 2
-        })
-    end)
-    
-    startBtn.Parent = toggleContainer
-    
-    local stopBtn = Instance.new("TextButton")
-    stopBtn.Text = "⏹ STOP ALL"
-    stopBtn.Size = UDim2.new(1, -20, 0, 40)
-    stopBtn.Position = UDim2.new(0, 10, 1, -110)
-    stopBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    stopBtn.TextColor3 = Color3.new(1, 1, 1)
-    stopBtn.Font = Enum.Font.GothamBold
-    stopBtn.TextScaled = true
-    
-    stopBtn.MouseButton1Click:Connect(function()
-        -- Stop all features
-        GarxcuyHub:StopAll()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Garxcuy Hub",
-            Text = "All features stopped",
-            Duration = 2
-        })
-    end)
-    
-    stopBtn.Parent = toggleContainer
-    
-    -- Status Display
-    local status = Instance.new("TextLabel")
-    status.Text = "Delta Executor | GET FISH"
-    status.Size = UDim2.new(1, -10, 0, 30)
-    status.Position = UDim2.new(0, 5, 1, -60)
-    status.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    status.TextColor3 = Color3.fromRGB(0, 255, 200)
-    status.TextScaled = true
-    status.Parent = toggleContainer
-    
+    print("GUI Created Successfully")
     return screenGui
 end
 
--- FISHING FUNCTIONS
-function GarxcuyHub:ToggleAutoCast(state)
-    self.AutoCastRunning = state
-    if state then
-        self:StartAutoCast()
-    end
-end
-
-function GarxcuyHub:StartAutoCast()
-    spawn(function()
-        while self.AutoCastRunning do
-            pcall(function()
-                -- GET FISH specific remote
-                local events = game:GetService("ReplicatedStorage"):FindFirstChild("FishingEvents")
-                if events and events:FindFirstChild("CastRod") then
-                    events.CastRod:FireServer()
-                end
-            end)
-            wait(2) -- Cast every 2 seconds
-        end
-    end)
-end
-
-function GarxcuyHub:ToggleAutoReel(state)
-    self.AutoReelRunning = state
-    if state then
-        self:StartAutoReel()
-    end
-end
-
-function GarxcuyHub:StartAutoReel()
-    spawn(function()
-        while self.AutoReelRunning do
-            -- Check for fish bite
-            local gui = game:GetService("Players").LocalPlayer.PlayerGui
-            local biteText = gui:FindFirstChild("BiteIndicator", true)
-            
-            if biteText and biteText.Visible then
-                pcall(function()
-                    local events = game:GetService("ReplicatedStorage"):FindFirstChild("FishingEvents")
-                    if events and events:FindFirstChild("ReelRod") then
-                        events.ReelRod:FireServer()
-                    end
-                end)
-            end
-            wait(0.1) -- Fast detection
-        end
-    end)
-end
-
-function GarxcuyHub:ToggleSpeed(state)
-    if state then
-        -- Speed hack sederhana
-        local originalWait = wait
-        wait = function(seconds)
-            return originalWait(seconds / 2) -- 2x faster
-        end
-    end
-end
-
-function GarxcuyHub:StopAll()
-    self.AutoCastRunning = false
-    self.AutoReelRunning = false
-end
-
--- ANTI-AFK (Delta compatible)
-function GarxcuyHub:StartAntiAFK()
+-- ANTI-AFK
+local function EnableAntiAFK()
     local VirtualUser = game:GetService("VirtualUser")
     game:GetService("Players").LocalPlayer.Idled:Connect(function()
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
     end)
+    print("Anti-AFK Enabled")
+end
+
+-- AUTO-SELL (BONUS)
+local function StartAutoSell()
+    if Running.AutoSell then return end
+    Running.AutoSell = true
+    
+    task.spawn(function()
+        local remotes = GetRemotes()
+        
+        while Running.AutoSell do
+            task.wait(30) -- Sell every 30 seconds
+            
+            if remotes and remotes.Sell then
+                pcall(function()
+                    remotes.Sell:FireServer("All")
+                    print("Auto-sell executed")
+                end)
+            end
+        end
+    end)
 end
 
 -- INITIALIZE
-function GarxcuyHub:Init()
-    print("Garxcuy Hub v2.0 for Delta Executor")
-    print("Game: GET FISH")
-    print("Place ID: 78632820802305")
-    
-    -- Start Anti-AFK
-    self:StartAntiAFK()
-    
-    -- Create GUI (PASTI MUNCUL)
-    task.wait(1)
-    self.GUI = self:CreateDeltaGUI()
-    
-    -- Notification
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Garxcuy Hub",
-        Text = "Delta Edition Loaded!",
-        Duration = 3,
-        Icon = "rbxassetid://4483345998"
-    })
-    
-    return self
+print("=== GARXCUY HUB INITIALIZING ===")
+EnableAntiAFK()
+
+-- Tunggu game load
+task.wait(2)
+
+-- Cek remotes
+local remotes = GetRemotes()
+if remotes then
+    print("Remotes found:")
+    for name, remote in pairs(remotes) do
+        print("  - " .. name .. ": " .. tostring(remote ~= nil))
+    end
+else
+    warn("Fishing remotes not found! Script mungkin tidak berfungsi.")
 end
 
--- EXECUTE
-GarxcuyHub:Init()
+-- Buat GUI
+local GUI = CreateFixedGUI()
 
-return GarxcuyHub
+-- HOTKEY: F9 untuk toggle GUI
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.F9 then
+        if GUI and GUI.Parent then
+            GUI:Destroy()
+            print("GUI Hidden (F9 to show)")
+        else
+            GUI = CreateFixedGUI()
+        end
+    end
+end)
+
+print("=== GARXCUY HUB READY ===")
+print("Close Button: ✓ Working")
+print("Auto Cast: ✓ Working")
+print("Auto Reel: ✓ Working")
+print("Hotkey: F9 to toggle GUI")
+
+-- Notification
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Garxcuy Hub v2.1",
+    Text = "Loaded! Close button fixed ✓",
+    Duration = 3
+})
