@@ -1,340 +1,397 @@
--- ================================================
--- GARXCUY HUB ULTIMATE - GET FISH
--- Fitur: Auto Fishing, Instan Catch, Fly Speed
--- ================================================
+-- ============================================
+-- GARXCUY HUB v2.0 | SHADOWX EDITION
+-- Created by: Linggar Jati Erlangga
+-- Contact: 0895-2007-1068
+-- Game: GET FISH (Place ID: 78632820802305)
+-- ============================================
 
-print("🎣 Garxcuy Hub Ultimate Loading...")
-
--- Variabel Penting
-local Pemain = game:GetService("Players")
-local PemainUtama = Pemain.LocalPlayer
-local Karakter = PemainUtama.Character or PemainUtama.CharacterAdded:Wait()
-local Penyimpanan = game:GetService("ReplicatedStorage")
-
--- Cek Remote Event (Inti dari Video)
-local EventMemancing = Penyimpanan:FindFirstChild("FishingEvents")
-if not EventMemancing then
-    error("❌ ERROR: 'FishingEvents' tidak ditemukan!")
-    return
-end
-print("✅ Terhubung ke game!")
-
--- Status Fitur
-local Status = {
-    AutoLempar = false,
-    AutoTarik = false,
-    TangkapInstan = false,
-    Terbang = false,
-    JualOtomatis = false
-}
-
--- 🎯 FITUR 1: AUTO LEMPAR JORAN (AUTO FISHING)
-local function MulaiAutoLempar()
-    Status.AutoLempar = true
-    task.spawn(function()
-        while Status.AutoLempar do
-            pcall(function()
-                local remoteLempar = EventMemancing:FindFirstChild("CastRod")
-                if remoteLempar then
-                    remoteLempar:FireServer()
-                    print("[AUTO] Joran dilempar")
-                end
-            end)
-            task.wait(2.5) -- Delay bisa diatur
-        end
-    end)
+if not game:IsLoaded() then
+    game.Loaded:Wait()
 end
 
-local function HentikanAutoLempar()
-    Status.AutoLempar = false
-end
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
--- 🎯 FITUR 2: TANGKAP INSTAN (INSTAN CATCH - dari judul video)
-local function MulaiTangkapInstan()
-    Status.TangkapInstan = true
-    task.spawn(function()
-        while Status.TangkapInstan do
-            -- Method 1: Deteksi UI "Bite"
-            local GUI = PemainUtama.PlayerGui
-            local ditemukan = false
-            
-            for _, elemen in pairs(GUI:GetDescendants()) do
-                if (elemen:IsA("TextLabel") or elemen:IsA("TextButton")) and elemen.Visible then
-                    local teks = string.lower(elemen.Text)
-                    if teks:find("bite") or teks:find("!!!") or teks:find("tarik") then
-                        ditemukan = true
-                        break
-                    end
-                end
-            end
-            
-            -- Method 2: Langsung panggil remote (Instan)
-            if ditemukan then
-                pcall(function()
-                    local remoteTarik = EventMemancing:FindFirstChild("ReelRod")
-                    if remoteTarik then
-                        remoteTarik:FireServer()
-                        remoteTarik:FireServer() -- Double fire untuk pastikan
-                        print("[INSTAN] Ikan ditangkap!")
-                    end
-                end)
-            end
-            task.wait(0.1) -- Cek sangat cepat
-        end
-    end)
-end
+-- NOTIFIKASI AWAL
+print("========================================")
+print("GARXCUY HUB v2.0 | SHADOWX EDITION")
+print("Creator: Linggar Jati Erlangga")
+print("Loading Interface...")
+print("========================================")
 
--- 🎯 FITUR 3: FLY SPEED (dari judul video)
-local function AktifkanTerbang()
-    if Status.Terbang then return end
-    Status.Terbang = true
-    
-    local Kendali = Karakter:WaitForChild("Humanoid")
-    local asliGravitasi = Kendali.Gravity
-    local asliKecepatan = Kendali.WalkSpeed
-    
-    -- Non-aktifkan gravitasi & tambah speed
-    Kendali.Gravity = 0
-    Kendali.WalkSpeed = 80
-    
-    -- Kontrol terbang dengan keyboard
-    local UIS = game:GetService("UserInputService")
-    local koneksi
-    koneksi = UIS.InputBegan:Connect(function(input, diproses)
-        if diproses then return end
-        
-        if input.KeyCode == Enum.KeyCode.Space then
-            -- Terbang naik
-            Karakter.HumanoidRootPart.Velocity = Vector3.new(0, 100, 0)
-        elseif input.KeyCode == Enum.KeyCode.LeftShift then
-            -- Terbang turun
-            Karakter.HumanoidRootPart.Velocity = Vector3.new(0, -100, 0)
-        elseif input.KeyCode == Enum.KeyCode.E then
-            -- Matikan terbang
-            Kendali.Gravity = asliGravitasi
-            Kendali.WalkSpeed = asliKecepatan
-            Status.Terbang = false
-            if koneksi then koneksi:Disconnect() end
-            print("✈️ Mode terbang dimatikan")
-        end
-    end)
-    
-    print("✈️ Mode TERBANG diaktifkan! (Space=Naik, Shift=Turun, E=Stop)")
-end
+-- LOAD RAYFIELD UI
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
 
--- 🎯 FITUR 4: AUTO JUAL
-local function MulaiAutoJual()
-    Status.JualOtomatis = true
-    task.spawn(function()
-        while Status.JualOtomatis do
-            task.wait(30) -- Jual setiap 30 detik
-            pcall(function()
-                local remoteJual = EventMemancing:FindFirstChild("SellFish")
-                if remoteJual then
-                    remoteJual:FireServer("All")
-                    print("💰 Ikan terjual otomatis!")
-                end
-            end)
-        end
-    end)
-end
-
--- 🖥️ GUI SEDERHANAN TAPI PASTI BISA CLOSE
-local function BuatGUI()
-    -- Hapus GUI lama
-    local GUI_Lama = game:GetService("CoreGui"):FindFirstChild("GarxcuyGUI")
-    if GUI_Lama then GUI_Lama:Destroy() end
-    
-    -- Buat GUI baru
-    local LayarGUI = Instance.new("ScreenGui")
-    LayarGUI.Name = "GarxcuyGUI"
-    LayarGUI.ResetOnSpawn = false
-    
-    -- Window Utama
-    local Window = Instance.new("Frame")
-    Window.Size = UDim2.new(0, 300, 0, 350)
-    Window.Position = UDim2.new(0.05, 0, 0.3, 0) -- Pojok kiri
-    Window.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    Window.BorderSizePixel = 2
-    Window.BorderColor3 = Color3.fromRGB(0, 150, 200)
-    
-    -- Title Bar (BISA DI-DRAG)
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Size = UDim2.new(1, 0, 0, 35)
-    TitleBar.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-    
-    local Judul = Instance.new("TextLabel")
-    Judul.Text = "GARXCUY HUB - GET FISH"
-    Judul.Size = UDim2.new(1, -40, 1, 0)
-    Judul.BackgroundTransparency = 1
-    Judul.TextColor3 = Color3.new(1,1,1)
-    Judul.Font = Enum.Font.GothamBold
-    
-    -- TOMBOL CLOSE (100% BISA)
-    local TombolClose = Instance.new("TextButton")
-    TombolClose.Text = "X"
-    TombolClose.Size = UDim2.new(0, 35, 0, 35)
-    TombolClose.Position = UDim2.new(1, -35, 0, 0)
-    TombolClose.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    TombolClose.TextColor3 = Color3.new(1,1,1)
-    TombolClose.Font = Enum.Font.GothamBold
-    
-    TombolClose.MouseButton1Click:Connect(function()
-        print("Menutup GUI...")
-        LayarGUI:Destroy()
-        -- Hentikan semua fitur
-        Status.AutoLempar = false
-        Status.TangkapInstan = false
-        Status.Terbang = false
-        Status.JualOtomatis = false
-        print("✅ GUI ditutup, semua fitur dihentikan.")
-    end)
-    
-    -- Container Tombol
-    local Container = Instance.new("ScrollingFrame")
-    Container.Size = UDim2.new(1, -10, 1, -50)
-    Container.Position = UDim2.new(0, 5, 0, 40)
-    Container.BackgroundTransparency = 1
-    Container.ScrollBarThickness = 5
-    Container.CanvasSize = UDim2.new(0, 0, 0, 400)
-    
-    -- Fungsi buat tombol toggle
-    local function BuatToggle(nama, yPosisi, fungsiAktif, fungsiMati)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -10, 0, 40)
-        frame.Position = UDim2.new(0, 5, 0, yPosisi)
-        frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        
-        local label = Instance.new("TextLabel")
-        label.Text = "  " .. nama
-        label.Size = UDim2.new(0.7, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.new(0.9,0.9,0.9)
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        
-        local tombol = Instance.new("TextButton")
-        tombol.Text = "OFF"
-        tombol.Size = UDim2.new(0, 70, 0, 25)
-        tombol.Position = UDim2.new(1, -75, 0.5, -12.5)
-        tombol.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-        tombol.TextColor3 = Color3.new(1,1,1)
-        tombol.Font = Enum.Font.GothamBold
-        
-        tombol.MouseButton1Click:Connect(function()
-            if tombol.Text == "OFF" then
-                tombol.Text = "ON"
-                tombol.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-                fungsiAktif()
-            else
-                tombol.Text = "OFF"
-                tombol.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-                fungsiMati()
-            end
-        end)
-        
-        label.Parent = frame
-        tombol.Parent = frame
-        frame.Parent = Container
-        
-        return tombol
-    end
-    
-    -- Buat semua tombol toggle
-    local yPosisi = 10
-    BuatToggle("AUTO LEMPAR", yPosisi, MulaiAutoLempar, HentikanAutoLempar)
-    
-    yPosisi = yPosisi + 50
-    BuatToggle("TANGKAP INSTAN", yPosisi, MulaiTangkapInstan, function()
-        Status.TangkapInstan = false
-    end)
-    
-    yPosisi = yPosisi + 50
-    BuatToggle("MODE TERBANG", yPosisi, AktifkanTerbang, function()
-        Status.Terbang = false
-        if Karakter and Karakter:FindFirstChild("Humanoid") then
-            Karakter.Humanoid.Gravity = 196.2 -- Default Roblox
-            Karakter.Humanoid.WalkSpeed = 16
-        end
-    end)
-    
-    yPosisi = yPosisi + 50
-    BuatToggle("AUTO JUAL", yPosisi, MulaiAutoJual, function()
-        Status.JualOtomatis = false
-    end)
-    
-    -- Tombol SEMUA AKTIF
-    local tombolAktifkanSemua = Instance.new("TextButton")
-    tombolAktifkanSemua.Text = "🚀 AKTIFKAN SEMUA"
-    tombolAktifkanSemua.Size = UDim2.new(1, -20, 0, 40)
-    tombolAktifkanSemua.Position = UDim2.new(0, 10, 0, yPosisi + 60)
-    tombolAktifkanSemua.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    tombolAktifkanSemua.TextColor3 = Color3.new(1,1,1)
-    tombolAktifkanSemua.Font = Enum.Font.GothamBold
-    
-    tombolAktifkanSemua.MouseButton1Click:Connect(function()
-        print("Mengaktifkan SEMUA fitur...")
-        MulaiAutoLempar()
-        MulaiTangkapInstan()
-        AktifkanTerbang()
-        MulaiAutoJual()
-        
-        -- Update tombol UI
-        for _, anak in pairs(Container:GetChildren()) do
-            if anak:IsA("Frame") then
-                local tombolToggle = anak:FindFirstChildOfClass("TextButton")
-                if tombolToggle then
-                    tombolToggle.Text = "ON"
-                    tombolToggle.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-                end
-            end
-        end
-        
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Garxcuy Hub",
-            Text = "Semua fitur AKTIF!",
-            Duration = 3
-        })
-    end)
-    
-    -- Assembly GUI
-    Judul.Parent = TitleBar
-    TombolClose.Parent = TitleBar
-    TitleBar.Parent = Window
-    tombolAktifkanSemua.Parent = Container
-    Container.Parent = Window
-    Window.Parent = LayarGUI
-    LayarGUI.Parent = game:GetService("CoreGui")
-    
-    print("✅ GUI berhasil dibuat!")
-    return LayarGUI
-end
-
--- 🚀 INISIALISASI SCRIPT
-task.wait(1) -- Tunggu game load
-local GUI = BuatGUI()
-
--- Hotkey F9 untuk toggle GUI
-game:GetService("UserInputService").InputBegan:Connect(function(input, diproses)
-    if not diproses and input.KeyCode == Enum.KeyCode.F9 then
-        if GUI and GUI.Parent then
-            GUI:Destroy()
-            print("GUI disembunyikan (F9 untuk tampilkan)")
-        else
-            GUI = BuatGUI()
-        end
-    end
-end)
-
--- Notifikasi sukses
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "GARXCUY HUB ULTIMATE",
-    Text = "Script berhasil dijalankan!\nF9: Toggle GUI",
-    Duration = 5,
-    Icon = "rbxassetid://4483345998"
+-- CREATE MAIN WINDOW
+local Window = Rayfield:CreateWindow({
+    Name = "🔱 GARXCUY HUB v2.0 | SHADOWX",
+    LoadingTitle = "Initializing ShadowX System...",
+    LoadingSubtitle = "Powered by Linggar Jati Erlangga",
+    ConfigurationSaving = {
+        Enabled = false
+    },
+    Discord = {
+        Enabled = false
+    },
+    KeySystem = false
 })
 
-print("=================================")
-print("GARXCUY HUB ULTIMATE READY")
-print("Fitur: Auto Fish, Instan Catch, Fly")
-print("Hotkey: F9 (Toggle GUI)")
-print("=================================")
+-- VARIABLES
+local AutoFarm = false
+local AutoSell = false
+local SpeedHack = false
+local JumpHack = false
+
+-- ====================
+-- AUTO FISH FUNCTION
+-- ====================
+local function StartAutoFarm()
+    spawn(function()
+        while AutoFarm do
+            pcall(function()
+                -- MENCARI FISHING SPOT
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if not AutoFarm then break end
+                    
+                    if obj.Name:lower():find("fish") or 
+                       obj.Name:lower():find("spot") or 
+                       obj.Name:lower():find("pond") or
+                       (obj:IsA("Part") and obj.BrickColor == BrickColor.new("Bright blue")) then
+                       
+                        local Character = LocalPlayer.Character
+                        if Character and Character:FindFirstChild("HumanoidRootPart") then
+                            -- TELEPORT KE SPOT
+                            Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                            wait(0.3)
+                            
+                            -- SIMULATE CLICK
+                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                            wait(0.1)
+                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        end
+                    end
+                end
+            end)
+            wait(0.8)
+        end
+    end)
+end
+
+-- ====================
+-- AUTO SELL FUNCTION
+-- ====================
+local function StartAutoSell()
+    spawn(function()
+        while AutoSell do
+            pcall(function()
+                -- MENCARI NPC SELLER
+                for _, npc in pairs(Workspace:GetChildren()) do
+                    if not AutoSell then break end
+                    
+                    if npc:FindFirstChild("Head") and 
+                       (npc.Name:lower():find("sell") or 
+                        npc.Name:lower():find("merchant") or 
+                        npc.Name:lower():find("shop") or
+                        (npc:FindFirstChild("BillboardGui") and npc.BillboardGui:FindFirstChild("TextLabel"))) then
+                        
+                        local Character = LocalPlayer.Character
+                        if Character and Character:FindFirstChild("HumanoidRootPart") then
+                            -- TELEPORT KE NPC
+                            Character.HumanoidRootPart.CFrame = npc.Head.CFrame + Vector3.new(0, -2, 0)
+                            wait(0.5)
+                            
+                            -- MENCARI REMOTE EVENT UNTUK JUAL
+                            for _, remote in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                                if remote:IsA("RemoteEvent") then
+                                    if remote.Name:lower():find("sell") or 
+                                       remote.Name:lower():find("trade") or 
+                                       remote.Name:lower():find("exchange") then
+                                        remote:FireServer("all")
+                                        remote:FireServer("sell_all")
+                                        remote:FireServer("sell")
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            wait(3)
+        end
+    end)
+end
+
+-- ====================
+-- MAIN TAB
+-- ====================
+local MainTab = Window:CreateTab("Main Features", "🎣")
+
+MainTab:CreateSection("🎮 GET FISH Hack")
+
+-- AUTO FARM TOGGLE
+MainTab:CreateToggle({
+    Name = "Auto Farm Fish",
+    CurrentValue = false,
+    Flag = "AutoFarmToggle",
+    Callback = function(Value)
+        AutoFarm = Value
+        if Value then
+            Rayfield:Notify({
+                Title = "✅ AUTO FARM ENABLED",
+                Content = "Mulai menangkap ikan otomatis!",
+                Duration = 3,
+                Image = "rbxassetid://4483345998"
+            })
+            StartAutoFarm()
+        else
+            Rayfield:Notify({
+                Title = "❌ AUTO FARM DISABLED",
+                Content = "Berhenti menangkap ikan!",
+                Duration = 3,
+                Image = "rbxassetid://4483345998"
+            })
+        end
+    end
+})
+
+-- AUTO SELL TOGGLE
+MainTab:CreateToggle({
+    Name = "Auto Sell Fish",
+    CurrentValue = false,
+    Flag = "AutoSellToggle",
+    Callback = function(Value)
+        AutoSell = Value
+        if Value then
+            Rayfield:Notify({
+                Title = "✅ AUTO SELL ENABLED",
+                Content = "Mulai menjual ikan otomatis!",
+                Duration = 3,
+                Image = "rbxassetid://4483345998"
+            })
+            StartAutoSell()
+        else
+            Rayfield:Notify({
+                Title = "❌ AUTO SELL DISABLED",
+                Content = "Berhenti menjual ikan!",
+                Duration = 3,
+                Image = "rbxassetid://4483345998"
+            })
+        end
+    end
+})
+
+-- SPEED HACK
+MainTab:CreateToggle({
+    Name = "Speed Hack (WalkSpeed 100)",
+    CurrentValue = false,
+    Flag = "SpeedToggle",
+    Callback = function(Value)
+        SpeedHack = Value
+        local Character = LocalPlayer.Character
+        if Character and Character:FindFirstChild("Humanoid") then
+            if Value then
+                Character.Humanoid.WalkSpeed = 100
+                Rayfield:Notify({
+                    Title = "⚡ SPEED HACK ON",
+                    Content = "WalkSpeed: 100",
+                    Duration = 3
+                })
+            else
+                Character.Humanoid.WalkSpeed = 16
+                Rayfield:Notify({
+                    Title = "🐢 SPEED HACK OFF",
+                    Content = "WalkSpeed: 16 (Normal)",
+                    Duration = 3
+                })
+            end
+        end
+    end
+})
+
+-- ====================
+-- PLAYER TAB
+-- ====================
+local PlayerTab = Window:CreateTab("Player Mods", "⚡")
+
+PlayerTab:CreateSection("Movement Modifiers")
+
+-- WALKSPEED SLIDER
+PlayerTab:CreateSlider({
+    Name = "Walk Speed",
+    Range = {16, 300},
+    Increment = 5,
+    Suffix = "Studs",
+    CurrentValue = 16,
+    Flag = "WalkSpeedSlider",
+    Callback = function(Value)
+        pcall(function()
+            LocalPlayer.Character.Humanoid.WalkSpeed = Value
+        end)
+    end
+})
+
+-- JUMP POWER SLIDER
+PlayerTab:CreateSlider({
+    Name = "Jump Power",
+    Range = {50, 300},
+    Increment = 5,
+    Suffix = "Power",
+    CurrentValue = 50,
+    Flag = "JumpPowerSlider",
+    Callback = function(Value)
+        pcall(function()
+            LocalPlayer.Character.Humanoid.JumpPower = Value
+        end)
+    end
+})
+
+-- INFINITE JUMP
+PlayerTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfiniteJumpToggle",
+    Callback = function(Value)
+        JumpHack = Value
+        if Value then
+            game:GetService("UserInputService").JumpRequest:Connect(function()
+                if JumpHack then
+                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+                end
+            end)
+            Rayfield:Notify({
+                Title = "🦘 INFINITE JUMP ON",
+                Content = "Tekan spasi untuk jump tanpa batas!",
+                Duration = 3
+            })
+        else
+            Rayfield:Notify({
+                Title = "🦘 INFINITE JUMP OFF",
+                Content = "Jump kembali normal",
+                Duration = 3
+            })
+        end
+    end
+})
+
+-- ====================
+-- OTHER SCRIPTS TAB
+-- ====================
+local ScriptsTab = Window:CreateTab("Other Scripts", "🔧")
+
+ScriptsTab:CreateSection("Popular Scripts")
+
+-- INFINITE YIELD
+ScriptsTab:CreateButton({
+    Name = "🛡️ Infinite Yield Admin",
+    Callback = function()
+        Rayfield:Notify({
+            Title = "Loading...",
+            Content = "Loading Infinite Yield...",
+            Duration = 3
+        })
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end
+})
+
+-- SIMPLE SPY
+ScriptsTab:CreateButton({
+    Name = "👁️ SimpleSpy v3",
+    Callback = function()
+        Rayfield:Notify({
+            Title = "Loading...",
+            Content = "Loading SimpleSpy...",
+            Duration = 3
+        })
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/master/SimpleSpySource.lua"))()
+    end
+})
+
+-- ANTI AFK
+ScriptsTab:CreateButton({
+    Name = "⏰ Anti AFK System",
+    Callback = function()
+        Rayfield:Notify({
+            Title = "ANTI AFK ACTIVATED",
+            Content = "Kamu tidak akan di-kick karena AFK!",
+            Duration = 5
+        })
+        
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        spawn(function()
+            while true do
+                wait(30)
+                pcall(function()
+                    VirtualInputManager:SendKeyEvent(true, "Space", false, game)
+                    wait(0.1)
+                    VirtualInputManager:SendKeyEvent(false, "Space", false, game)
+                end)
+            end
+        end)
+    end
+})
+
+-- ====================
+-- INFO TAB
+-- ====================
+local InfoTab = Window:CreateTab("Info & Credits", "📌")
+
+InfoTab:CreateSection("Creator Info")
+InfoTab:CreateLabel("👑 Creator: Linggar Jati Erlangga")
+InfoTab:CreateLabel("📞 Contact: 0895-2007-1068")
+InfoTab:CreateLabel("🐱 GitHub: linggarjatierlangga-sudo")
+
+InfoTab:CreateSection("Script Info")
+InfoTab:CreateLabel("✨ Version: Garxcuy Hub v2.0")
+InfoTab:CreateLabel("🔧 Engine: ShadowX System 1.21")
+InfoTab:CreateLabel("🎮 Game: GET FISH")
+InfoTab:CreateLabel("📍 Place ID: 78632820802305")
+
+InfoTab:CreateSection("Controls")
+InfoTab:CreateButton({
+    Name = "🔄 Refresh Script",
+    Callback = function()
+        Rayfield:Destroy()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/linggarjatierlangga-sudo/Garxcuy/main/GarxcuyHub.lua"))()
+    end
+})
+
+InfoTab:CreateButton({
+    Name = "❌ Destroy UI",
+    Callback = function()
+        Rayfield:Destroy()
+        AutoFarm = false
+        AutoSell = false
+        SpeedHack = false
+        JumpHack = false
+    end
+})
+
+-- ====================
+-- WATERMARK & CREDITS
+-- ====================
+Rayfield:Notify({
+    Title = "🔱 GARXCUY HUB v2.0 LOADED",
+    Content = "Created by Linggar Jati Erlangga | Powered by ShadowX",
+    Duration = 8,
+    Image = "rbxassetid://4483345998"
+})
+
+-- PRINT CONSOLE MESSAGE
+print("========================================")
+print("GARXCUY HUB v2.0 SUCCESSFULLY LOADED!")
+print("Game: GET FISH")
+print("Creator: Linggar Jati Erlangga")
+print("Enjoy the script! 😎")
+print("========================================")
+
+-- LOAD SUCCESS SOUND (Optional)
+pcall(function()
+    local Sound = Instance.new("Sound")
+    Sound.SoundId = "rbxassetid://4590662766"
+    Sound.Volume = 0.3
+    Sound.Parent = game:GetService("SoundService")
+    Sound:Play()
+    game:GetService("Debris"):AddItem(Sound, 3)
+end)
