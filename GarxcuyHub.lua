@@ -1,397 +1,213 @@
 -- ============================================
--- GARXCUY HUB v2.0 | SHADOWX EDITION
+-- GARXCUY HUB v2.2 | VENYX UI EDITION
 -- Created by: Linggar Jati Erlangga
 -- Contact: 0895-2007-1068
 -- Game: GET FISH (Place ID: 78632820802305)
 -- ============================================
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+wait(2) -- Wait for game to fully load
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+print("=================================================================")
+print("🔱 GARXCUY HUB v2.2 | By LINGGAR JATI ERLANGGA 🔱")
+print("=================================================================")
 
--- NOTIFIKASI AWAL
-print("========================================")
-print("GARXCUY HUB v2.0 | SHADOWX EDITION")
-print("Creator: Linggar Jati Erlangga")
-print("Loading Interface...")
-print("========================================")
-
--- LOAD RAYFIELD UI
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+-- LOAD VENYX UI LIBRARY (MORE STABLE)
+local VenusLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/Stefanuk12/Venyx-UI-Library/main/source.lua"))()
 
 -- CREATE MAIN WINDOW
-local Window = Rayfield:CreateWindow({
-    Name = "🔱 GARXCUY HUB v2.0 | SHADOWX",
-    LoadingTitle = "Initializing ShadowX System...",
-    LoadingSubtitle = "Powered by Linggar Jati Erlangga",
-    ConfigurationSaving = {
-        Enabled = false
-    },
-    Discord = {
-        Enabled = false
-    },
-    KeySystem = false
-})
+local Window = VenusLibrary.new("GARXCUY HUB v2.2", 5013109572)
 
--- VARIABLES
-local AutoFarm = false
-local AutoSell = false
-local SpeedHack = false
-local JumpHack = false
+-- CREDITS PAGE
+local creditsTab = Window:NewTab("👑 Credits")
+local creditsSection = creditsTab:NewSection("Creator Information")
+creditsSection:NewLabel("✨ Creator: Linggar Jati Erlangga")
+creditsSection:NewLabel("📞 Contact: 0895-2007-1068")
+creditsSection:NewLabel("🐱 GitHub: linggarjatierlangga-sudo")
+creditsSection:NewLabel("🎮 Game: GET FISH")
+creditsSection:NewLabel("📍 Place ID: 78632820802305")
+creditsSection:NewLabel("🔧 UI: Venyx Library v1.0")
 
--- ====================
--- AUTO FISH FUNCTION
--- ====================
-local function StartAutoFarm()
-    spawn(function()
-        while AutoFarm do
-            pcall(function()
-                -- MENCARI FISHING SPOT
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if not AutoFarm then break end
-                    
-                    if obj.Name:lower():find("fish") or 
-                       obj.Name:lower():find("spot") or 
-                       obj.Name:lower():find("pond") or
-                       (obj:IsA("Part") and obj.BrickColor == BrickColor.new("Bright blue")) then
-                       
-                        local Character = LocalPlayer.Character
-                        if Character and Character:FindFirstChild("HumanoidRootPart") then
-                            -- TELEPORT KE SPOT
-                            Character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
-                            wait(0.3)
+-- MAIN FEATURES TAB
+local mainTab = Window:NewTab("🎣 Main Features")
+local autoSection = mainTab:NewSection("Auto Farming")
+
+-- AUTO FARM TOGGLE
+local farmEnabled = false
+autoSection:NewToggle("Auto Farm Fish", "Automatically catch fish", function(state)
+    farmEnabled = state
+    if state then
+        VenusLibrary:Notify("AUTO FARM", "Started fishing automatically!", "rbxassetid://4483345998")
+        spawn(function()
+            while farmEnabled and wait(0.8) do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        -- FIND FISHING SPOTS
+                        for _, obj in pairs(workspace:GetChildren()) do
+                            if not farmEnabled then break end
                             
-                            -- SIMULATE CLICK
-                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                            wait(0.1)
-                            game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                            if obj.Name:lower():find("fish") or 
+                               obj.Name:lower():find("spot") or 
+                               obj.Name:lower():find("pond") then
+                               
+                                -- TELEPORT TO SPOT
+                                character.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                                wait(0.3)
+                                
+                                -- CLICK TO FISH
+                                mouse1click()
+                            end
                         end
                     end
-                end
-            end)
-            wait(0.8)
-        end
-    end)
-end
+                end)
+            end
+        end)
+    else
+        VenusLibrary:Notify("AUTO FARM", "Stopped fishing!", "rbxassetid://4483345998")
+    end
+end)
 
--- ====================
--- AUTO SELL FUNCTION
--- ====================
-local function StartAutoSell()
-    spawn(function()
-        while AutoSell do
-            pcall(function()
-                -- MENCARI NPC SELLER
-                for _, npc in pairs(Workspace:GetChildren()) do
-                    if not AutoSell then break end
-                    
-                    if npc:FindFirstChild("Head") and 
-                       (npc.Name:lower():find("sell") or 
-                        npc.Name:lower():find("merchant") or 
-                        npc.Name:lower():find("shop") or
-                        (npc:FindFirstChild("BillboardGui") and npc.BillboardGui:FindFirstChild("TextLabel"))) then
-                        
-                        local Character = LocalPlayer.Character
-                        if Character and Character:FindFirstChild("HumanoidRootPart") then
-                            -- TELEPORT KE NPC
-                            Character.HumanoidRootPart.CFrame = npc.Head.CFrame + Vector3.new(0, -2, 0)
-                            wait(0.5)
+-- AUTO SELL TOGGLE
+local sellEnabled = false
+autoSection:NewToggle("Auto Sell Fish", "Automatically sell fish", function(state)
+    sellEnabled = state
+    if state then
+        VenusLibrary:Notify("AUTO SELL", "Started auto selling!", "rbxassetid://4483345998")
+        spawn(function()
+            while sellEnabled and wait(3) do
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        -- FIND SELLER NPC
+                        for _, npc in pairs(workspace:GetChildren()) do
+                            if not sellEnabled then break end
                             
-                            -- MENCARI REMOTE EVENT UNTUK JUAL
-                            for _, remote in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                                if remote:IsA("RemoteEvent") then
-                                    if remote.Name:lower():find("sell") or 
-                                       remote.Name:lower():find("trade") or 
-                                       remote.Name:lower():find("exchange") then
+                            if npc:FindFirstChild("Head") and 
+                               (npc.Name:lower():find("sell") or 
+                                npc.Name:lower():find("merchant")) then
+                                
+                                -- TELEPORT TO NPC
+                                character.HumanoidRootPart.CFrame = npc.Head.CFrame + Vector3.new(0, -2, 0)
+                                wait(0.5)
+                                
+                                -- SELL ALL FISH
+                                for _, remote in pairs(game.ReplicatedStorage:GetDescendants()) do
+                                    if remote:IsA("RemoteEvent") and remote.Name:lower():find("sell") then
                                         remote:FireServer("all")
                                         remote:FireServer("sell_all")
-                                        remote:FireServer("sell")
                                     end
                                 end
                             end
                         end
                     end
-                end
-            end)
-            wait(3)
-        end
-    end)
-end
-
--- ====================
--- MAIN TAB
--- ====================
-local MainTab = Window:CreateTab("Main Features", "🎣")
-
-MainTab:CreateSection("🎮 GET FISH Hack")
-
--- AUTO FARM TOGGLE
-MainTab:CreateToggle({
-    Name = "Auto Farm Fish",
-    CurrentValue = false,
-    Flag = "AutoFarmToggle",
-    Callback = function(Value)
-        AutoFarm = Value
-        if Value then
-            Rayfield:Notify({
-                Title = "✅ AUTO FARM ENABLED",
-                Content = "Mulai menangkap ikan otomatis!",
-                Duration = 3,
-                Image = "rbxassetid://4483345998"
-            })
-            StartAutoFarm()
-        else
-            Rayfield:Notify({
-                Title = "❌ AUTO FARM DISABLED",
-                Content = "Berhenti menangkap ikan!",
-                Duration = 3,
-                Image = "rbxassetid://4483345998"
-            })
-        end
-    end
-})
-
--- AUTO SELL TOGGLE
-MainTab:CreateToggle({
-    Name = "Auto Sell Fish",
-    CurrentValue = false,
-    Flag = "AutoSellToggle",
-    Callback = function(Value)
-        AutoSell = Value
-        if Value then
-            Rayfield:Notify({
-                Title = "✅ AUTO SELL ENABLED",
-                Content = "Mulai menjual ikan otomatis!",
-                Duration = 3,
-                Image = "rbxassetid://4483345998"
-            })
-            StartAutoSell()
-        else
-            Rayfield:Notify({
-                Title = "❌ AUTO SELL DISABLED",
-                Content = "Berhenti menjual ikan!",
-                Duration = 3,
-                Image = "rbxassetid://4483345998"
-            })
-        end
-    end
-})
-
--- SPEED HACK
-MainTab:CreateToggle({
-    Name = "Speed Hack (WalkSpeed 100)",
-    CurrentValue = false,
-    Flag = "SpeedToggle",
-    Callback = function(Value)
-        SpeedHack = Value
-        local Character = LocalPlayer.Character
-        if Character and Character:FindFirstChild("Humanoid") then
-            if Value then
-                Character.Humanoid.WalkSpeed = 100
-                Rayfield:Notify({
-                    Title = "⚡ SPEED HACK ON",
-                    Content = "WalkSpeed: 100",
-                    Duration = 3
-                })
-            else
-                Character.Humanoid.WalkSpeed = 16
-                Rayfield:Notify({
-                    Title = "🐢 SPEED HACK OFF",
-                    Content = "WalkSpeed: 16 (Normal)",
-                    Duration = 3
-                })
-            end
-        end
-    end
-})
-
--- ====================
--- PLAYER TAB
--- ====================
-local PlayerTab = Window:CreateTab("Player Mods", "⚡")
-
-PlayerTab:CreateSection("Movement Modifiers")
-
--- WALKSPEED SLIDER
-PlayerTab:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 300},
-    Increment = 5,
-    Suffix = "Studs",
-    CurrentValue = 16,
-    Flag = "WalkSpeedSlider",
-    Callback = function(Value)
-        pcall(function()
-            LocalPlayer.Character.Humanoid.WalkSpeed = Value
-        end)
-    end
-})
-
--- JUMP POWER SLIDER
-PlayerTab:CreateSlider({
-    Name = "Jump Power",
-    Range = {50, 300},
-    Increment = 5,
-    Suffix = "Power",
-    CurrentValue = 50,
-    Flag = "JumpPowerSlider",
-    Callback = function(Value)
-        pcall(function()
-            LocalPlayer.Character.Humanoid.JumpPower = Value
-        end)
-    end
-})
-
--- INFINITE JUMP
-PlayerTab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Flag = "InfiniteJumpToggle",
-    Callback = function(Value)
-        JumpHack = Value
-        if Value then
-            game:GetService("UserInputService").JumpRequest:Connect(function()
-                if JumpHack then
-                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-                end
-            end)
-            Rayfield:Notify({
-                Title = "🦘 INFINITE JUMP ON",
-                Content = "Tekan spasi untuk jump tanpa batas!",
-                Duration = 3
-            })
-        else
-            Rayfield:Notify({
-                Title = "🦘 INFINITE JUMP OFF",
-                Content = "Jump kembali normal",
-                Duration = 3
-            })
-        end
-    end
-})
-
--- ====================
--- OTHER SCRIPTS TAB
--- ====================
-local ScriptsTab = Window:CreateTab("Other Scripts", "🔧")
-
-ScriptsTab:CreateSection("Popular Scripts")
-
--- INFINITE YIELD
-ScriptsTab:CreateButton({
-    Name = "🛡️ Infinite Yield Admin",
-    Callback = function()
-        Rayfield:Notify({
-            Title = "Loading...",
-            Content = "Loading Infinite Yield...",
-            Duration = 3
-        })
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-    end
-})
-
--- SIMPLE SPY
-ScriptsTab:CreateButton({
-    Name = "👁️ SimpleSpy v3",
-    Callback = function()
-        Rayfield:Notify({
-            Title = "Loading...",
-            Content = "Loading SimpleSpy...",
-            Duration = 3
-        })
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/master/SimpleSpySource.lua"))()
-    end
-})
-
--- ANTI AFK
-ScriptsTab:CreateButton({
-    Name = "⏰ Anti AFK System",
-    Callback = function()
-        Rayfield:Notify({
-            Title = "ANTI AFK ACTIVATED",
-            Content = "Kamu tidak akan di-kick karena AFK!",
-            Duration = 5
-        })
-        
-        local VirtualInputManager = game:GetService("VirtualInputManager")
-        spawn(function()
-            while true do
-                wait(30)
-                pcall(function()
-                    VirtualInputManager:SendKeyEvent(true, "Space", false, game)
-                    wait(0.1)
-                    VirtualInputManager:SendKeyEvent(false, "Space", false, game)
                 end)
             end
         end)
+    else
+        VenusLibrary:Notify("AUTO SELL", "Stopped selling!", "rbxassetid://4483345998")
     end
-})
+end)
 
--- ====================
--- INFO TAB
--- ====================
-local InfoTab = Window:CreateTab("Info & Credits", "📌")
+-- PLAYER MODS TAB
+local playerTab = Window:NewTab("⚡ Player Mods")
+local movementSection = playerTab:NewSection("Movement")
 
-InfoTab:CreateSection("Creator Info")
-InfoTab:CreateLabel("👑 Creator: Linggar Jati Erlangga")
-InfoTab:CreateLabel("📞 Contact: 0895-2007-1068")
-InfoTab:CreateLabel("🐱 GitHub: linggarjatierlangga-sudo")
+-- WALKSPEED SLIDER
+movementSection:NewSlider("Walk Speed", "Change walking speed", 300, 16, function(value)
+    pcall(function()
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+    end)
+end)
 
-InfoTab:CreateSection("Script Info")
-InfoTab:CreateLabel("✨ Version: Garxcuy Hub v2.0")
-InfoTab:CreateLabel("🔧 Engine: ShadowX System 1.21")
-InfoTab:CreateLabel("🎮 Game: GET FISH")
-InfoTab:CreateLabel("📍 Place ID: 78632820802305")
+-- JUMP POWER SLIDER
+movementSection:NewSlider("Jump Power", "Change jump power", 300, 50, function(value)
+    pcall(function()
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = value
+    end)
+end)
 
-InfoTab:CreateSection("Controls")
-InfoTab:CreateButton({
-    Name = "🔄 Refresh Script",
-    Callback = function()
-        Rayfield:Destroy()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/linggarjatierlangga-sudo/Garxcuy/main/GarxcuyHub.lua"))()
+-- INFINITE JUMP
+local infiniteJump = false
+movementSection:NewToggle("Infinite Jump", "Jump forever", function(state)
+    infiniteJump = state
+    if state then
+        game:GetService("UserInputService").JumpRequest:Connect(function()
+            if infiniteJump then
+                game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+            end
+        end)
+        VenusLibrary:Notify("INFINITE JUMP", "Enabled! Press space to fly!", "rbxassetid://4483345998")
     end
-})
+end)
 
-InfoTab:CreateButton({
-    Name = "❌ Destroy UI",
-    Callback = function()
-        Rayfield:Destroy()
-        AutoFarm = false
-        AutoSell = false
-        SpeedHack = false
-        JumpHack = false
-    end
-})
+-- OTHER SCRIPTS TAB
+local scriptsTab = Window:NewTab("🔧 Other Scripts")
+local scriptsSection = scriptsTab:NewSection("Popular Scripts")
 
--- ====================
--- WATERMARK & CREDITS
--- ====================
-Rayfield:Notify({
-    Title = "🔱 GARXCUY HUB v2.0 LOADED",
-    Content = "Created by Linggar Jati Erlangga | Powered by ShadowX",
-    Duration = 8,
-    Image = "rbxassetid://4483345998"
-})
+-- LOAD INFINITE YIELD
+scriptsSection:NewButton("Infinite Yield Admin", "Load Infinite Yield", function()
+    VenusLibrary:Notify("LOADING", "Loading Infinite Yield...", "rbxassetid://4483345998")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+end)
 
--- PRINT CONSOLE MESSAGE
-print("========================================")
-print("GARXCUY HUB v2.0 SUCCESSFULLY LOADED!")
-print("Game: GET FISH")
-print("Creator: Linggar Jati Erlangga")
-print("Enjoy the script! 😎")
-print("========================================")
+-- LOAD SIMPLE SPY
+scriptsSection:NewButton("SimpleSpy v3", "Load SimpleSpy", function()
+    VenusLibrary:Notify("LOADING", "Loading SimpleSpy...", "rbxassetid://4483345998")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/78n/SimpleSpy/master/SimpleSpySource.lua"))()
+end)
 
--- LOAD SUCCESS SOUND (Optional)
+-- ANTI AFK
+scriptsSection:NewButton("Anti AFK", "Prevent AFK kick", function()
+    VenusLibrary:Notify("ANTI AFK", "Enabled! You won't be kicked.", "rbxassetid://4483345998")
+    loadstring(game:HttpGet("https://pastebin.com/raw/uwP0cJ6y"))()
+end)
+
+-- UTILITIES TAB
+local utilTab = Window:NewTab("⚙️ Utilities")
+local utilSection = utilTab:NewSection("Game Utilities")
+
+-- REFRESH CHARACTER
+utilSection:NewButton("Refresh Character", "Reset your character", function()
+    local player = game.Players.LocalPlayer
+    player.Character:BreakJoints()
+    VenusLibrary:Notify("CHARACTER", "Character refreshed!", "rbxassetid://4483345998")
+end)
+
+-- SERVER HOP
+utilSection:NewButton("Server Hop", "Join new server", function()
+    VenusLibrary:Notify("SERVER HOP", "Finding new server...", "rbxassetid://4483345998")
+    loadstring(game:HttpGet("https://pastebin.com/raw/1vv6xSX2"))()
+end)
+
+-- DESTROY UI
+utilSection:NewButton("Destroy UI", "Remove Garxcuy Hub", function()
+    VenusLibrary:Notify("GOODBYE", "Garxcuy Hub destroyed!", "rbxassetid://4483345998")
+    wait(1)
+    Window:Destroy()
+end)
+
+-- SUCCESS MESSAGE
+VenusLibrary:Notify(
+    "🔱 GARXCUY HUB v2.2 LOADED!",
+    "Created by Linggar Jati Erlangga\nEnjoy the script! 😎",
+    "rbxassetid://4483345998"
+)
+
+print("=================================================================")
+print("✅ GARXCUY HUB SUCCESSFULLY LOADED!")
+print("✅ UI: Venyx Library (Stable)")
+print("✅ Creator: Linggar Jati Erlangga")
+print("✅ Ready to use!")
+print("=================================================================")
+
+-- PLAY LOAD SOUND
 pcall(function()
-    local Sound = Instance.new("Sound")
-    Sound.SoundId = "rbxassetid://4590662766"
-    Sound.Volume = 0.3
-    Sound.Parent = game:GetService("SoundService")
-    Sound:Play()
-    game:GetService("Debris"):AddItem(Sound, 3)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://4590662766"
+    sound.Volume = 0.3
+    sound.Parent = game:GetService("SoundService")
+    sound:Play()
+    game.Debris:AddItem(sound, 3)
 end)
