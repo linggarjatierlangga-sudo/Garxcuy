@@ -1,153 +1,92 @@
 -- ============================================
--- GARXCUY HUB GET FISH FIXED v4.0
--- POSITION: TOP RIGHT (Tidak nutup game UI)
--- By: Linggar Jati Erlangga
+-- GARXCUY HUB ULTIMATE v7.0 WITH FAST REEL
+-- BY: LINGGAR JATI ERLANGGAsudo
+-- LOADSTRING: loadstring(game:HttpGet("https://raw.githubusercontent.com/linggarjatierlangga-sudo/Garxcuy/main/GarxcuyHub.lua"))()
 -- ============================================
 
-wait(4) -- Tunggu game FULL LOAD
+getgenv().GarxcuyHub = true
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+wait(3)
 
 print("=================================================================")
-print("🔱 GARXCUY HUB v4.0 | GET FISH FIXED")
+print("🔱 GARXCUY HUB v7.0 | GET FISH")
+print("👑 Creator: Linggar Jati Erlangga")
+print("📞 Contact: 0895-2007-1068")
 print("=================================================================")
 
--- VARIABLES UTAMA
+-- VARIABLES
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- CEK GAME LOAD
-if not LocalPlayer.Character then
-    LocalPlayer.CharacterAdded:Wait()
-end
-
--- ===============================
--- SIMPLE MINIMAL GUI (POSISI ATAS KANAN)
--- ===============================
+-- CREATE GUI (PASTI MUNCUL)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GarxcuyHub_Mini"
+screenGui.Name = "GarxcuyHub_Main"
+screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.DisplayOrder = 999 -- PASTI DI ATAS
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") -- PAKE Playergui, BUKAN CoreGui!
+screenGui.Parent = game.CoreGui or LocalPlayer.PlayerGui
 
--- MAIN MINI FRAME (POSISI ATAS KANAN)
+-- MAIN WINDOW
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 250, 0, 40) -- MINIMAL SIZE
-mainFrame.Position = UDim2.new(1, -260, 0, 10) -- TOP RIGHT (gak nutup game UI)
+mainFrame.Size = UDim2.new(0, 350, 0, 550) -- DIPANJANGKAN KARENA ADA TAMBAHAN FITUR
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -275)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- TITLE BAR YANG BISA DITARIK
-local titleBar = Instance.new("TextButton")
-titleBar.Size = UDim2.new(1, 0, 1, 0)
+-- TITLE BAR
+local titleBar = Instance.new("TextLabel")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-titleBar.Text = "🔱 GARXCUY HUB v4.0 (Click to expand)"
+titleBar.Text = "🔱 GARXCUY HUB v7.0 | By Linggar"
 titleBar.TextColor3 = Color3.white
 titleBar.Font = Enum.Font.GothamBold
-titleBar.TextSize = 12
-titleBar.TextWrapped = true
+titleBar.TextSize = 16
 titleBar.Parent = mainFrame
 
--- EXPANDED CONTENT (Sembunyi awal)
-local contentFrame = Instance.new("Frame")
-contentFrame.Size = UDim2.new(1, 0, 0, 0) -- Height 0 = hidden
-contentFrame.Position = UDim2.new(0, 0, 1, 0)
-contentFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-contentFrame.ClipsDescendants = true
-contentFrame.Parent = mainFrame
-
--- TOGGLE STATE
-local isExpanded = false
-local cheatsEnabled = {}
-
--- TOGGLE EXPAND/COLLAPSE
-titleBar.MouseButton1Click:Connect(function()
-    isExpanded = not isExpanded
-    if isExpanded then
-        contentFrame.Size = UDim2.new(1, 0, 0, 300) -- Expand
-        mainFrame.Size = UDim2.new(0, 250, 0, 340)  -- Perbesar frame utama
-        titleBar.Text = "🔱 GARXCUY HUB v4.0 (Click to collapse)"
-    else
-        contentFrame.Size = UDim2.new(1, 0, 0, 0)   -- Collapse
-        mainFrame.Size = UDim2.new(0, 250, 0, 40)   -- Kecilkan ke ukuran awal
-        titleBar.Text = "🔱 GARXCUY HUB v4.0 (Click to expand)"
-    end
+-- CLOSE BUTTON
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 40, 0, 40)
+closeBtn.Position = UDim2.new(1, -40, 0, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
 end)
 
--- SCROLL FRAME UNTUK CHEATS
+-- SCROLL FRAME
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -10, 1, -10)
-scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+scrollFrame.Size = UDim2.new(1, -10, 1, -50)
+scrollFrame.Position = UDim2.new(0, 5, 0, 45)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.ScrollBarThickness = 5
-scrollFrame.Parent = contentFrame
+scrollFrame.Parent = mainFrame
 
--- ===============================
--- FITUR UTAMA GET FISH
--- ===============================
-local function FindFishingSpot()
-    -- CARI SPOT FISHING BERDASARKAN SCREENSHOT LU
-    local spots = {}
-    
-    -- CARI BERDASARKAN NAMA DARI SCREENSHOT
-    local targetNames = {
-        "Unte Tinc Tang",
-        "Undang", 
-        "LAUT",
-        "TERBUKA",
-        "Fish",
-        "Spot",
-        "Pond",
-        "River"
-    }
-    
-    for _, name in pairs(targetNames) do
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("Part") and obj.Name:find(name) then
-                table.insert(spots, obj)
-            end
-        end
-    end
-    
-    -- KALO GAK KETEMU, CARI PART BIRU (BIASA NYA FISHING SPOT)
-    if #spots == 0 then
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("Part") and (obj.BrickColor == BrickColor.new("Bright blue") or 
-               obj.BrickColor == BrickColor.new("Cyan") or
-               obj.Material == Enum.Material.Water) then
-                table.insert(spots, obj)
-            end
-        end
-    end
-    
-    return spots
-end
-
-local function Click()
-    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    wait(0.05)
-    game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
-end
-
--- ===============================
--- CREATE CHEAT TOGGLES
--- ===============================
-local function CreateCheatToggle(name, description, cheatFunction)
-    local index = #cheatsEnabled + 1
-    local yPos = (index-1) * 50
+-- FUNCTION CREATE TOGGLE
+local toggles = {}
+function CreateToggle(name, description, defaultState, callback)
+    local index = #toggles + 1
+    local yPos = (index-1) * 55
     
     local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, -10, 0, 45)
-    toggleFrame.Position = UDim2.new(0, 5, 0, yPos)
-    toggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    toggleFrame.Size = UDim2.new(1, 0, 0, 50)
+    toggleFrame.Position = UDim2.new(0, 0, 0, yPos)
+    toggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     toggleFrame.Parent = scrollFrame
     
     local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 30, 0, 30)
-    toggleBtn.Position = UDim2.new(0, 5, 0, 7)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    toggleBtn.Size = UDim2.new(0, 40, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 5, 0, 5)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     toggleBtn.Text = "OFF"
     toggleBtn.TextColor3 = Color3.white
     toggleBtn.Font = Enum.Font.GothamBold
@@ -155,237 +94,376 @@ local function CreateCheatToggle(name, description, cheatFunction)
     toggleBtn.Parent = toggleFrame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -40, 0, 30)
-    label.Position = UDim2.new(0, 35, 0, 7)
+    label.Size = UDim2.new(1, -50, 0, 25)
+    label.Position = UDim2.new(0, 50, 0, 5)
     label.BackgroundTransparency = 1
     label.Text = name
     label.TextColor3 = Color3.white
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 12
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextWrapped = true
     label.Parent = toggleFrame
     
     local desc = Instance.new("TextLabel")
-    desc.Size = UDim2.new(1, -10, 0, 12)
-    desc.Position = UDim2.new(0, 5, 0, 32)
+    desc.Size = UDim2.new(1, -50, 0, 20)
+    desc.Position = UDim2.new(0, 50, 0, 25)
     desc.BackgroundTransparency = 1
     desc.Text = description
     desc.TextColor3 = Color3.fromRGB(180, 180, 180)
     desc.Font = Enum.Font.Gotham
-    desc.TextSize = 10
+    desc.TextSize = 11
     desc.TextXAlignment = Enum.TextXAlignment.Left
     desc.Parent = toggleFrame
     
-    local enabled = false
+    local state = defaultState
+    if defaultState then
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        toggleBtn.Text = "ON"
+    end
+    
     toggleBtn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        cheatsEnabled[name] = enabled
-        
-        if enabled then
-            toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        state = not state
+        if state then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
             toggleBtn.Text = "ON"
-            cheatFunction(true)
         else
-            toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             toggleBtn.Text = "OFF"
-            cheatFunction(false)
         end
+        callback(state)
     end)
     
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, index * 50)
+    table.insert(toggles, {frame = toggleFrame, state = state})
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, index * 55)
     
     return toggleBtn
 end
 
--- ===============================
--- CHEAT DEFINITIONS
--- ===============================
+-- FUNCTION CREATE BUTTON
+function CreateButton(name, callback)
+    local index = #toggles + 1
+    local yPos = (index-1) * 55
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 50)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+    btn.Text = name
+    btn.TextColor3 = Color3.white
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Parent = scrollFrame
+    
+    btn.MouseButton1Click:Connect(callback)
+    
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, index * 55)
+end
 
--- 1. AUTO FISH
-CreateCheatToggle("🎣 AUTO FISH", "Auto teleport & fish at all spots", function(state)
+-- ===============================
+-- FITUR FAST REEL (BARU)
+-- ===============================
+local fastReelEnabled = false
+local fastReelToggle = CreateToggle("⚡ FAST REEL", "Reel fish super fast", false, function(state)
+    fastReelEnabled = state
     if state then
         spawn(function()
-            while cheatsEnabled["🎣 AUTO FISH"] do
-                pcall(function()
-                    local spots = FindFishingSpot()
-                    local char = LocalPlayer.Character
-                    
-                    if char and #spots > 0 then
-                        for _, spot in pairs(spots) do
-                            if not cheatsEnabled["🎣 AUTO FISH"] then break end
-                            
-                            -- TELEPORT
-                            char:SetPrimaryPartCFrame(spot.CFrame + Vector3.new(0, 5, 0))
-                            wait(0.8)
-                            
-                            -- CLICK TO FISH
-                            Click()
-                            wait(0.5)
-                        end
-                    end
-                end)
-                wait(1)
+            while fastReelEnabled do
+                -- KLIK SUPER CEPAT UNTUK REEL
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                wait(0.02) -- SUPER FAST INTERVAL
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                wait(0.02)
             end
         end)
-    end
-end)
-
--- 2. AUTO SELL
-CreateCheatToggle("💰 AUTO SELL", "Auto sell fish every 15s", function(state)
-    if state then
-        spawn(function()
-            while cheatsEnabled["💰 AUTO SELL"] do
-                pcall(function()
-                    -- CARI NPC SELLER
-                    for _, npc in pairs(Workspace:GetDescendants()) do
-                        if npc:IsA("Model") and npc.Name:find("Seller") or npc.Name:find("Merchant") then
-                            LocalPlayer.Character:SetPrimaryPartCFrame(npc:GetPrimaryPartCFrame())
-                            wait(0.5)
-                            
-                            -- FIRE SELL EVENT
-                            for _, remote in pairs(game.ReplicatedStorage:GetDescendants()) do
-                                if remote:IsA("RemoteEvent") then
-                                    remote:FireServer("sell_all")
-                                end
-                            end
-                            break
-                        end
-                    end
-                end)
-                wait(15)
-            end
-        end)
-    end
-end)
-
--- 3. SPEED HACK
-CreateCheatToggle("⚡ SPEED HACK", "WalkSpeed 100 (Toggle)", function(state)
-    if state then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 100
+        print("⚡ Fast Reel Activated!")
     else
-        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+        print("⚡ Fast Reel Stopped")
     end
 end)
 
--- 4. INFINITE JUMP
-CreateCheatToggle("🦘 INFINITE JUMP", "Jump forever in air", function(state)
+-- ===============================
+-- FITUR AUTO FISH (WORKING)
+-- ===============================
+local autoFishToggle = CreateToggle("🎣 AUTO FISH", "Auto teleport & fish at spots", false, function(state)
+    if state then
+        spawn(function()
+            while autoFishToggle.Text == "ON" do
+                wait(3)
+                
+                -- FIND FISHING SPOTS
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Part") then
+                        -- DETECT FISHING SPOT
+                        if obj.BrickColor == BrickColor.new("Bright blue") or
+                           obj.BrickColor == BrickColor.new("Cyan") or
+                           obj.Material == Enum.Material.Water or
+                           obj.Name:find("Fish") or
+                           obj.Name:find("Spot") then
+                           
+                            local char = LocalPlayer.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                -- TELEPORT
+                                char.HumanoidRootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                                wait(0.5)
+                                
+                                -- CLICK TO FISH
+                                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                                wait(0.1)
+                                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                                
+                                -- JALANKAN FAST REEL OTOMATIS KALAU NYALA
+                                if fastReelEnabled then
+                                    for i = 1, 20 do
+                                        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                                        wait(0.02)
+                                        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                                    end
+                                end
+                                
+                                print("🎣 Fishing at: " .. obj.Name)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        print("❌ Auto Fish stopped")
+    end
+end)
+
+-- ===============================
+-- INSTANT CATCH BUTTON (BARU)
+-- ===============================
+CreateButton("🎯 INSTANT CATCH", function()
+    -- SIMULASI CATCH SUPER CEPAT
+    for i = 1, 50 do
+        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        wait(0.01)
+        game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    end
+    print("🎯 Instant Catch Activated!")
+end)
+
+-- ===============================
+-- SPEED HACK
+-- ===============================
+CreateToggle("🏃 SPEED HACK", "WalkSpeed 100", false, function(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        if state then
+            char.Humanoid.WalkSpeed = 100
+        else
+            char.Humanoid.WalkSpeed = 16
+        end
+    end
+end)
+
+-- ===============================
+-- INFINITE JUMP
+-- ===============================
+CreateToggle("🦘 INFINITE JUMP", "Jump forever", false, function(state)
     if state then
         game:GetService("UserInputService").JumpRequest:Connect(function()
-            if cheatsEnabled["🦘 INFITE JUMP"] then
+            if LocalPlayer.Character then
                 LocalPlayer.Character.Humanoid:ChangeState("Jumping")
             end
         end)
     end
 end)
 
--- 5. AUTO CLAIM DAILY
-CreateCheatToggle("🎁 AUTO DAILY", "Auto claim daily reward", function(state)
+-- ===============================
+-- NO CLIP
+-- ===============================
+CreateToggle("👻 NO CLIP", "Walk through walls", false, function(state)
     if state then
         spawn(function()
-            while cheatsEnabled["🎁 AUTO DAILY"] do
+            while wait() do
                 pcall(function()
-                    for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
-                        if gui:IsA("TextButton") and (gui.Text:find("DAILY") or gui.Text:find("CLAIM")) then
-                            fireclickdetector(gui)
+                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
                         end
                     end
                 end)
-                wait(60) -- Cek setiap 1 menit
+            end
+        end)
+    else
+        pcall(function()
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
             end
         end)
     end
 end)
 
--- 6. NO FALL DAMAGE
-CreateCheatToggle("🛡️ NO FALL DAMAGE", "No damage from falling", function(state)
-    if state then
-        LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-    else
-        LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-        LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+-- ===============================
+-- BUTTON FEATURES LAIN
+-- ===============================
+CreateButton("💰 CLAIM DAILY REWARD", function()
+    for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Text:find("DAILY") then
+            fireclickdetector(gui)
+            print("✅ Claimed daily reward")
+            break
+        end
     end
 end)
 
--- ===============================
--- QUICK BUTTONS
--- ===============================
-local function CreateQuickButton(name, callback)
-    local index = #cheatsEnabled + 1
-    local yPos = (index-1) * 40
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 35)
-    btn.Position = UDim2.new(0, 5, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
-    btn.Text = name
-    btn.TextColor3 = Color3.white
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
-    btn.Parent = scrollFrame
-    
-    btn.MouseButton1Click:Connect(callback)
-    
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (index * 40) + 50)
-end
-
-CreateQuickButton("📈 MAXIMIZE CF", function()
-    pcall(function()
-        local stats = LocalPlayer:FindFirstChild("leaderstats")
-        if stats then
-            for _, stat in pairs(stats:GetChildren()) do
-                if stat.Name == "CF" then
-                    stat.Value = 999999999
-                end
-            end
+CreateButton("📍 TELEPORT TO BEST SPOT", function()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Part") and obj.Name:find("LAUT") then
+            LocalPlayer.Character:SetPrimaryPartCFrame(obj.CFrame + Vector3.new(0, 10, 0))
+            print("📍 Teleported to: " .. obj.Name)
+            break
         end
-    end)
+    end
 end)
 
-CreateQuickButton("🔧 LOAD INFINITE YIELD", function()
+CreateButton("📈 INCREASE CF +50K", function()
+    if LocalPlayer:FindFirstChild("leaderstats") then
+        for _, stat in pairs(LocalPlayer.leaderstats:GetChildren()) do
+            if stat.Name == "CF" then
+                stat.Value = stat.Value + 50000
+                print("💰 CF: " .. stat.Value)
+            end
+        end
+    end
+end)
+
+CreateButton("🛡️ LOAD INFINITE YIELD", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 end)
 
-CreateQuickButton("🎮 TELEPORT TO BEST SPOT", function()
-    local spots = FindFishingSpot()
-    if #spots > 0 then
-        LocalPlayer.Character:SetPrimaryPartCFrame(spots[1].CFrame + Vector3.new(0, 10, 0))
+CreateButton("🔍 DEBUG GAME INFO", function()
+    print("=== DEBUG INFO ===")
+    print("Game: GET FISH")
+    print("Player: " .. LocalPlayer.Name)
+    
+    -- SHOW WORKSPACE OBJECTS
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if obj:IsA("Part") then
+            print("📦 " .. obj.Name .. " | Color: " .. tostring(obj.BrickColor))
+        end
     end
 end)
 
-CreateQuickButton("❌ DESTROY THIS UI", function()
-    screenGui:Destroy()
+-- ===============================
+-- FAST REEL HOTKEY (BARU)
+-- ===============================
+CreateButton("🔘 FAST REEL HOTKEY (PRESS R)", function()
+    game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Enum.KeyCode.R then
+            -- ACTIVATE FAST REEL WHEN R IS PRESSED
+            for i = 1, 30 do
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                wait(0.01)
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 1)
+            end
+            print("⚡ Fast Reel Hotkey Activated!")
+        end
+    end)
+    print("🔘 Fast Reel Hotkey Ready! Press 'R'")
+end)
+
+-- ===============================
+-- DRAGGABLE GUI
+-- ===============================
+local dragging = false
+local dragStart, frameStart
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        frameStart = mainFrame.Position
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = frameStart + UDim2.new(0, delta.X, 0, delta.Y)
+    end
+end)
+
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- ===============================
+-- NOTIFICATION
+-- ===============================
+local notify = Instance.new("TextLabel")
+notify.Size = UDim2.new(0, 350, 0, 80)
+notify.Position = UDim2.new(0.5, -175, 0, 20)
+notify.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+notify.Text = "✅ GARXCUY HUB v7.0 LOADED!\n👑 By: Linggar Jati Erlangga\n📞 0895-2007-1068\n⚡ NEW: Fast Reel Feature!"
+notify.TextColor3 = Color3.white
+notify.Font = Enum.Font.GothamBold
+notify.TextSize = 14
+notify.TextWrapped = true
+notify.Parent = screenGui
+
+spawn(function()
+    wait(5)
+    notify:Destroy()
 end)
 
 -- ===============================
 -- FINAL SETUP
 -- ===============================
--- UPDATE SCROLL SIZE
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#cheatsEnabled + 4) * 50)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#toggles + 7) * 55)
 
--- SHOW LOAD MESSAGE
-local loadMsg = Instance.new("TextLabel")
-loadMsg.Size = UDim2.new(0, 300, 0, 40)
-loadMsg.Position = UDim2.new(0.5, -150, 0.5, -20)
-loadMsg.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-loadMsg.Text = "✅ GARXCUY HUB v4.0 LOADED!\nBy Linggar Jati Erlangga"
-loadMsg.TextColor3 = Color3.white
-loadMsg.Font = Enum.Font.GothamBold
-loadMsg.TextSize = 14
-loadMsg.TextWrapped = true
-loadMsg.Parent = screenGui
+print("✅ GUI Created Successfully")
+print("✅ Toggles: " .. #toggles .. " features ready")
+print("✅ NEW: Fast Reel Added!")
+print("✅ Game: GET FISH")
+print("✅ Creator: Linggar Jati Erlangga")
 
--- HIDE MESSAGE SETELAH 3 DETIK
+-- SUCCESS SOUND
+pcall(function()
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://4590662766"
+    sound.Volume = 0.3
+    sound.Parent = game:GetService("SoundService")
+    sound:Play()
+    game:GetService("Debris"):AddItem(sound, 3)
+end)
+
+-- AUTO-UPDATE NOTIFICATION
 spawn(function()
-    wait(3)
-    loadMsg:Destroy()
+    wait(10)
+    if screenGui and screenGui.Parent then
+        local updateNotify = Instance.new("TextLabel")
+        updateNotify.Size = UDim2.new(0, 280, 0, 50)
+        updateNotify.Position = UDim2.new(1, -290, 1, -60)
+        updateNotify.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        updateNotify.Text = "🔱 Garxcuy Hub Active\n⚡ Fast Reel Ready"
+        updateNotify.TextColor3 = Color3.fromRGB(0, 255, 0)
+        updateNotify.Font = Enum.Font.GothamBold
+        updateNotify.TextSize = 12
+        updateNotify.TextWrapped = true
+        updateNotify.Parent = screenGui
+    end
+end)
+
+-- ANTI-AFK
+spawn(function()
+    while wait(30) do
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, "Space", false, game)
+        wait(0.1)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, "Space", false, game)
+    end
 end)
 
 print("=================================================================")
-print("✅ GARXCUY HUB v4.0 SUCCESS!")
-print("✅ Position: Top Right (Safe)")
-print("✅ Toggle: Work 100%")
-print("✅ Cheats: Ready")
-print("✅ Creator: Linggar Jati Erlangga")
+print("✅ SCRIPT READY WITH FAST REEL FEATURE!")
 print("=================================================================")
+
+return "Garxcuy Hub v7.0 with Fast Reel Loaded Successfully"
