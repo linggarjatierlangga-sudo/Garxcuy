@@ -1,15 +1,15 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
+-- GarxCuy Hub for Mobile (Dengan Virtual Button) - FIXED
+-- Cocok buat Delta / executor HP
+
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/refs/heads/main/Librarys/Orion/Orion.lua')))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "GarxCuy Hub V3",
+    Name = "GarxCuy Hub (Mobile)",
     HidePremium = false,
     SaveConfig = true,
-    ConfigFolder = "GarxCuyConfig",
+    ConfigFolder = "GarxCuyMobile",
     IntroEnabled = true,
-    IntroText = "GarxCuy Hub",
+    IntroText = "GarxCuy Mobile",
     IntroIcon = "rbxassetid://4483345998"
 })
 
@@ -20,87 +20,114 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
-local highlightFolder = Instance.new("Folder")
-highlightFolder.Name = "ESP_Highlights"
-highlightFolder.Parent = game.CoreGui
+local TweenService = game:GetService("TweenService")
 
--- Global variables
-local espEnabled = false
-local noclipEnabled = false
+-- Variabel & koneksi
 local flyEnabled = false
+local freecamEnabled = false
 local flySpeed = 50
-local flyBodyVelocity = nil
+local freecamSpeed = 50
+local flyBV = nil
+local freecamConn = nil
+local noclipEnabled = false
 local noclipConn = nil
 local flyConn = nil
-local espConnections = {}
+local espEnabled = false
+local espFolder = Instance.new("Folder")
+espFolder.Name = "ESP_Mobile"
+espFolder.Parent = game:GetService("CoreGui")
+local espConnections = {}  -- buat nyimpen semua koneksi ESP
 
--- Key tracking for movement
-local keys = {
-    W = false, A = false, S = false, D = false,
-    Space = false, Shift = false
-}
+-- ===== VIRTUAL BUTTON (JOYSTICK) =====
+local VirtualGui = Instance.new("ScreenGui")
+VirtualGui.Name = "VirtualControls"
+VirtualGui.ResetOnSpawn = false
+VirtualGui.Parent = game:GetService("CoreGui")
 
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
-    if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
-    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Shift = true end
-end)
+-- Fungsi buat bikin tombol
+local function makeButton(name, pos, size, color, text)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(0, size, 0, size)
+    btn.Position = UDim2.new(pos.X, 0, pos.Y, 0)
+    btn.BackgroundColor3 = color
+    btn.BackgroundTransparency = 0.3
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextSize = 20
+    btn.Font = Enum.Font.GothamBold
+    btn.Draggable = true
+    btn.Parent = VirtualGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.5, 0)
+    corner.Parent = btn
+    
+    return btn
+end
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
-    if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
-    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Shift = false end
+-- Buat tombol arah
+local btnW = makeButton("W", Vector2.new(0.45, 0.3), 60, Color3.fromRGB(0, 160, 255), "W")
+local btnA = makeButton("A", Vector2.new(0.35, 0.4), 60, Color3.fromRGB(0, 160, 255), "A")
+local btnS = makeButton("S", Vector2.new(0.45, 0.4), 60, Color3.fromRGB(0, 160, 255), "S")
+local btnD = makeButton("D", Vector2.new(0.55, 0.4), 60, Color3.fromRGB(0, 160, 255), "D")
+local btnUp = makeButton("Up", Vector2.new(0.8, 0.3), 60, Color3.fromRGB(255, 100, 0), "↑")
+local btnDown = makeButton("Down", Vector2.new(0.8, 0.4), 60, Color3.fromRGB(255, 100, 0), "↓")
+
+-- State tombol
+local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
+
+btnW.MouseButton1Click:Connect(function() keys.W = not keys.W end)
+btnW.MouseButton2Click:Connect(function() keys.W = false end)
+btnA.MouseButton1Click:Connect(function() keys.A = not keys.A end)
+btnA.MouseButton2Click:Connect(function() keys.A = false end)
+btnS.MouseButton1Click:Connect(function() keys.S = not keys.S end)
+btnS.MouseButton2Click:Connect(function() keys.S = false end)
+btnD.MouseButton1Click:Connect(function() keys.D = not keys.D end)
+btnD.MouseButton2Click:Connect(function() keys.D = false end)
+btnUp.MouseButton1Click:Connect(function() keys.Up = not keys.Up end)
+btnUp.MouseButton2Click:Connect(function() keys.Up = false end)
+btnDown.MouseButton1Click:Connect(function() keys.Down = not keys.Down end)
+btnDown.MouseButton2Click:Connect(function() keys.Down = false end)
+
+-- Update warna tombol sesuai state
+RunService.RenderStepped:Connect(function()
+    btnW.BackgroundColor3 = keys.W and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
+    btnA.BackgroundColor3 = keys.A and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
+    btnS.BackgroundColor3 = keys.S and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
+    btnD.BackgroundColor3 = keys.D and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
+    btnUp.BackgroundColor3 = keys.Up and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 0)
+    btnDown.BackgroundColor3 = keys.Down and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 0)
 end)
 
 -- ===== TAB PLAYER =====
-local PlayerTab = Window:MakeTab({
-    Name = "Player",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local PlayerTab = Window:MakeTab({Name = "Player", Icon = "rbxassetid://4483345998"})
 
--- WalkSpeed Slider
+-- WalkSpeed
 PlayerTab:AddSlider({
     Name = "WalkSpeed",
-    Min = 16,
-    Max = 500,
-    Default = 16,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "speed",
-    Callback = function(value)
+    Min = 16, Max = 500, Default = 16,
+    Callback = function(v)
         local char = LocalPlayer.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = value
-            end
+            if hum then hum.WalkSpeed = v end
         end
     end
 })
 
--- NoClip Toggle (dipindah ke Player)
+-- NoClip
 PlayerTab:AddToggle({
     Name = "NoClip",
     Default = false,
     Callback = function(state)
         noclipEnabled = state
         if state then
+            if noclipConn then noclipConn:Disconnect() end
             noclipConn = RunService.Stepped:Connect(function()
-                if not noclipEnabled then return end
-                local char = LocalPlayer.Character
-                if char then
-                    for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+                if noclipEnabled and LocalPlayer.Character then
+                    for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
                     end
                 end
             end)
@@ -109,19 +136,17 @@ PlayerTab:AddToggle({
                 noclipConn:Disconnect()
                 noclipConn = nil
             end
-            local char = LocalPlayer.Character
-            if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
+            -- Kembalikan collide ke true (opsional)
+            if LocalPlayer.Character then
+                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = true end
                 end
             end
         end
     end
 })
 
--- FLY MODE (FIXED)
+-- Fly Mode (pake virtual button)
 PlayerTab:AddToggle({
     Name = "Fly Mode",
     Default = false,
@@ -130,40 +155,41 @@ PlayerTab:AddToggle({
         local char = LocalPlayer.Character
         if not char then return end
         local hum = char:FindFirstChildOfClass("Humanoid")
-        local rootPart = char:FindFirstChild("HumanoidRootPart")
-        if not rootPart then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
         
         if state then
             hum.PlatformStand = true
-            flyBodyVelocity = Instance.new("BodyVelocity")
-            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            flyBodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
-            flyBodyVelocity.Parent = rootPart
+            flyBV = Instance.new("BodyVelocity")
+            flyBV.Velocity = Vector3.new(0,0,0)
+            flyBV.MaxForce = Vector3.new(10000,10000,10000)
+            flyBV.Parent = root
             
+            if flyConn then flyConn:Disconnect() end
             flyConn = RunService.Heartbeat:Connect(function()
                 if not flyEnabled then return end
-                local moveDir = Vector3.new()
-                if keys.W then moveDir = moveDir + Camera.CFrame.LookVector end
-                if keys.S then moveDir = moveDir - Camera.CFrame.LookVector end
-                if keys.A then moveDir = moveDir - Camera.CFrame.RightVector end
-                if keys.D then moveDir = moveDir + Camera.CFrame.RightVector end
-                if keys.Space then moveDir = moveDir + Vector3.new(0, 1, 0) end
-                if keys.Shift then moveDir = moveDir - Vector3.new(0, 1, 0) end
+                local move = Vector3.new()
+                if keys.W then move = move + Camera.CFrame.LookVector end
+                if keys.S then move = move - Camera.CFrame.LookVector end
+                if keys.A then move = move - Camera.CFrame.RightVector end
+                if keys.D then move = move + Camera.CFrame.RightVector end
+                if keys.Up then move = move + Vector3.new(0,1,0) end
+                if keys.Down then move = move - Vector3.new(0,1,0) end
                 
-                if moveDir.Magnitude > 0 then
-                    flyBodyVelocity.Velocity = moveDir.Unit * flySpeed
+                if move.Magnitude > 0 then
+                    flyBV.Velocity = move.Unit * flySpeed
                 else
-                    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                    flyBV.Velocity = Vector3.new(0,0,0)
                 end
             end)
         else
-            if flyBodyVelocity then
-                flyBodyVelocity:Destroy()
-                flyBodyVelocity = nil
-            end
             if flyConn then
                 flyConn:Disconnect()
                 flyConn = nil
+            end
+            if flyBV then
+                flyBV:Destroy()
+                flyBV = nil
             end
             hum.PlatformStand = false
         end
@@ -172,274 +198,46 @@ PlayerTab:AddToggle({
 
 PlayerTab:AddSlider({
     Name = "Fly Speed",
-    Min = 10,
-    Max = 500,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "speed",
-    Callback = function(value)
-        flySpeed = value
-    end
+    Min = 10, Max = 500, Default = 50,
+    Callback = function(v) flySpeed = v end
 })
 
 -- Infinity Jump
-local infinityJumpEnabled = false
-local infinityJumpPower = 100
-local infinityJumpConnection = nil
-
+local infinityJump = false
 PlayerTab:AddToggle({
     Name = "Infinity Jump",
     Default = false,
-    Callback = function(state)
-        infinityJumpEnabled = state
-        if state then
-            infinityJumpConnection = UserInputService.JumpRequest:Connect(function()
-                if not infinityJumpEnabled then return end
-                local char = LocalPlayer.Character
-                if not char then return end
-                local rootPart = char:FindFirstChild("HumanoidRootPart")
-                if not rootPart then return end
-                
-                local bv = Instance.new("BodyVelocity")
-                bv.Velocity = Vector3.new(0, infinityJumpPower, 0)
-                bv.MaxForce = Vector3.new(0, math.huge, 0)
-                bv.Parent = rootPart
-                game:GetService("Debris"):AddItem(bv, 0.5)
-            end)
-        else
-            if infinityJumpConnection then
-                infinityJumpConnection:Disconnect()
-                infinityJumpConnection = nil
-            end
-        end
-    end
+    Callback = function(s) infinityJump = s end
 })
 
-PlayerTab:AddSlider({
-    Name = "Infinity Jump Power",
-    Min = 50,
-    Max = 500,
-    Default = 100,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "force",
-    Callback = function(value)
-        infinityJumpPower = value
+UserInputService.JumpRequest:Connect(function()
+    if infinityJump and LocalPlayer.Character then
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 100, 0)
+            bv.MaxForce = Vector3.new(0, math.huge, 0)
+            bv.Parent = root
+            game:GetService("Debris"):AddItem(bv, 0.5)
+        end
     end
-})
+end)  -- <-- hanya satu kurung tutup
 
 -- Reset WalkSpeed
 PlayerTab:AddButton({
     Name = "Reset WalkSpeed",
     Callback = function()
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = 16
-            end
+        if LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
         end
-        OrionLib:MakeNotification({
-            Name = "Reset",
-            Content = "WalkSpeed kembali normal",
-            Image = "rbxassetid://4483345998",
-            Time = 2
-        })
+        OrionLib:MakeNotification({Name="Reset", Content="WalkSpeed normal", Time=2})
     end
 })
 
--- ===== TAB ESP =====
-local ESPTab = Window:MakeTab({
-    Name = "ESP",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Fungsi ESP
-local function createHighlight(player)
-    if not player.Character then return end
-    local highlight = Instance.new("Highlight")
-    highlight.Name = player.Name .. "_ESP"
-    if player.Team then
-        highlight.FillColor = player.Team.TeamColor.Color
-    else
-        highlight.FillColor = Color3.new(1, 0, 0)
-    end
-    highlight.OutlineColor = Color3.new(1, 1, 1)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.Parent = highlightFolder
-    highlight.Adornee = player.Character
-    return highlight
-end
-
--- Toggle ESP
-ESPTab:AddToggle({
-    Name = "Enable ESP",
-    Default = false,
-    Callback = function(state)
-        espEnabled = state
-        if state then
-            for _, v in ipairs(highlightFolder:GetChildren()) do
-                v:Destroy()
-            end
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    createHighlight(player)
-                end
-            end
-            espConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
-                player.CharacterAdded:Connect(function()
-                    if espEnabled and player ~= LocalPlayer then
-                        createHighlight(player)
-                    end
-                end)
-            end)
-            espConnections.CharacterAdded = {}
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    espConnections.CharacterAdded[player] = player.CharacterAdded:Connect(function()
-                        if espEnabled then
-                            createHighlight(player)
-                        end
-                    end)
-                end
-            end
-            espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
-                local highlight = highlightFolder:FindFirstChild(player.Name .. "_ESP")
-                if highlight then highlight:Destroy() end
-            end)
-            espConnections.Heartbeat = RunService.Heartbeat:Connect(function()
-                if not espEnabled then return end
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local highlight = highlightFolder:FindFirstChild(player.Name .. "_ESP")
-                        if highlight and player.Team then
-                            highlight.FillColor = player.Team.TeamColor.Color
-                        end
-                    end
-                end
-            end)
-        else
-            for _, v in ipairs(highlightFolder:GetChildren()) do
-                v:Destroy()
-            end
-            for _, conn in pairs(espConnections) do
-                if conn then conn:Disconnect() end
-            end
-            espConnections = {}
-        end
-    end
-})
-
--- ===== TARGET SECTION (LOCK PLAYER) =====
-local TargetSection = ESPTab:AddSection({
-    Name = "Target"
-})
-
-local selectedPlayer = nil
-local playerNames = {}
-local function updatePlayerList()
-    playerNames = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(playerNames, p.Name)
-        end
-    end
-end
-updatePlayerList()
-
--- Dropdown
-local playerDropdown = ESPTab:AddDropdown({
-    Name = "Select Player",
-    Options = playerNames,
-    Default = "",
-    Callback = function(value)
-        selectedPlayer = Players:FindFirstChild(value)
-    end
-})
-
--- Update dropdown on player join/leave
-Players.PlayerAdded:Connect(function()
-    updatePlayerList()
-    playerDropdown:Refresh(playerNames, true)
-end)
-Players.PlayerRemoving:Connect(function()
-    updatePlayerList()
-    playerDropdown:Refresh(playerNames, true)
-end)
-
--- Spectate toggle
-local spectating = false
-local spectateConn = nil
-ESPTab:AddToggle({
-    Name = "Spectate Player",
-    Default = false,
-    Callback = function(state)
-        spectating = state
-        if spectating and selectedPlayer then
-            local function update()
-                if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                    Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    Camera.CameraType = Enum.CameraType.Custom
-                end
-            end
-            update()
-            spectateConn = selectedPlayer.CharacterAdded:Connect(update)
-        else
-            if spectateConn then
-                spectateConn:Disconnect()
-                spectateConn = nil
-            end
-            -- Kembalikan ke localplayer
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            end
-            Camera.CameraType = Enum.CameraType.Custom
-        end
-    end
-})
-
--- Teleport button
-ESPTab:AddButton({
-    Name = "Teleport to Player",
-    Callback = function()
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-                OrionLib:MakeNotification({
-                    Name = "Teleport",
-                    Content = "Teleported to " .. selectedPlayer.Name,
-                    Image = "rbxassetid://4483345998",
-                    Time = 2
-                })
-            end
-        else
-            OrionLib:MakeNotification({
-                Name = "Error",
-                Content = "Player tidak valid atau tidak memiliki karakter",
-                Image = "rbxassetid://4483345998",
-                Time = 2
-            })
-        end
-    end
-})
-
--- ===== TAB FREECAM (FIXED) =====
-local FreecamTab = Window:MakeTab({
-    Name = "FREECAM",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local freecamEnabled = false
-local freecamSpeed = 50
-local freecamConnection = nil
+-- ===== TAB FREECAM =====
+local FreecamTab = Window:MakeTab({Name = "Freecam", Icon = "rbxassetid://4483345998"})
 local originalCF = nil
-local originalSubject = nil
-local originalType = nil
 
 FreecamTab:AddToggle({
     Name = "Enable Freecam",
@@ -447,68 +245,117 @@ FreecamTab:AddToggle({
     Callback = function(state)
         freecamEnabled = state
         if state then
-            -- Simpan state asli
             originalCF = Camera.CFrame
-            originalSubject = Camera.CameraSubject
-            originalType = Camera.CameraType
-            
-            -- Set kamera ke scriptable agar bisa dikontrol
             Camera.CameraType = Enum.CameraType.Scriptable
             
-            -- Loop gerak
-            freecamConnection = RunService.RenderStepped:Connect(function(dt)
+            if freecamConn then freecamConn:Disconnect() end
+            freecamConn = RunService.RenderStepped:Connect(function(dt)
                 if not freecamEnabled then return end
                 local move = Vector3.new()
                 if keys.W then move = move + Camera.CFrame.LookVector end
                 if keys.S then move = move - Camera.CFrame.LookVector end
                 if keys.A then move = move - Camera.CFrame.RightVector end
                 if keys.D then move = move + Camera.CFrame.RightVector end
-                if keys.Space then move = move + Vector3.new(0, 1, 0) end
-                if keys.Shift then move = move - Vector3.new(0, 1, 0) end
+                if keys.Up then move = move + Vector3.new(0,1,0) end
+                if keys.Down then move = move - Vector3.new(0,1,0) end
                 
                 if move.Magnitude > 0 then
                     Camera.CFrame = Camera.CFrame + move.Unit * freecamSpeed * dt * 60
                 end
             end)
         else
-            if freecamConnection then
-                freecamConnection:Disconnect()
-                freecamConnection = nil
+            if freecamConn then
+                freecamConn:Disconnect()
+                freecamConn = nil
             end
-            -- Kembalikan kamera
-            if originalCF then
-                Camera.CFrame = originalCF
-            end
-            if originalSubject then
-                Camera.CameraSubject = originalSubject
-            end
-            if originalType then
-                Camera.CameraType = originalType
-            else
-                Camera.CameraType = Enum.CameraType.Custom
-            end
+            if originalCF then Camera.CFrame = originalCF end
+            Camera.CameraType = Enum.CameraType.Custom
         end
     end
 })
 
 FreecamTab:AddSlider({
     Name = "Freecam Speed",
-    Min = 10,
-    Max = 500,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "speed",
-    Callback = function(value)
-        freecamSpeed = value
+    Min = 10, Max = 500, Default = 50,
+    Callback = function(v) freecamSpeed = v end
+})
+
+-- ===== TAB ESP =====
+local ESPTab = Window:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998"})
+
+local function createESP(p)
+    if p == LocalPlayer then return end
+    -- Hapus highlight lama jika ada
+    local old = espFolder:FindFirstChild(p.Name)
+    if old then old:Destroy() end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = p.Name
+    highlight.FillColor = p.Team and p.Team.TeamColor.Color or Color3.new(1,0,0)
+    highlight.OutlineColor = Color3.new(1,1,1)
+    highlight.FillTransparency = 0.5
+    highlight.Parent = espFolder
+    -- Adornee akan otomatis mengikuti karakter jika kita set Adornee ke karakter
+    if p.Character then
+        highlight.Adornee = p.Character
+    else
+        p.CharacterAdded:Connect(function(char)
+            highlight.Adornee = char
+        end)
+    end
+end
+
+ESPTab:AddToggle({
+    Name = "Enable ESP",
+    Default = false,
+    Callback = function(s)
+        espEnabled = s
+        if s then
+            -- Bersihkan folder
+            espFolder:ClearAllChildren()
+            
+            -- Buat ESP untuk semua pemain yang sudah ada
+            for _,p in ipairs(Players:GetPlayers()) do
+                createESP(p)
+            end
+            
+            -- Koneksi untuk pemain baru
+            espConnections.PlayerAdded = Players.PlayerAdded:Connect(createESP)
+            
+            -- Koneksi untuk pemain yang keluar
+            espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(p)
+                local h = espFolder:FindFirstChild(p.Name)
+                if h then h:Destroy() end
+            end)
+            
+            -- Koneksi untuk karakter respawn (CharacterAdded) untuk setiap pemain
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    espConnections["Char_"..p.Name] = p.CharacterAdded:Connect(function()
+                        createESP(p) -- recreate highlight untuk karakter baru
+                    end)
+                end
+            end
+            
+        else
+            -- Matikan semua koneksi ESP
+            for _,conn in pairs(espConnections) do
+                if conn then conn:Disconnect() end
+            end
+            espConnections = {}
+            espFolder:ClearAllChildren()
+        end
     end
 })
 
 -- ===== TAB OTHER =====
-local OtherTab = Window:MakeTab({
-    Name = "Other",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+local OtherTab = Window:MakeTab({Name = "Other", Icon = "rbxassetid://4483345998"})
+
+OtherTab:AddButton({
+    Name = "Toggle Virtual Buttons",
+    Callback = function()
+        VirtualGui.Enabled = not VirtualGui.Enabled
+    end
 })
 
 OtherTab:AddButton({
@@ -518,94 +365,68 @@ OtherTab:AddButton({
     end
 })
 
-OtherTab:AddButton({
-    Name = "Unlock All Emotes (Coba)",
-    Callback = function()
-        local attempts = 0
-        pcall(function()
-            for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                if remote:IsA("RemoteEvent") and (remote.Name:lower():find("emote") or remote.Name:lower():find("emotes")) then
-                    remote:FireServer("UnlockAll")
-                    remote:FireServer("BuyAll")
-                    attempts = attempts + 1
-                end
-            end
-            for _, remote in ipairs(LocalPlayer:GetDescendants()) do
-                if remote:IsA("RemoteEvent") and (remote.Name:lower():find("emote") or remote.Name:lower():find("emotes")) then
-                    remote:FireServer("UnlockAll")
-                    attempts = attempts + 1
-                end
-            end
-        end)
-        if attempts > 0 then
-            OrionLib:MakeNotification({
-                Name = "Unlock Emotes",
-                Content = "Mencoba " .. attempts .. " remote. Cek apakah emotes terbuka.",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        else
-            OrionLib:MakeNotification({
-                Name = "Unlock Emotes",
-                Content = "Tidak menemukan remote emote.",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        end
-    end
-})
-
--- FPS Counter
-local fpsEnabled = false
+-- FPS Counter (fixed)
 local fpsGui = nil
-
+local fpsConn = nil
 OtherTab:AddToggle({
     Name = "Show FPS",
     Default = false,
-    Callback = function(state)
-        fpsEnabled = state
-        if state then
+    Callback = function(s)
+        if s then
+            if fpsGui then fpsGui:Destroy() end
             fpsGui = Instance.new("ScreenGui")
-            fpsGui.Name = "FPSDisplay"
             fpsGui.Parent = game:GetService("CoreGui")
-            
             local bg = Instance.new("Frame")
-            bg.Size = UDim2.new(0, 100, 0, 40)
-            bg.Position = UDim2.new(0, 10, 0, 10)
-            bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            bg.Size = UDim2.new(0,100,0,40)
+            bg.Position = UDim2.new(0,10,0,10)
+            bg.BackgroundColor3 = Color3.new(0,0,0)
             bg.BackgroundTransparency = 0.5
-            bg.BorderSizePixel = 0
             bg.Parent = fpsGui
-            
-            local text = Instance.new("TextLabel")
-            text.Size = UDim2.new(1, 0, 1, 0)
-            text.BackgroundTransparency = 1
-            text.TextColor3 = Color3.fromRGB(255, 255, 255)
-            text.TextSize = 20
-            text.Font = Enum.Font.GothamBold
-            text.Parent = bg
+            local txt = Instance.new("TextLabel")
+            txt.Size = UDim2.new(1,0,1,0)
+            txt.BackgroundTransparency = 1
+            txt.TextColor3 = Color3.new(1,1,1)
+            txt.TextSize = 20
+            txt.Font = Enum.Font.GothamBold
+            txt.Parent = bg
             
             local lastTime = tick()
             local frames = 0
-            local connection = RunService.RenderStepped:Connect(function()
+            if fpsConn then fpsConn:Disconnect() end
+            fpsConn = RunService.RenderStepped:Connect(function()
                 frames = frames + 1
                 if tick() - lastTime >= 1 then
-                    text.Text = "FPS: " .. frames
+                    txt.Text = "FPS: " .. frames
                     frames = 0
                     lastTime = tick()
                 end
             end)
-            fpsGui.Connection = connection
         else
+            if fpsConn then
+                fpsConn:Disconnect()
+                fpsConn = nil
+            end
             if fpsGui then
-                if fpsGui.Connection then
-                    fpsGui.Connection:Disconnect()
-                end
                 fpsGui:Destroy()
                 fpsGui = nil
             end
-        end   
-    end       
-})            
+        end
+    end
+})
 
+OrionLib:MakeNotification({Name="GarxCuy Mobile", Content="Loaded!", Time=3})
+OrionLib:Init()
 
+-- Tombol toggle UI (dragable)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0,50,0,50)
+ToggleBtn.Position = UDim2.new(0,10,0,0.5)
+ToggleBtn.BackgroundColor3 = Color3.new(0,0,0)
+ToggleBtn.BackgroundTransparency = 0.5
+ToggleBtn.Text = "G"
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.TextSize = 25
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Draggable = true
+ToggleBtn.Parent = game:GetService("CoreGui")
+ToggleBtn.MouseButton1Click:Connect(function() OrionLib:ToggleUi() end)
