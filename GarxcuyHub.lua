@@ -31,6 +31,7 @@ local flyBodyVelocity = nil
 local noclipConn = nil
 local flyConn = nil
 local espConnections = {}
+local currentJump = 50  -- untuk force jump
 
 -- ===== TAB PLAYER =====
 local PlayerTab = Window:MakeTab({
@@ -59,7 +60,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- Slider JumpPower
+-- Slider JumpPower (Versi Robust)
 PlayerTab:AddSlider({
     Name = "JumpPower",
     Min = 50,
@@ -69,12 +70,48 @@ PlayerTab:AddSlider({
     Increment = 1,
     ValueName = "jump",
     Callback = function(value)
+        currentJump = value
         local char = LocalPlayer.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             if hum then
-                hum.JumpPower = value
+                -- Coba berbagai metode
+                local methods = {
+                    function() hum.JumpPower = value end,
+                    function() hum:SetAttribute("JumpPower", value) end,
+                    function() 
+                        if hum:FindFirstChild("JumpPower") then
+                            hum.JumpPower.Value = value 
+                        end
+                    end,
+                    function()
+                        -- Beberapa game pake Humanoid.JumpHeight
+                        hum.JumpHeight = value / 10  -- asumsi konversi
+                    end
+                }
+                for _, method in ipairs(methods) do
+                    local success = pcall(method)
+                    if success then break end
+                end
             end
+        end
+    end
+})
+
+-- Toggle Force Jump (Loop)
+PlayerTab:AddToggle({
+    Name = "Force Jump Power (Loop)",
+    Default = false,
+    Callback = function(state)
+        while state do
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    pcall(function() hum.JumpPower = currentJump end)
+                end
+            end
+            wait(1)  -- loop tiap detik
         end
     end
 })
@@ -89,6 +126,7 @@ PlayerTab:AddButton({
             if hum then
                 hum.WalkSpeed = 16
                 hum.JumpPower = 50
+                currentJump = 50
             end
         end
         OrionLib:MakeNotification({
@@ -335,14 +373,13 @@ OtherTab:AddToggle({
     Callback = function(state)
         fpsEnabled = state
         if state then
-            -- Buat GUI FPS
             fpsGui = Instance.new("ScreenGui")
             fpsGui.Name = "FPSDisplay"
             fpsGui.Parent = game:GetService("CoreGui")
             
             local bg = Instance.new("Frame")
             bg.Size = UDim2.new(0, 100, 0, 40)
-            bg.Position = UDim2.new(0, 10, 0, 10)  -- Pojok kiri atas, bisa lo ubah
+            bg.Position = UDim2.new(0, 10, 0, 10)
             bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             bg.BackgroundTransparency = 0.5
             bg.BorderSizePixel = 0
@@ -367,7 +404,6 @@ OtherTab:AddToggle({
                 end
             end)
             
-            -- Simpan koneksi buat cleanup
             fpsGui.Connection = connection
         else
             if fpsGui then
@@ -413,7 +449,7 @@ Image.Name = "Icon"
 Image.Parent = Toggle
 Image.Size = UDim2.new(1, 0, 1, 0)
 Image.BackgroundTransparency = 1
-Image.Image = "rbxassetid://117239677500065"  -- Ganti icon sesuai selera
+Image.Image = "rbxassetid://117239677500065"
 
 local Corner2 = Instance.new("UICorner")
 Corner2.CornerRadius = UDim.new(0.2, 0)
