@@ -1,4 +1,16 @@
 -- Script by ShadowX - GarxCuy Hub with Synapse Theme
+local Tab = Window:MakeTab({
+	Name = "Tab 1",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+--[[
+Name = <GARXCUY> - The name of the tab.
+Icon = <GARXCUY> - The icon of the tab.
+PremiumOnly = <bool> - Makes the tab accessible to Sirus Premium users only.
+]]
+
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("GarxCuy Hub", "Synapse")  -- Ganti judul & tema
 
