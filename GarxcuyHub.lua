@@ -1,8 +1,11 @@
--- GarxCuy Hub for Mobile (Dengan Virtual Button) - FIXED
+
+-- GarxCuy Hub for Mobile + EMOJI Tab (FULL)
 -- Cocok buat Delta / executor HP
 
+-- Load Orion Library
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/refs/heads/main/Librarys/Orion/Orion.lua')))()
 
+-- Buat Window
 local Window = OrionLib:MakeWindow({
     Name = "GarxCuy Hub (Mobile)",
     HidePremium = false,
@@ -22,7 +25,7 @@ local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local TweenService = game:GetService("TweenService")
 
--- Variabel & koneksi
+-- Variabel global
 local flyEnabled = false
 local freecamEnabled = false
 local flySpeed = 50
@@ -36,87 +39,55 @@ local espEnabled = false
 local espFolder = Instance.new("Folder")
 espFolder.Name = "ESP_Mobile"
 espFolder.Parent = game:GetService("CoreGui")
-local espConnections = {}  -- buat nyimpen semua koneksi ESP
+local espConnections = {}
 
--- ===== VIRTUAL BUTTON (JOYSTICK) =====
-local VirtualGui = Instance.new("ScreenGui")
-VirtualGui.Name = "VirtualControls"
-VirtualGui.ResetOnSpawn = false
-VirtualGui.Parent = game:GetService("CoreGui")
-
--- Fungsi buat bikin tombol
-local function makeButton(name, pos, size, color, text)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(0, size, 0, size)
-    btn.Position = UDim2.new(pos.X, 0, pos.Y, 0)
-    btn.BackgroundColor3 = color
-    btn.BackgroundTransparency = 0.3
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextSize = 20
-    btn.Font = Enum.Font.GothamBold
-    btn.Draggable = true
-    btn.Parent = VirtualGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.5, 0)
-    corner.Parent = btn
-    
-    return btn
-end
-
--- Buat tombol arah
-local btnW = makeButton("W", Vector2.new(0.45, 0.3), 60, Color3.fromRGB(0, 160, 255), "W")
-local btnA = makeButton("A", Vector2.new(0.35, 0.4), 60, Color3.fromRGB(0, 160, 255), "A")
-local btnS = makeButton("S", Vector2.new(0.45, 0.4), 60, Color3.fromRGB(0, 160, 255), "S")
-local btnD = makeButton("D", Vector2.new(0.55, 0.4), 60, Color3.fromRGB(0, 160, 255), "D")
-local btnUp = makeButton("Up", Vector2.new(0.8, 0.3), 60, Color3.fromRGB(255, 100, 0), "↑")
-local btnDown = makeButton("Down", Vector2.new(0.8, 0.4), 60, Color3.fromRGB(255, 100, 0), "↓")
-
--- State tombol
+-- Track keyboard state (buat yang pake keyboard Bluetooth / OTG)
 local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
 
-btnW.MouseButton1Click:Connect(function() keys.W = not keys.W end)
-btnW.MouseButton2Click:Connect(function() keys.W = false end)
-btnA.MouseButton1Click:Connect(function() keys.A = not keys.A end)
-btnA.MouseButton2Click:Connect(function() keys.A = false end)
-btnS.MouseButton1Click:Connect(function() keys.S = not keys.S end)
-btnS.MouseButton2Click:Connect(function() keys.S = false end)
-btnD.MouseButton1Click:Connect(function() keys.D = not keys.D end)
-btnD.MouseButton2Click:Connect(function() keys.D = false end)
-btnUp.MouseButton1Click:Connect(function() keys.Up = not keys.Up end)
-btnUp.MouseButton2Click:Connect(function() keys.Up = false end)
-btnDown.MouseButton1Click:Connect(function() keys.Down = not keys.Down end)
-btnDown.MouseButton2Click:Connect(function() keys.Down = false end)
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Up = true end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = true end
+end)
 
--- Update warna tombol sesuai state
-RunService.RenderStepped:Connect(function()
-    btnW.BackgroundColor3 = keys.W and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
-    btnA.BackgroundColor3 = keys.A and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
-    btnS.BackgroundColor3 = keys.S and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
-    btnD.BackgroundColor3 = keys.D and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 160, 255)
-    btnUp.BackgroundColor3 = keys.Up and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 0)
-    btnDown.BackgroundColor3 = keys.Down and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 100, 0)
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Up = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = false end
 end)
 
 -- ===== TAB PLAYER =====
-local PlayerTab = Window:MakeTab({Name = "Player", Icon = "rbxassetid://4483345998"})
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998"
+})
 
--- WalkSpeed
+-- WalkSpeed Slider
 PlayerTab:AddSlider({
     Name = "WalkSpeed",
-    Min = 16, Max = 500, Default = 16,
-    Callback = function(v)
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
         local char = LocalPlayer.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = v end
+            if hum then hum.WalkSpeed = value end
         end
     end
 })
 
--- NoClip
+-- NoClip Toggle
 PlayerTab:AddToggle({
     Name = "NoClip",
     Default = false,
@@ -136,7 +107,6 @@ PlayerTab:AddToggle({
                 noclipConn:Disconnect()
                 noclipConn = nil
             end
-            -- Kembalikan collide ke true (opsional)
             if LocalPlayer.Character then
                 for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") then part.CanCollide = true end
@@ -146,7 +116,7 @@ PlayerTab:AddToggle({
     end
 })
 
--- Fly Mode (pake virtual button)
+-- Fly Mode
 PlayerTab:AddToggle({
     Name = "Fly Mode",
     Default = false,
@@ -198,8 +168,15 @@ PlayerTab:AddToggle({
 
 PlayerTab:AddSlider({
     Name = "Fly Speed",
-    Min = 10, Max = 500, Default = 50,
-    Callback = function(v) flySpeed = v end
+    Min = 10,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        flySpeed = value
+    end
 })
 
 -- Infinity Jump
@@ -207,7 +184,9 @@ local infinityJump = false
 PlayerTab:AddToggle({
     Name = "Infinity Jump",
     Default = false,
-    Callback = function(s) infinityJump = s end
+    Callback = function(state)
+        infinityJump = state
+    end
 })
 
 UserInputService.JumpRequest:Connect(function()
@@ -221,7 +200,7 @@ UserInputService.JumpRequest:Connect(function()
             game:GetService("Debris"):AddItem(bv, 0.5)
         end
     end
-end)  -- <-- hanya satu kurung tutup
+end)
 
 -- Reset WalkSpeed
 PlayerTab:AddButton({
@@ -231,12 +210,20 @@ PlayerTab:AddButton({
             local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if hum then hum.WalkSpeed = 16 end
         end
-        OrionLib:MakeNotification({Name="Reset", Content="WalkSpeed normal", Time=2})
+        OrionLib:MakeNotification({
+            Name = "Reset",
+            Content = "WalkSpeed normal",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
     end
 })
 
 -- ===== TAB FREECAM =====
-local FreecamTab = Window:MakeTab({Name = "Freecam", Icon = "rbxassetid://4483345998"})
+local FreecamTab = Window:MakeTab({
+    Name = "Freecam",
+    Icon = "rbxassetid://4483345998"
+})
 local originalCF = nil
 
 FreecamTab:AddToggle({
@@ -276,16 +263,25 @@ FreecamTab:AddToggle({
 
 FreecamTab:AddSlider({
     Name = "Freecam Speed",
-    Min = 10, Max = 500, Default = 50,
-    Callback = function(v) freecamSpeed = v end
+    Min = 10,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        freecamSpeed = value
+    end
 })
 
 -- ===== TAB ESP =====
-local ESPTab = Window:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998"})
+local ESPTab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998"
+})
 
 local function createESP(p)
     if p == LocalPlayer then return end
-    -- Hapus highlight lama jika ada
     local old = espFolder:FindFirstChild(p.Name)
     if old then old:Destroy() end
     
@@ -295,7 +291,6 @@ local function createESP(p)
     highlight.OutlineColor = Color3.new(1,1,1)
     highlight.FillTransparency = 0.5
     highlight.Parent = espFolder
-    -- Adornee akan otomatis mengikuti karakter jika kita set Adornee ke karakter
     if p.Character then
         highlight.Adornee = p.Character
     else
@@ -308,38 +303,27 @@ end
 ESPTab:AddToggle({
     Name = "Enable ESP",
     Default = false,
-    Callback = function(s)
-        espEnabled = s
-        if s then
-            -- Bersihkan folder
+    Callback = function(state)
+        espEnabled = state
+        if state then
             espFolder:ClearAllChildren()
-            
-            -- Buat ESP untuk semua pemain yang sudah ada
-            for _,p in ipairs(Players:GetPlayers()) do
+            for _, p in ipairs(Players:GetPlayers()) do
                 createESP(p)
             end
-            
-            -- Koneksi untuk pemain baru
             espConnections.PlayerAdded = Players.PlayerAdded:Connect(createESP)
-            
-            -- Koneksi untuk pemain yang keluar
             espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(p)
                 local h = espFolder:FindFirstChild(p.Name)
                 if h then h:Destroy() end
             end)
-            
-            -- Koneksi untuk karakter respawn (CharacterAdded) untuk setiap pemain
-            for _,p in ipairs(Players:GetPlayers()) do
+            for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer then
                     espConnections["Char_"..p.Name] = p.CharacterAdded:Connect(function()
-                        createESP(p) -- recreate highlight untuk karakter baru
+                        createESP(p)
                     end)
                 end
             end
-            
         else
-            -- Matikan semua koneksi ESP
-            for _,conn in pairs(espConnections) do
+            for _, conn in pairs(espConnections) do
                 if conn then conn:Disconnect() end
             end
             espConnections = {}
@@ -349,13 +333,9 @@ ESPTab:AddToggle({
 })
 
 -- ===== TAB OTHER =====
-local OtherTab = Window:MakeTab({Name = "Other", Icon = "rbxassetid://4483345998"})
-
-OtherTab:AddButton({
-    Name = "Toggle Virtual Buttons",
-    Callback = function()
-        VirtualGui.Enabled = not VirtualGui.Enabled
-    end
+local OtherTab = Window:MakeTab({
+    Name = "Other",
+    Icon = "rbxassetid://4483345998"
 })
 
 OtherTab:AddButton({
@@ -365,7 +345,7 @@ OtherTab:AddButton({
     end
 })
 
--- FPS Counter (fixed)
+-- FPS Counter
 local fpsGui = nil
 local fpsConn = nil
 OtherTab:AddToggle({
@@ -376,12 +356,14 @@ OtherTab:AddToggle({
             if fpsGui then fpsGui:Destroy() end
             fpsGui = Instance.new("ScreenGui")
             fpsGui.Parent = game:GetService("CoreGui")
+            
             local bg = Instance.new("Frame")
-            bg.Size = UDim2.new(0,100,0,40)
-            bg.Position = UDim2.new(0,10,0,10)
+            bg.Size = UDim2.new(0, 100, 0, 40)
+            bg.Position = UDim2.new(0, 10, 0, 10)
             bg.BackgroundColor3 = Color3.new(0,0,0)
             bg.BackgroundTransparency = 0.5
             bg.Parent = fpsGui
+            
             local txt = Instance.new("TextLabel")
             txt.Size = UDim2.new(1,0,1,0)
             txt.BackgroundTransparency = 1
@@ -414,19 +396,73 @@ OtherTab:AddToggle({
     end
 })
 
-OrionLib:MakeNotification({Name="GarxCuy Mobile", Content="Loaded!", Time=3})
-OrionLib:Init()
+-- ===== TAB EMOJI =====
+local EmojiTab = Window:MakeTab({
+    Name = "EMOJI",
+    Icon = "rbxassetid://4483345998"
+})
 
--- Tombol toggle UI (dragable)
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0,50,0,50)
-ToggleBtn.Position = UDim2.new(0,10,0,0.5)
-ToggleBtn.BackgroundColor3 = Color3.new(0,0,0)
-ToggleBtn.BackgroundTransparency = 0.5
-ToggleBtn.Text = "G"
-ToggleBtn.TextColor3 = Color3.new(1,1,1)
-ToggleBtn.TextSize = 25
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Draggable = true
-ToggleBtn.Parent = game:GetService("CoreGui")
-ToggleBtn.MouseButton1Click:Connect(function() OrionLib:ToggleUi() end)
+EmojiTab:AddButton({
+    Name = "🔥 Unlock All Emoji 🔥",
+    Callback = function()
+        local successCount = 0
+        -- Cari di ReplicatedStorage
+        for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                local name = remote.Name:lower()
+                if name:find("emoji") or name:find("emote") or name:find("unlock") or name:find("purchase") then
+                    pcall(function()
+                        remote:FireServer("UnlockAll")
+                        remote:FireServer("UnlockEmoji")
+                        remote:FireServer("BuyAll")
+                        remote:FireServer("Unlock", "All")
+                        remote:FireServer("Emoji", "Unlock")
+                        successCount = successCount + 1
+                    end)
+                end
+            end
+        end
+        -- Cari di Player
+        for _, remote in ipairs(LocalPlayer:GetDescendants()) do
+            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                local name = remote.Name:lower()
+                if name:find("emoji") or name:find("emote") then
+                    pcall(function()
+                        remote:FireServer("UnlockAll")
+                        remote:FireServer("UnlockEmoji")
+                        successCount = successCount + 1
+                    end)
+                end
+            end
+        end
+        
+        if successCount > 0 then
+            OrionLib:MakeNotification({
+                Name = "Emoji Unlock",
+                Content = "Mencoba "..successCount.." remote. Semoga emoji kebuka!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Emoji Unlock",
+                Content = "Tidak nemu remote emoji. Mungkin game ini beda sistem.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+EmojiTab:AddParagraph({
+    Title = "Info",
+    Content = "Fitur ini coba unlock emoji dengan cara spekulasi remote. Kalo gagal, berarti game pake sistem lain atau emoji memang harus dibeli."
+})
+
+-- Notifikasi Selesai & Init
+OrionLib:MakeNotification({
+    Name = "GarxCuy Mobile",
+    Content = "Loaded! (Full Version)",
+    Time = 3
+})
+OrionLib:Init()
