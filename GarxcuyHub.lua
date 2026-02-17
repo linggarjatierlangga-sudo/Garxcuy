@@ -1,6 +1,5 @@
--- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH (Remote Lengkap) + FIX
+-- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH RESMI
 -- Cocok buat Delta / executor HP
--- Versi Final dengan Auto Fish State Machine
 
 -- Load Orion Library
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
@@ -41,7 +40,7 @@ espFolder.Name = "ESP_Mobile"
 espFolder.Parent = game:GetService("CoreGui")
 local espConnections = {}
 
--- Track keyboard state (untuk fly & freecam)
+-- Track keyboard state
 local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
 
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -327,138 +326,74 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== AUTO FISH FIX (STATE MACHINE + COROUTINE) =====
+-- ===== TAB AUTO FISH RESMI =====
 local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
--- Ambil remote (dari daftar user)
-local Fishing_RemoteThrow = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow")
-local Fishing_RemoteRetract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
-local Fishing_RemoteParked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")
-local Fishing_RemoteReset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")
-local FishingCatchSuccess = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
-local ThrowState = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_ThrowState")
-local MinigameEnd = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameEnd")
-local StartMeter = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StartMeter")
-local StopMeter = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StopMeter")
+-- Cari remote auto fishing resmi
+local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
+local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
+local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
+local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
 
--- Variabel state
-local currentState = "IDLE"
-local autoFishing = false
-local castDelay = 3.0
-local useMeter = false
+-- Status auto fishing (lokal)
+local autoFishingActive = false
+local toggleBtn = nil
 
--- Listener ThrowState
-if ThrowState then
-    ThrowState.Event:Connect(function(newState)
-        currentState = newState
-        print("🎣 State berubah:", newState)
-    end)
-end
-
--- Fungsi auto fishing (coroutine)
-local function autoFishLoop()
-    while autoFishing do
-        -- Cek apakah pancing di-equip
-        local rod = nil
-        if LocalPlayer.Character then
-            for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
-                if tool:IsA("Tool") and (tool.Name:lower():find("fishing") or tool.Name:lower():find("rod")) then
-                    rod = tool
-                    break
+if StartAutoFishing then
+    -- Tombol toggle Start/Stop
+    toggleBtn = AutoFishTab:AddButton({
+        Name = "🎣 Mulai Auto Fishing",
+        Callback = function()
+            if not autoFishingActive then
+                -- Mulai auto fishing
+                StartAutoFishing:FireServer()
+                autoFishingActive = true
+                toggleBtn:Set("⏹️ Hentikan Auto Fishing")
+                OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
+            else
+                -- Hentikan auto fishing
+                if StopAutoFishing then
+                    StopAutoFishing:FireServer()
+                else
+                    -- Jika tidak ada remote stop, mungkin StartAutoFishing bersifat toggle
+                    StartAutoFishing:FireServer()
                 end
+                autoFishingActive = false
+                toggleBtn:Set("🎣 Mulai Auto Fishing")
+                OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
             end
         end
-        if not rod then
-            OrionLib:MakeNotification({Name="Auto Fish", Content="Equip pancing dulu!", Time=2})
-            break
-        end
-
-        -- State machine
-        if currentState == "IDLE" or currentState == "idle" then
-            if useMeter and StartMeter then
-                StartMeter:FireServer()
-                task.wait(0.3)
-            end
-            if Fishing_RemoteThrow then
-                Fishing_RemoteThrow:FireServer()
-                print("[Auto] Cast")
-            end
-            -- Tunggu sampai state berubah
-            repeat task.wait(0.2) until currentState ~= "IDLE" or not autoFishing
-
-        elseif currentState == "PARKED" or currentState == "WAITING" then
-            task.wait(castDelay)  -- Tunggu ikan menggigit (bisa disesuaikan)
-            if Fishing_RemoteRetract then
-                Fishing_RemoteRetract:FireServer()
-                print("[Auto] Reel")
-            elseif FishingCatchSuccess then
-                FishingCatchSuccess:FireServer()
-            end
-            repeat task.wait(0.2) until currentState ~= "PARKED" or not autoFishing
-
-        elseif currentState == "MINIGAME" then
-            -- Anggap langsung menang
-            if MinigameEnd then
-                MinigameEnd:FireServer()
-                print("[Auto] Minigame ended")
-            end
-            repeat task.wait(0.2) until currentState ~= "MINIGAME" or not autoFishing
-
-        elseif currentState == "FINISHED" then
-            -- Reset untuk siap cast lagi
-            if Fishing_RemoteReset then
-                Fishing_RemoteReset:FireServer()
-                print("[Auto] Reset")
-            end
-            repeat task.wait(0.2) until currentState == "IDLE" or not autoFishing
-
-        else
-            task.wait(0.5)
-        end
-    end
+    })
+    
+    -- Info tambahan
+    AutoFishTab:AddParagraph({
+        Title = "Info",
+        Content = "Menggunakan remote resmi StartAutoFishing. Tekan tombol untuk toggle."
+    })
+else
+    AutoFishTab:AddParagraph({
+        Title = "Error",
+        Content = "Remote StartAutoFishing tidak ditemukan! Pastikan game mendukung."
+    })
 end
 
--- GUI Auto Fish
-AutoFishTab:AddParagraph({
-    Title = "Remote Ditemukan",
-    Content = [[
-Throw: ✅
-Retract: ✅
-Parked/Reset: ✅
-Minigame: ✅
-    ]]
-})
-
-AutoFishTab:AddToggle({
-    Name = "🎣 Auto Fishing (State-Based)",
-    Default = false,
-    Callback = function(state)
-        autoFishing = state
-        if state then
-            task.spawn(autoFishLoop)
-        end
+-- Tombol test (opsional)
+AutoFishTab:AddButton({
+    Name = "Test Start",
+    Callback = function()
+        if StartAutoFishing then StartAutoFishing:FireServer() end
     end
 })
 
-AutoFishTab:AddSlider({
-    Name = "Delay Reel setelah Parked (detik)",
-    Min = 0.5, Max = 5.0, Default = 3.0, Increment = 0.1, ValueName = "dtk",
-    Callback = function(v) castDelay = v end
-})
-
-AutoFishTab:AddToggle({
-    Name = "Gunakan StartMeter sebelum throw",
-    Default = false,
-    Callback = function(v) useMeter = v end
-})
-
--- Tombol test manual
-AutoFishTab:AddButton({ Name = "Test Throw", Callback = function() if Fishing_RemoteThrow then Fishing_RemoteThrow:FireServer() end end })
-AutoFishTab:AddButton({ Name = "Test Retract", Callback = function() if Fishing_RemoteRetract then Fishing_RemoteRetract:FireServer() end end })
-AutoFishTab:AddButton({ Name = "Test Parked", Callback = function() if Fishing_RemoteParked then Fishing_RemoteParked:FireServer() end end })
-AutoFishTab:AddButton({ Name = "Test Reset", Callback = function() if Fishing_RemoteReset then Fishing_RemoteReset:FireServer() end end })
-AutoFishTab:AddButton({ Name = "Test MinigameEnd", Callback = function() if MinigameEnd then MinigameEnd:FireServer() end end })
+if StopAutoFishing then
+    AutoFishTab:AddButton({
+        Name = "Test Stop",
+        Callback = function()
+            StopAutoFishing:FireServer()
+        end
+    })
+end
 
 -- Notifikasi Selesai & Init
-OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Auto Fish Fix Included", Time = 3})
-OrionLib:Init() 
+OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish Resmi", Time = 3})
+OrionLib:Init()
