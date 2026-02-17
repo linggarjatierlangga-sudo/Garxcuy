@@ -1,25 +1,38 @@
--- Fast Reel dengan Fishing_RemoteRetract
+-- Fast Reel dengan ReelFinished (Fishing.ToServer)
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
-local Window = OrionLib:MakeWindow({Name = "Fast Reel Retract", IntroEnabled = false})
-local Tab = Window:MakeTab({Name = "Retract"})
+local Window = OrionLib:MakeWindow({Name = "Fast Reel Finished", IntroEnabled = false})
+local Tab = Window:MakeTab({Name = "ReelFinished"})
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Cari remote Fishing_RemoteRetract
-local remote = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
+-- Cari remote ReelFinished di Fishing.ToServer
+local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
+local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
+local remote = ToServer and ToServer:FindFirstChild("ReelFinished")
 
 if not remote then
-    Tab:AddParagraph({Title = "Error", Content = "Fishing_RemoteRetract tidak ditemukan!"})
+    Tab:AddParagraph({Title = "Error", Content = "ReelFinished tidak ditemukan di Fishing.ToServer!"})
 else
     local isActive = false
     local connection = nil
     local speed = 1.0
+    local paramType = "kosong"
+
+    -- Dropdown pilihan parameter
+    Tab:AddDropdown({
+        Name = "Parameter",
+        Options = {"kosong", "true", "false", "1", "'reel'", "{}"},
+        Default = "kosong",
+        Callback = function(value)
+            paramType = value
+        end
+    })
 
     -- Toggle fast reel
     Tab:AddToggle({
-        Name = "⚡ Fast Reel (Retract)",
+        Name = "⚡ Fast Reel (ReelFinished)",
         Default = false,
         Callback = function(state)
             isActive = state
@@ -28,7 +41,19 @@ else
                 connection = RunService.Heartbeat:Connect(function()
                     if isActive then
                         pcall(function()
-                            remote:FireServer()  -- coba tanpa parameter dulu
+                            if paramType == "kosong" then
+                                remote:FireServer()
+                            elseif paramType == "true" then
+                                remote:FireServer(true)
+                            elseif paramType == "false" then
+                                remote:FireServer(false)
+                            elseif paramType == "1" then
+                                remote:FireServer(1)
+                            elseif paramType == "'reel'" then
+                                remote:FireServer("reel")
+                            elseif paramType == "{}" then
+                                remote:FireServer({})
+                            end
                         end)
                         wait(speed)
                     end
@@ -51,8 +76,20 @@ else
     Tab:AddButton({
         Name = "Test Manual",
         Callback = function()
-            remote:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "Retract fired", Time = 1})
+            if paramType == "kosong" then
+                remote:FireServer()
+            elseif paramType == "true" then
+                remote:FireServer(true)
+            elseif paramType == "false" then
+                remote:FireServer(false)
+            elseif paramType == "1" then
+                remote:FireServer(1)
+            elseif paramType == "'reel'" then
+                remote:FireServer("reel")
+            elseif paramType == "{}" then
+                remote:FireServer({})
+            end
+            OrionLib:MakeNotification({Name = "Test", Content = "ReelFinished fired", Time = 1})
         end
     })
 end
