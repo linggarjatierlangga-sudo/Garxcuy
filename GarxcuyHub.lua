@@ -1,4 +1,4 @@
--- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH (Remote Asli dari Fishing.ToServer)
+-- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH (Remote Lengkap)
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
@@ -326,80 +326,138 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB AUTO FISH (Remote Asli dari Fishing.ToServer) =====
+-- ===== TAB AUTO FISH (Remote Lengkap) =====
 local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
--- Ambil remote dari folder Fishing.ToServer
-local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
-local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
+-- Ambil semua remote dari daftar user
+local FishingCatchSuccess = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
+local BroadcastRemote = ReplicatedStorage:FindFirstChild("BroadcastRemote")
+local AutoFishingState = ReplicatedStorage:FindFirstChild("AutoFishingState_9883448335")
+local AutoFishing_ToolEquipped = ReplicatedStorage:FindFirstChild("AutoFishing_ToolEquipped_9883448335")
+local AutoFishing_ToolUnequipped = ReplicatedStorage:FindFirstChild("AutoFishing_ToolUnequipped_9883448335")
+local Fishing_RemoteParked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")
+local Fishing_RemoteReset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")
+local Fishing_RemoteThrow = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow")
+local Fishing_RemoteRetract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
 
--- Inisialisasi remote
-local CastReleased = ToServer and ToServer:FindFirstChild("CastReleased")
-local ReelFinished = ToServer and ToServer:FindFirstChild("ReelFinished")
-local ReelInput = ToServer and ToServer:FindFirstChild("ReelInput")
-local BobberHitWater = ToServer and ToServer:FindFirstChild("BobberHitWater")
-local ThrowingStateSync = ToServer and ToServer:FindFirstChild("ThrowingStateSync")
-local GetSaveVersion = ToServer and ToServer:FindFirstChild("GetSaveVersion")
-local ManualSave = ToServer and ToServer:FindFirstChild("ManualSave")
+-- Remote dengan ID tool spesifik (ganti ID sesuai tool lo nanti)
+local MinigameEnd = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameEnd")
+local MinigameStart = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameStart")
+local StartMeter = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StartMeter")
+local StopMeter = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StopMeter")
+local ThrowState = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_ThrowState")
 
--- Notifikasi status
-if CastReleased and ReelFinished then
-    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Remote fishing ditemukan! Siap digunakan.", Time = 3})
-else
-    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Remote tidak lengkap. Cek folder Fishing.ToServer", Time = 3})
-end
+-- Juga remote generik dengan ID player
+local StartMeter2 = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_FishingRod_StartMeter")
+local StopMeter2 = ReplicatedStorage:FindFirstChild("FishingRod_9883448335_FishingRod_StopMeter")
 
 -- Variabel auto fish
 local autoFishing = false
 local autoFishConn = nil
+local currentState = "IDLE"
 local castDelay = 2.0
-local useBobber = false
+local useMeter = false  -- apakah perlu StartMeter dulu
 
-local function startAutoFishing()
-    if not CastReleased or not ReelFinished then
-        OrionLib:MakeNotification({Name = "Error", Content = "Remote Cast/Reel tidak ditemukan!", Time = 2})
-        return false
-    end
-    
-    -- Cek apakah pancing di-equip (opsional)
-    local rod = nil
+-- Fungsi untuk mendapatkan tool ID dinamis
+local function getCurrentToolId()
     if LocalPlayer.Character then
         for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") and (tool.Name:lower():find("fishing") or tool.Name:lower():find("rod")) then
-                rod = tool; break
+                return tool:GetAttribute("ToolUniqueId") or "7441d396-e015-4ea6-993f-757ca7d42bbb" -- fallback
             end
         end
     end
-    if not rod then
-        OrionLib:MakeNotification({Name = "Warning", Content = "Pancing tidak di-equip. Lanjut? (Resiko error)", Time = 2})
+    return nil
+end
+
+-- Listener untuk ThrowState
+if ThrowState then
+    ThrowState.Event:Connect(function(state)
+        currentState = state
+        print("[ThrowState]", state)
+    end)
+end
+
+-- Fungsi auto fishing
+local function startAutoFishing()
+    local toolId = getCurrentToolId()
+    if not toolId then
+        OrionLib:MakeNotification({Name = "Error", Content = "Tidak bisa mendapatkan Tool ID. Equip pancing dulu!", Time = 2})
+        return false
+    end
+    
+    -- Pastikan remote yang diperlukan ada
+    if not Fishing_RemoteThrow then
+        OrionLib:MakeNotification({Name = "Error", Content = "Fishing_RemoteThrow tidak ditemukan!", Time = 2})
+        return false
+    end
+    if not Fishing_RemoteRetract and not FishingCatchSuccess then
+        OrionLib:MakeNotification({Name = "Error", Content = "Tidak ada remote untuk reel!", Time = 2})
+        return false
     end
     
     autoFishConn = RunService.Heartbeat:Connect(function()
         if not autoFishing then return end
-        pcall(function()
-            CastReleased:FireServer()
-            print("[Auto] CastReleased fired")
-            
-            if useBobber and BobberHitWater then
-                wait(0.5)
-                BobberHitWater:FireServer()
-                print("[Auto] BobberHitWater fired")
-            end
-            
+        
+        -- State machine sederhana
+        if currentState == "IDLE" or currentState == "idle" then
+            -- Cast pancing
+            pcall(function()
+                if useMeter and StartMeter then
+                    StartMeter:FireServer()
+                    wait(0.3)  -- simulasi charge
+                end
+                Fishing_RemoteThrow:FireServer()
+                print("[Auto] Fishing_RemoteThrow fired")
+            end)
             wait(castDelay)
             
-            ReelFinished:FireServer()
-            print("[Auto] ReelFinished fired")
-        end)
+        elseif currentState == "WAITING" or currentState == "waiting" or currentState == "PARKED" then
+            -- Reel
+            pcall(function()
+                if Fishing_RemoteRetract then
+                    Fishing_RemoteRetract:FireServer()
+                    print("[Auto] Fishing_RemoteRetract fired")
+                elseif FishingCatchSuccess then
+                    FishingCatchSuccess:FireServer()
+                    print("[Auto] FishingCatchSuccess fired")
+                end
+            end)
+            wait(1)
+            
+        elseif currentState == "MINIGAME" then
+            -- Otomatis menang? Bisa coba langsung reel
+            pcall(function()
+                if MinigameEnd then
+                    MinigameEnd:FireServer()
+                elseif Fishing_RemoteRetract then
+                    Fishing_RemoteRetract:FireServer()
+                end
+            end)
+            wait(1)
+        end
     end)
     
-    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai dengan delay "..castDelay.." dtk", Time = 2})
+    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai dengan state machine", Time = 2})
     return true
 end
 
--- Toggle auto fishing
+-- GUI
+AutoFishTab:AddParagraph({
+    Title = "Remote Ditemukan",
+    Content = [[
+- Fishing_RemoteThrow (lempar)
+- Fishing_RemoteRetract (tarik)
+- FishingCatchSuccess (alternatif reel)
+- Fishing_RemoteParked, Fishing_RemoteReset (state)
+- ThrowState (event state)
+- StartMeter, StopMeter (untuk charge)
+- MinigameStart, MinigameEnd (minigame)
+    ]]
+})
+
 AutoFishTab:AddToggle({
-    Name = "🎣 Auto Fishing (Cast → Reel)",
+    Name = "🎣 Auto Fishing (State-Based)",
     Default = false,
     Callback = function(state)
         autoFishing = state
@@ -413,119 +471,80 @@ AutoFishTab:AddToggle({
     end
 })
 
--- Slider delay
 AutoFishTab:AddSlider({
     Name = "Delay Cast → Reel (detik)",
     Min = 0.5, Max = 5.0, Default = 2.0, Increment = 0.1, ValueName = "dtk",
     Callback = function(v) castDelay = v end
 })
 
--- Toggle bobber
 AutoFishTab:AddToggle({
-    Name = "Kirim BobberHitWater setelah cast",
+    Name = "Gunakan StartMeter sebelum throw",
     Default = false,
-    Callback = function(v) useBobber = v end
+    Callback = function(v) useMeter = v end
 })
 
--- Tombol test remote satu per satu
+-- Tombol test manual
 AutoFishTab:AddButton({
-    Name = "Test CastReleased",
+    Name = "Test Fishing_RemoteThrow",
     Callback = function()
-        if CastReleased then 
-            CastReleased:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "CastReleased fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "CastReleased tidak ditemukan!", Time = 1})
-        end
+        if Fishing_RemoteThrow then Fishing_RemoteThrow:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test ReelFinished",
+    Name = "Test Fishing_RemoteRetract",
     Callback = function()
-        if ReelFinished then 
-            ReelFinished:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "ReelFinished fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "ReelFinished tidak ditemukan!", Time = 1})
-        end
+        if Fishing_RemoteRetract then Fishing_RemoteRetract:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test BobberHitWater",
+    Name = "Test FishingCatchSuccess",
     Callback = function()
-        if BobberHitWater then 
-            BobberHitWater:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "BobberHitWater fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "BobberHitWater tidak ditemukan!", Time = 1})
-        end
+        if FishingCatchSuccess then FishingCatchSuccess:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test ThrowingStateSync",
+    Name = "Test StartMeter",
     Callback = function()
-        if ThrowingStateSync then 
-            ThrowingStateSync:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "ThrowingStateSync fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "ThrowingStateSync tidak ditemukan!", Time = 1})
-        end
+        if StartMeter then StartMeter:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test ReelInput",
+    Name = "Test StopMeter",
     Callback = function()
-        if ReelInput then 
-            ReelInput:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "ReelInput fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "ReelInput tidak ditemukan!", Time = 1})
-        end
+        if StopMeter then StopMeter:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test GetSaveVersion",
+    Name = "Test Fishing_RemoteParked",
     Callback = function()
-        if GetSaveVersion then 
-            GetSaveVersion:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "GetSaveVersion fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "GetSaveVersion tidak ditemukan!", Time = 1})
-        end
+        if Fishing_RemoteParked then Fishing_RemoteParked:FireServer() end
     end
 })
 
 AutoFishTab:AddButton({
-    Name = "Test ManualSave",
+    Name = "Test Fishing_RemoteReset",
     Callback = function()
-        if ManualSave then 
-            ManualSave:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "ManualSave fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "ManualSave tidak ditemukan!", Time = 1})
-        end
+        if Fishing_RemoteReset then Fishing_RemoteReset:FireServer() end
+    end
+})
+
+AutoFishTab:AddButton({
+    Name = "Test MinigameEnd",
+    Callback = function()
+        if MinigameEnd then MinigameEnd:FireServer() end
     end
 })
 
 AutoFishTab:AddParagraph({
-    Title = "Info Remote Fishing",
-    Content = [[Remote yang ditemukan:
-- CastReleased
-- ReelFinished
-- ReelInput
-- BobberHitWater
-- ThrowingStateSync
-- GetSaveVersion
-- ManualSave
-
-Gunakan test manual untuk memastikan yang mana yang bener.]]
+    Title = "Info",
+    Content = "Gunakan test manual untuk memastikan remote bekerja. Auto fishing menggunakan state machine dari ThrowState."
 })
 
 -- Notifikasi Selesai & Init
-OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish Remote Asli", Time = 3})
+OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish Remote Lengkap", Time = 3})
 OrionLib:Init()
