@@ -1,4 +1,4 @@
--- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH (Remote Asli)
+-- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH (Remote Asli dari Fishing.ToServer)
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
@@ -326,21 +326,28 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB AUTO FISH (Remote Asli) =====
+-- ===== TAB AUTO FISH (Remote Asli dari Fishing.ToServer) =====
 local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
 -- Ambil remote dari folder Fishing.ToServer
 local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
 local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
-if not ToServer then
-    warn("[AutoFish] Folder Fishing.ToServer tidak ditemukan!")
-end
 
+-- Inisialisasi remote
 local CastReleased = ToServer and ToServer:FindFirstChild("CastReleased")
 local ReelFinished = ToServer and ToServer:FindFirstChild("ReelFinished")
 local ReelInput = ToServer and ToServer:FindFirstChild("ReelInput")
 local BobberHitWater = ToServer and ToServer:FindFirstChild("BobberHitWater")
 local ThrowingStateSync = ToServer and ToServer:FindFirstChild("ThrowingStateSync")
+local GetSaveVersion = ToServer and ToServer:FindFirstChild("GetSaveVersion")
+local ManualSave = ToServer and ToServer:FindFirstChild("ManualSave")
+
+-- Notifikasi status
+if CastReleased and ReelFinished then
+    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Remote fishing ditemukan! Siap digunakan.", Time = 3})
+else
+    OrionLib:MakeNotification({Name = "Auto Fish", Content = "Remote tidak lengkap. Cek folder Fishing.ToServer", Time = 3})
+end
 
 -- Variabel auto fish
 local autoFishing = false
@@ -354,7 +361,7 @@ local function startAutoFishing()
         return false
     end
     
-    -- Equip rod check
+    -- Cek apakah pancing di-equip (opsional)
     local rod = nil
     if LocalPlayer.Character then
         for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
@@ -364,8 +371,7 @@ local function startAutoFishing()
         end
     end
     if not rod then
-        OrionLib:MakeNotification({Name = "Error", Content = "Equip pancing dulu!", Time = 2})
-        return false
+        OrionLib:MakeNotification({Name = "Warning", Content = "Pancing tidak di-equip. Lanjut? (Resiko error)", Time = 2})
     end
     
     autoFishConn = RunService.Heartbeat:Connect(function()
@@ -391,11 +397,7 @@ local function startAutoFishing()
     return true
 end
 
-AutoFishTab:AddParagraph({
-    Title = "Remote Ditemukan",
-    Content = "CastReleased, ReelFinished, dll. Pilih yang mau dipakai."
-})
-
+-- Toggle auto fishing
 AutoFishTab:AddToggle({
     Name = "🎣 Auto Fishing (Cast → Reel)",
     Default = false,
@@ -411,49 +413,117 @@ AutoFishTab:AddToggle({
     end
 })
 
+-- Slider delay
 AutoFishTab:AddSlider({
     Name = "Delay Cast → Reel (detik)",
     Min = 0.5, Max = 5.0, Default = 2.0, Increment = 0.1, ValueName = "dtk",
     Callback = function(v) castDelay = v end
 })
 
+-- Toggle bobber
 AutoFishTab:AddToggle({
     Name = "Kirim BobberHitWater setelah cast",
     Default = false,
     Callback = function(v) useBobber = v end
 })
 
+-- Tombol test remote satu per satu
 AutoFishTab:AddButton({
     Name = "Test CastReleased",
     Callback = function()
-        if CastReleased then CastReleased:FireServer() end
+        if CastReleased then 
+            CastReleased:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "CastReleased fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "CastReleased tidak ditemukan!", Time = 1})
+        end
     end
 })
 
 AutoFishTab:AddButton({
     Name = "Test ReelFinished",
     Callback = function()
-        if ReelFinished then ReelFinished:FireServer() end
+        if ReelFinished then 
+            ReelFinished:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "ReelFinished fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "ReelFinished tidak ditemukan!", Time = 1})
+        end
     end
 })
 
 AutoFishTab:AddButton({
     Name = "Test BobberHitWater",
     Callback = function()
-        if BobberHitWater then BobberHitWater:FireServer() end
+        if BobberHitWater then 
+            BobberHitWater:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "BobberHitWater fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "BobberHitWater tidak ditemukan!", Time = 1})
+        end
     end
 })
 
 AutoFishTab:AddButton({
     Name = "Test ThrowingStateSync",
     Callback = function()
-        if ThrowingStateSync then ThrowingStateSync:FireServer() end
+        if ThrowingStateSync then 
+            ThrowingStateSync:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "ThrowingStateSync fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "ThrowingStateSync tidak ditemukan!", Time = 1})
+        end
+    end
+})
+
+AutoFishTab:AddButton({
+    Name = "Test ReelInput",
+    Callback = function()
+        if ReelInput then 
+            ReelInput:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "ReelInput fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "ReelInput tidak ditemukan!", Time = 1})
+        end
+    end
+})
+
+AutoFishTab:AddButton({
+    Name = "Test GetSaveVersion",
+    Callback = function()
+        if GetSaveVersion then 
+            GetSaveVersion:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "GetSaveVersion fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "GetSaveVersion tidak ditemukan!", Time = 1})
+        end
+    end
+})
+
+AutoFishTab:AddButton({
+    Name = "Test ManualSave",
+    Callback = function()
+        if ManualSave then 
+            ManualSave:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "ManualSave fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "ManualSave tidak ditemukan!", Time = 1})
+        end
     end
 })
 
 AutoFishTab:AddParagraph({
-    Title = "Info",
-    Content = "Gunakan test manual untuk memastikan remote bekerja.\nSetelah itu nyalakan auto fishing."
+    Title = "Info Remote Fishing",
+    Content = [[Remote yang ditemukan:
+- CastReleased
+- ReelFinished
+- ReelInput
+- BobberHitWater
+- ThrowingStateSync
+- GetSaveVersion
+- ManualSave
+
+Gunakan test manual untuk memastikan yang mana yang bener.]]
 })
 
 -- Notifikasi Selesai & Init
