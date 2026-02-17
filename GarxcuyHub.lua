@@ -1,4 +1,4 @@
--- Script by ShadowX - GarxCuy Hub (Orion Library)
+-- Script by ShadowX - GarxCuy Hub (Orion Library) with Movement improvements
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
 local Window = OrionLib:MakeWindow({
     Name = "GarxCuy Hub",
@@ -23,6 +23,7 @@ highlightFolder.Parent = game.CoreGui
 local espEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
+local flySpeed = 50  -- default kecepatan terbang
 local flyBodyVelocity = nil
 local noclipConn = nil
 local flyConn = nil
@@ -40,26 +41,7 @@ local PlayerSection = PlayerTab:AddSection({
     Name = "Player Settings"
 })
 
--- Slider WalkSpeed
-PlayerTab:AddSlider({
-    Name = "WalkSpeed",
-    Min = 16,
-    Max = 500,
-    Default = 16,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    Callback = function(value)
-        local char = LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = value
-            end
-        end
-    end
-})
-
--- Slider JumpPower
+-- Slider JumpPower (tetap di Player)
 PlayerTab:AddSlider({
     Name = "JumpPower",
     Min = 50,
@@ -78,7 +60,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- Reset button
+-- Reset button (opsional, bisa tetap di sini)
 PlayerTab:AddButton({
     Name = "Reset to Defaults",
     Callback = function()
@@ -104,6 +86,11 @@ local MoveTab = Window:MakeTab({
     Name = "Movement",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
+})
+
+-- Section Movement
+local MoveSection = MoveTab:AddSection({
+    Name = "Movement Features"
 })
 
 -- NoClip Toggle
@@ -183,7 +170,7 @@ MoveTab:AddToggle({
                 end
                 
                 if flyBodyVelocity then
-                    flyBodyVelocity.Velocity = moveDir * 50
+                    flyBodyVelocity.Velocity = moveDir * flySpeed
                 end
             end)
         else
@@ -200,6 +187,38 @@ MoveTab:AddToggle({
     end
 })
 
+-- Slider WalkSpeed (pindah dari Player ke Movement)
+MoveTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = value
+            end
+        end
+    end
+})
+
+-- Slider Fly Speed (baru)
+MoveTab:AddSlider({
+    Name = "Fly Speed",
+    Min = 10,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    Callback = function(value)
+        flySpeed = value
+    end
+})
+
 -- ===== TAB ESP =====
 local ESPTab = Window:MakeTab({
     Name = "ESP",
@@ -207,7 +226,7 @@ local ESPTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Fungsi ESP
+-- Fungsi ESP (sama seperti sebelumnya)
 local function createHighlight(player)
     if not player.Character then return end
     local highlight = Instance.new("Highlight")
@@ -295,14 +314,12 @@ local OtherTab = Window:MakeTab({
 OtherTab:AddButton({
     Name = "Chat Spoofers",
     Callback = function()
-        -- Contoh chat spoof: kirim pesan atas nama orang lain (hanya simulasi, butuh exploit lebih lanjut)
         OrionLib:MakeNotification({
             Name = "Chat Spoofers",
             Content = "Fitur ini hanya simulasi, butuh executor level tinggi",
             Image = "rbxassetid://4483345998",
             Time = 3
         })
-        -- Contoh: game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Pesan palsu", "All")
     end
 })
 
