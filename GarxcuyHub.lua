@@ -85,7 +85,6 @@ PlayerTab:AddSlider({
                         end
                     end,
                     function()
-                        -- Beberapa game pake Humanoid.JumpHeight
                         hum.JumpHeight = value / 10  -- asumsi konversi
                     end
                 }
@@ -111,8 +110,54 @@ PlayerTab:AddToggle({
                     pcall(function() hum.JumpPower = currentJump end)
                 end
             end
-            wait(1)  -- loop tiap detik
+            wait(1)
         end
+    end
+})
+
+-- ===== SUPER JUMP =====
+local superJumpEnabled = false
+local superJumpPower = 100
+local superJumpConnection = nil
+
+PlayerTab:AddToggle({
+    Name = "Super Jump (BodyVelocity)",
+    Default = false,
+    Callback = function(state)
+        superJumpEnabled = state
+        if state then
+            superJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if not superJumpEnabled then return end
+                local char = LocalPlayer.Character
+                if not char then return end
+                local rootPart = char:FindFirstChild("HumanoidRootPart")
+                if not rootPart then return end
+                
+                local bv = Instance.new("BodyVelocity")
+                bv.Velocity = Vector3.new(0, superJumpPower, 0)
+                bv.MaxForce = Vector3.new(0, math.huge, 0)
+                bv.Parent = rootPart
+                game:GetService("Debris"):AddItem(bv, 0.5)
+            end)
+        else
+            if superJumpConnection then
+                superJumpConnection:Disconnect()
+                superJumpConnection = nil
+            end
+        end
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Super Jump Power",
+    Min = 50,
+    Max = 500,
+    Default = 100,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "force",
+    Callback = function(value)
+        superJumpPower = value
     end
 })
 
