@@ -1,8 +1,8 @@
--- GarxCuy Hub for Mobile + EMOJI Tab + AUTO FISH (FIXED)
+-- GarxCuy Hub for Mobile + AUTO FISH (dengan FAST FISHING)
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/refs/heads/main/Librarys/Orion/Orion.lua')))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
 -- Buat Window
 local Window = OrionLib:MakeWindow({
@@ -394,217 +394,145 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB EMOJI (UNIVERSAL, TANPA ID) =====
-local EmojiTab = Window:MakeTab({
-    Name = "EMOJI",
-    Icon = "rbxassetid://4483345998"
-})
-
--- Variabel buat nyimpen data emoji
-local emojiData = {}
-local selectedEmoji = nil
-
--- Fungsi buat scan semua kemungkinan data emoji
-local function scanEmojiData()
-    emojiData = {}
-    
-    -- Scan di ReplicatedStorage
-    for _, obj in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-        if obj:IsA("Folder") or obj:IsA("Configuration") then
-            local name = obj.Name:lower()
-            if name:find("emoji") or name:find("emote") or name:find("sticker") then
-                table.insert(emojiData, {
-                    Source = "ReplicatedStorage",
-                    Name = obj.Name,
-                    Path = obj:GetFullName(),
-                    Object = obj
-                })
-            end
-        end
-    end
-    
-    -- Scan di Player
-    for _, obj in ipairs(LocalPlayer:GetDescendants()) do
-        if obj:IsA("Folder") or obj:IsA("Configuration") or obj:IsA("StringValue") or obj:IsA("BoolValue") then
-            local name = obj.Name:lower()
-            if name:find("emoji") or name:find("emote") or name:find("sticker") then
-                table.insert(emojiData, {
-                    Source = "Player",
-                    Name = obj.Name,
-                    Path = obj:GetFullName(),
-                    Object = obj
-                })
-            end
-        end
-    end
-    
-    return #emojiData > 0
-end
-
--- Tombol buat scan data
-EmojiTab:AddButton({
-    Name = "🔍 Scan Emoji Data",
-    Callback = function()
-        local count = scanEmojiData()
-        if count then
-            -- Update dropdown dengan hasil scan
-            local options = {}
-            for i, data in ipairs(emojiData) do
-                table.insert(options, string.format("[%d] %s (%s)", i, data.Name, data.Source))
-            end
-            emojiDropdown:Refresh(options, true)
-            
-            OrionLib:MakeNotification({
-                Name = "Scan Complete",
-                Content = "Ditemukan "..#emojiData.." data terkait emoji",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        else
-            OrionLib:MakeNotification({
-                Name = "Scan Failed",
-                Content = "Tidak ada data emoji yang ditemukan",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        end
-    end
-})
-
--- Dropdown buat milih data yang ditemukan
-local emojiDropdown = EmojiTab:AddDropdown({
-    Name = "Pilih Data Emoji",
-    Options = {},
-    Default = "",
-    Callback = function(value)
-        local index = tonumber(value:match("%[(%d+)%]"))
-        if index and emojiData[index] then
-            selectedEmoji = emojiData[index]
-            
-            local obj = selectedEmoji.Object
-            local details = string.format("Path: %s\nType: %s", selectedEmoji.Path, obj.ClassName)
-            
-            if obj:IsA("StringValue") then
-                details = details .. "\nValue: " .. obj.Value
-            elseif obj:IsA("BoolValue") then
-                details = details .. "\nValue: " .. tostring(obj.Value)
-            elseif obj:IsA("NumberValue") then
-                details = details .. "\nValue: " .. obj.Value
-            elseif obj:IsA("Folder") then
-                local children = obj:GetChildren()
-                details = details .. "\nChildren: " .. #children
-                for i, child in ipairs(children) do
-                    if i <= 5 then
-                        details = details .. "\n  - " .. child.Name .. " (" .. child.ClassName .. ")"
-                    end
-                end
-                if #children > 5 then
-                    details = details .. "\n  ... dan " .. (#children-5) .. " lainnya"
-                end
-            end
-            
-            detailLabel:Set(details)
-        end
-    end
-})
-
--- Label buat nampilin detail
-local detailLabel = EmojiTab:AddParagraph({
-    Title = "Detail Data",
-    Content = "Pilih data dari dropdown untuk melihat detail"
-})
-
--- Tombol buat coba unlock berdasarkan data yang dipilih
-EmojiTab:AddButton({
-    Name = "🔓 Coba Unlock dari Data Ini",
-    Callback = function()
-        if not selectedEmoji then
-            OrionLib:MakeNotification({
-                Name = "Error",
-                Content = "Pilih dulu data dari dropdown",
-                Image = "rbxassetid://4483345998",
-                Time = 2
-            })
-            return
-        end
-        
-        local obj = selectedEmoji.Object
-        local success = false
-        
-        if obj:IsA("RemoteEvent") then
-            pcall(function()
-                obj:FireServer("UnlockAll")
-                obj:FireServer("UnlockEmoji")
-                obj:FireServer("BuyAll")
-                obj:FireServer("Unlock", "All")
-                obj:FireServer("Emoji", "Unlock")
-                success = true
-            end)
-        elseif obj:IsA("RemoteFunction") then
-            pcall(function()
-                obj:InvokeServer("UnlockAll")
-                obj:InvokeServer("UnlockEmoji")
-                success = true
-            end)
-        elseif obj:IsA("Folder") then
-            for _, child in ipairs(obj:GetChildren()) do
-                if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
-                    pcall(function()
-                        child:FireServer("UnlockAll")
-                        child:FireServer("UnlockEmoji")
-                        success = true
-                    end)
-                end
-            end
-        end
-        
-        if success then
-            OrionLib:MakeNotification({
-                Name = "Unlock Attempt",
-                Content = "Mencoba unlock dari data terpilih",
-                Image = "rbxassetid://4483345998",
-                Time = 2
-            })
-        end
-    end
-})
-
--- Tombol unlock semua remote (brutal)
-EmojiTab:AddButton({
-    Name = "⚡ Unlock All Remote (Brutal)",
-    Callback = function()
-        local successCount = 0
-        for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-                local name = remote.Name:lower()
-                if name:find("emoji") or name:find("emote") or name:find("unlock") or name:find("purchase") then
-                    pcall(function()
-                        remote:FireServer("UnlockAll")
-                        remote:FireServer("UnlockEmoji")
-                        remote:FireServer("BuyAll")
-                        remote:FireServer("Unlock", "All")
-                        remote:FireServer("Emoji", "Unlock")
-                        successCount = successCount + 1
-                    end)
-                end
-            end
-        end
-        
-        OrionLib:MakeNotification({
-            Name = "Brutal Unlock",
-            Content = "Mencoba "..successCount.." remote",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-    end
-})
-
-EmojiTab:AddParagraph({
-    Title = "Info Universal",
-    Content = "1. Klik 'Scan Emoji Data' untuk mencari semua data terkait emoji di game.\n2. Pilih data dari dropdown untuk melihat detail.\n3. Coba unlock dari data spesifik atau pakai brutal unlock.\n4. Fitur ini spekulatif, tergantung struktur game."
-})
-
 -- ===== TAB AUTO FISH =====
 local AutoFishTab = Window:MakeTab({
     Name = "AUTO FISH",
-    Icon = "rbxassetid://44833459
+    Icon = "rbxassetid://4483345998"
+})
+
+-- Variabel auto fish
+local autoFishing = false
+local autoFishConn = nil
+local castRemote = nil
+local reelRemote = nil
+local fishingDelay = 1.0
+local allRemoteNames = {}
+
+-- Fungsi scan remote fishing
+local function scanFishingRemotes()
+    local remotes = {}
+    local names = {}
+    -- Cari di ReplicatedStorage
+    for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
+            local name = remote.Name:lower()
+            if name:find("cast") or name:find("fish") or name:find("reel") or name:find("catch") or name:find("startfishing") then
+                table.insert(remotes, remote)
+                table.insert(names, remote.Name)
+            end
+        end
+    end
+    -- Cari di Player
+    for _, remote in ipairs(LocalPlayer:GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
+            local name = remote.Name:lower()
+            if name:find("cast") or name:find("fish") or name:find("reel") or name:find("catch") then
+                table.insert(remotes, remote)
+                table.insert(names, remote.Name)
+            end
+        end
+    end
+    allRemoteNames = names
+    return remotes, names
+end
+
+-- Tombol scan
+AutoFishTab:AddButton({
+    Name = "🔍 Scan Fishing Remotes",
+    Callback = function()
+        local remotes, names = scanFishingRemotes()
+        if #remotes > 0 then
+            dropdownCast:Refresh(names, true)
+            dropdownReel:Refresh(names, true)
+            if #remotes >= 1 then castRemote = remotes[1] end
+            if #remotes >= 2 then reelRemote = remotes[2] end
+            local msg = "Ditemukan "..#remotes.." remote:\n" .. table.concat(names, "\n")
+            OrionLib:MakeNotification({ Name = "Scan Result", Content = msg, Time = 5 })
+        else
+            OrionLib:MakeNotification({ Name = "Scan Result", Content = "Tidak ada remote fishing ditemukan.", Time = 3 })
+        end
+    end
+})
+
+-- Dropdown untuk cast remote
+local dropdownCast = AutoFishTab:AddDropdown({
+    Name = "Pilih Cast Remote",
+    Options = {},
+    Default = "",
+    Callback = function(value)
+        local remotes = scanFishingRemotes()
+        for _, r in ipairs(remotes) do if r.Name == value then castRemote = r; break end end
+    end
+})
+
+-- Dropdown untuk reel remote
+local dropdownReel = AutoFishTab:AddDropdown({
+    Name = "Pilih Reel Remote",
+    Options = {},
+    Default = "",
+    Callback = function(value)
+        local remotes = scanFishingRemotes()
+        for _, r in ipairs(remotes) do if r.Name == value then reelRemote = r; break end end
+    end
+})
+
+-- Slider delay
+AutoFishTab:AddSlider({
+    Name = "Delay (detik)",
+    Min = 0.1,
+    Max = 3.0,
+    Default = 1.0,
+    Increment = 0.1,
+    ValueName = "dtk",
+    Callback = function(v) fishingDelay = v end
+})
+
+-- Toggle auto fish
+AutoFishTab:AddToggle({
+    Name = "🎣 Auto Fish",
+    Default = false,
+    Callback = function(state)
+        autoFishing = state
+        if state then
+            if not castRemote or not reelRemote then
+                OrionLib:MakeNotification({ Name = "Error", Content = "Pilih cast dan reel remote dulu!", Time = 2 })
+                autoFishing = false
+                return
+            end
+            autoFishConn = RunService.Heartbeat:Connect(function()
+                if not autoFishing then return end
+                pcall(function()
+                    castRemote:FireServer()
+                    wait(fishingDelay)
+                    reelRemote:FireServer()
+                end)
+            end)
+            OrionLib:MakeNotification({ Name = "Auto Fish", Content = "Dimulai dengan delay "..fishingDelay.." dtk", Time = 2 })
+        else
+            if autoFishConn then autoFishConn:Disconnect(); autoFishConn = nil end
+        end
+    end
+})
+
+-- ===== FITUR FAST FISHING =====
+AutoFishTab:AddButton({
+    Name = "⚡ FAST FISHING (Super Cepat)",
+    Callback = function()
+        if not autoFishing then
+            OrionLib:MakeNotification({ Name = "Error", Content = "Aktifkan Auto Fish dulu!", Time = 2 })
+            return
+        end
+        fishingDelay = 0.1
+        OrionLib:MakeNotification({ Name = "Fast Fishing", Content = "Delay diset ke 0.1 detik! Siap-siap kena ban 🥵", Time = 3 })
+    end
+})
+
+-- Info
+AutoFishTab:AddParagraph({
+    Title = "Info",
+    Content = "1. Scan remote fishing.\n2. Pilih cast & reel.\n3. Atur delay atau pakai FAST FISHING.\n4. Nyalakan Auto Fish."
+})
+
+-- Notifikasi Selesai & Init
+OrionLib:MakeNotification({ Name = "GarxCuy Mobile", Content = "Loaded! (Auto Fish + Fast Fishing)", Time = 3 })
+OrionLib:Init()
