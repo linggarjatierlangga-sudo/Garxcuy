@@ -1,494 +1,88 @@
--- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH RESMI + FAST REEL
--- Cocok buat Delta / executor HP
-
+-- Auto Fishing + Fast Reel (SIMPLE)
 -- Load Orion Library
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
--- Buat Window
-local Window = OrionLib:MakeWindow({
-    Name = "GarxCuy Hub (Mobile)",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "GarxCuyMobile",
-    IntroEnabled = true,
-    IntroText = "GarxCuy Mobile",
-    IntroIcon = "rbxassetid://4483345998"
-})
-
 -- Services
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- Variabel global
-local flyEnabled = false
-local freecamEnabled = false
-local flySpeed = 50
-local freecamSpeed = 50
-local flyBV = nil
-local freecamConn = nil
-local noclipEnabled = false
-local noclipConn = nil
-local flyConn = nil
-local espEnabled = false
-local espFolder = Instance.new("Folder")
-espFolder.Name = "ESP_Mobile"
-espFolder.Parent = game:GetService("CoreGui")
-local espConnections = {}
-
--- Track keyboard state
-local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
-    if input.KeyCode == Enum.KeyCode.Space then keys.Up = true end
-    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = true end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
-    if input.KeyCode == Enum.KeyCode.Space then keys.Up = false end
-    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = false end
-end)
-
--- ===== TAB PLAYER =====
-local PlayerTab = Window:MakeTab({Name = "Player", Icon = "rbxassetid://4483345998"})
-
--- WalkSpeed Slider
-PlayerTab:AddSlider({
-    Name = "WalkSpeed",
-    Min = 16, Max = 500, Default = 16,
-    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
-    Callback = function(value)
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = value end
-        end
-    end
-})
-
--- NoClip Toggle
-PlayerTab:AddToggle({
-    Name = "NoClip", Default = false,
-    Callback = function(state)
-        noclipEnabled = state
-        if state then
-            if noclipConn then noclipConn:Disconnect() end
-            noclipConn = RunService.Stepped:Connect(function()
-                if noclipEnabled and LocalPlayer.Character then
-                    for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                end
-            end)
-        else
-            if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
-            if LocalPlayer.Character then
-                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = true end
-                end
-            end
-        end
-    end
-})
-
--- Fly Mode
-PlayerTab:AddToggle({
-    Name = "Fly Mode", Default = false,
-    Callback = function(state)
-        flyEnabled = state
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        if state then
-            hum.PlatformStand = true
-            flyBV = Instance.new("BodyVelocity")
-            flyBV.Velocity = Vector3.new(0,0,0)
-            flyBV.MaxForce = Vector3.new(10000,10000,10000)
-            flyBV.Parent = root
-            
-            if flyConn then flyConn:Disconnect() end
-            flyConn = RunService.Heartbeat:Connect(function()
-                if not flyEnabled then return end
-                local move = Vector3.new()
-                if keys.W then move = move + Camera.CFrame.LookVector end
-                if keys.S then move = move - Camera.CFrame.LookVector end
-                if keys.A then move = move - Camera.CFrame.RightVector end
-                if keys.D then move = move + Camera.CFrame.RightVector end
-                if keys.Up then move = move + Vector3.new(0,1,0) end
-                if keys.Down then move = move - Vector3.new(0,1,0) end
-                
-                if move.Magnitude > 0 then
-                    flyBV.Velocity = move.Unit * flySpeed
-                else
-                    flyBV.Velocity = Vector3.new(0,0,0)
-                end
-            end)
-        else
-            if flyConn then flyConn:Disconnect(); flyConn = nil end
-            if flyBV then flyBV:Destroy(); flyBV = nil end
-            hum.PlatformStand = false
-        end
-    end
-})
-
-PlayerTab:AddSlider({
-    Name = "Fly Speed", Min = 10, Max = 500, Default = 50,
-    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
-    Callback = function(value) flySpeed = value end
-})
-
--- Infinity Jump
-local infinityJump = false
-PlayerTab:AddToggle({
-    Name = "Infinity Jump", Default = false,
-    Callback = function(state) infinityJump = state end
-})
-
-UserInputService.JumpRequest:Connect(function()
-    if infinityJump and LocalPlayer.Character then
-        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local bv = Instance.new("BodyVelocity")
-            bv.Velocity = Vector3.new(0, 100, 0)
-            bv.MaxForce = Vector3.new(0, math.huge, 0)
-            bv.Parent = root
-            game:GetService("Debris"):AddItem(bv, 0.5)
-        end
-    end
-end)
-
--- Reset WalkSpeed
-PlayerTab:AddButton({
-    Name = "Reset WalkSpeed",
-    Callback = function()
-        if LocalPlayer.Character then
-            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = 16 end
-        end
-        OrionLib:MakeNotification({Name = "Reset", Content = "WalkSpeed normal", Image = "rbxassetid://4483345998", Time = 2})
-    end
-})
-
--- ===== TAB FREECAM =====
-local FreecamTab = Window:MakeTab({Name = "Freecam", Icon = "rbxassetid://4483345998"})
-local originalCF = nil
-
-FreecamTab:AddToggle({
-    Name = "Enable Freecam", Default = false,
-    Callback = function(state)
-        freecamEnabled = state
-        if state then
-            originalCF = Camera.CFrame
-            Camera.CameraType = Enum.CameraType.Scriptable
-            
-            if freecamConn then freecamConn:Disconnect() end
-            freecamConn = RunService.RenderStepped:Connect(function(dt)
-                if not freecamEnabled then return end
-                local move = Vector3.new()
-                if keys.W then move = move + Camera.CFrame.LookVector end
-                if keys.S then move = move - Camera.CFrame.LookVector end
-                if keys.A then move = move - Camera.CFrame.RightVector end
-                if keys.D then move = move + Camera.CFrame.RightVector end
-                if keys.Up then move = move + Vector3.new(0,1,0) end
-                if keys.Down then move = move - Vector3.new(0,1,0) end
-                
-                if move.Magnitude > 0 then
-                    Camera.CFrame = Camera.CFrame + move.Unit * freecamSpeed * dt * 60
-                end
-            end)
-        else
-            if freecamConn then freecamConn:Disconnect(); freecamConn = nil end
-            if originalCF then Camera.CFrame = originalCF end
-            Camera.CameraType = Enum.CameraType.Custom
-        end
-    end
-})
-
-FreecamTab:AddSlider({
-    Name = "Freecam Speed", Min = 10, Max = 500, Default = 50,
-    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
-    Callback = function(value) freecamSpeed = value end
-})
-
--- ===== TAB ESP =====
-local ESPTab = Window:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998"})
-
-local function createESP(p)
-    if p == LocalPlayer then return end
-    local old = espFolder:FindFirstChild(p.Name)
-    if old then old:Destroy() end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = p.Name
-    highlight.FillColor = p.Team and p.Team.TeamColor.Color or Color3.new(1,0,0)
-    highlight.OutlineColor = Color3.new(1,1,1)
-    highlight.FillTransparency = 0.5
-    highlight.Parent = espFolder
-    if p.Character then
-        highlight.Adornee = p.Character
-    else
-        p.CharacterAdded:Connect(function(char) highlight.Adornee = char end)
-    end
-end
-
-ESPTab:AddToggle({
-    Name = "Enable ESP", Default = false,
-    Callback = function(state)
-        espEnabled = state
-        if state then
-            espFolder:ClearAllChildren()
-            for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
-            espConnections.PlayerAdded = Players.PlayerAdded:Connect(createESP)
-            espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(p)
-                local h = espFolder:FindFirstChild(p.Name)
-                if h then h:Destroy() end
-            end)
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer then
-                    espConnections["Char_"..p.Name] = p.CharacterAdded:Connect(function() createESP(p) end)
-                end
-            end
-        else
-            for _, conn in pairs(espConnections) do if conn then conn:Disconnect() end end
-            espConnections = {}
-            espFolder:ClearAllChildren()
-        end
-    end
-})
-
--- ===== TAB OTHER =====
-local OtherTab = Window:MakeTab({Name = "Other", Icon = "rbxassetid://4483345998"})
-
-OtherTab:AddButton({
-    Name = "Infinite Yield",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-    end
-})
-
--- FPS Counter
-local fpsGui = nil
-local fpsConn = nil
-OtherTab:AddToggle({
-    Name = "Show FPS", Default = false,
-    Callback = function(s)
-        if s then
-            if fpsGui then fpsGui:Destroy() end
-            fpsGui = Instance.new("ScreenGui")
-            fpsGui.Parent = game:GetService("CoreGui")
-            
-            local bg = Instance.new("Frame")
-            bg.Size = UDim2.new(0, 100, 0, 40)
-            bg.Position = UDim2.new(0, 10, 0, 10)
-            bg.BackgroundColor3 = Color3.new(0,0,0)
-            bg.BackgroundTransparency = 0.5
-            bg.Parent = fpsGui
-            
-            local txt = Instance.new("TextLabel")
-            txt.Size = UDim2.new(1,0,1,0)
-            txt.BackgroundTransparency = 1
-            txt.TextColor3 = Color3.new(1,1,1)
-            txt.TextSize = 20
-            txt.Font = Enum.Font.GothamBold
-            txt.Parent = bg
-            
-            local lastTime = tick()
-            local frames = 0
-            if fpsConn then fpsConn:Disconnect() end
-            fpsConn = RunService.RenderStepped:Connect(function()
-                frames = frames + 1
-                if tick() - lastTime >= 1 then
-                    txt.Text = "FPS: " .. frames
-                    frames = 0
-                    lastTime = tick()
-                end
-            end)
-        else
-            if fpsConn then fpsConn:Disconnect(); fpsConn = nil end
-            if fpsGui then fpsGui:Destroy(); fpsGui = nil end
-        end
-    end
-})
-
--- ===== TAB AUTO FISH RESMI + FAST REEL =====
-local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
-
--- Cari remote auto fishing resmi
+-- Remote auto fishing resmi
 local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
 local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
 local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
 local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
 
--- Cari remote reel (untuk fast reel)
-local ReelFinished = ReplicatedStorage:FindFirstChild("ReelFinished", true) -- cari di semua descendant
-local Fishing_RemoteRetract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true)
-local FishingCatchSuccess = ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
+-- Remote reel (pilih salah satu yang work)
+local ReelRemote = ReplicatedStorage:FindFirstChild("ReelFinished", true) 
+                 or ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true)
+                 or ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
 
--- Status auto fishing dan fast reel
+-- Variabel
 local autoFishingActive = false
 local fastReelActive = false
-local fastReelConn = nil
 local fastReelSpeed = 0.3
-local selectedReelRemote = nil
+local fastReelConn = nil
 
--- Dropdown pilihan remote reel
-local reelOptions = {}
-if ReelFinished then table.insert(reelOptions, "ReelFinished") end
-if Fishing_RemoteRetract then table.insert(reelOptions, "Fishing_RemoteRetract") end
-if FishingCatchSuccess then table.insert(reelOptions, "FishingCatchSuccess") end
+-- Buat window
+local Window = OrionLib:MakeWindow({Name = "Auto Fish + Fast Reel", IntroEnabled = false})
+local Tab = Window:MakeTab({Name = "Fishing", Icon = "rbxassetid://4483345998"})
 
-local reelDropdown = AutoFishTab:AddDropdown({
-    Name = "Pilih Remote Reel",
-    Options = reelOptions,
-    Default = #reelOptions > 0 and reelOptions[1] or "",
-    Callback = function(value)
-        if value == "ReelFinished" then selectedReelRemote = ReelFinished
-        elseif value == "Fishing_RemoteRetract" then selectedReelRemote = Fishing_RemoteRetract
-        elseif value == "FishingCatchSuccess" then selectedReelRemote = FishingCatchSuccess
-        end
-    end
-})
-
--- Set default remote reel
-if #reelOptions > 0 then
-    selectedReelRemote = ReelFinished or Fishing_RemoteRetract or FishingCatchSuccess
-end
-
--- Tombol toggle Start/Stop Auto Fishing
-local toggleBtn = AutoFishTab:AddButton({
-    Name = "🎣 Mulai Auto Fishing",
+-- Tombol Auto Fishing Resmi
+local afkBtn = Tab:AddButton({
+    Name = "▶️ Mulai Auto Fishing (Resmi)",
     Callback = function()
-        if not autoFishingActive then
-            -- Mulai auto fishing resmi
-            if StartAutoFishing then
-                StartAutoFishing:FireServer()
-                autoFishingActive = true
-                toggleBtn:Set("⏹️ Hentikan Auto Fishing")
-                OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
-                
-                -- Jika fast reel aktif, mulai loop fast reel
-                if fastReelActive and selectedReelRemote then
-                    startFastReel()
-                end
-            else
-                OrionLib:MakeNotification({Name = "Error", Content = "StartAutoFishing tidak ditemukan!", Time = 2})
-            end
-        else
-            -- Hentikan auto fishing
-            if StopAutoFishing then
-                StopAutoFishing:FireServer()
-            else
-                -- Jika tidak ada remote stop, mungkin StartAutoFishing bersifat toggle
-                StartAutoFishing:FireServer()
-            end
+        if not autoFishingActive and StartAutoFishing then
+            StartAutoFishing:FireServer()
+            autoFishingActive = true
+            afkBtn:Set("⏸️ Hentikan Auto Fishing")
+        elseif autoFishingActive and StopAutoFishing then
+            StopAutoFishing:FireServer()
             autoFishingActive = false
-            toggleBtn:Set("🎣 Mulai Auto Fishing")
-            
-            -- Hentikan fast reel jika aktif
-            if fastReelConn then
-                fastReelConn:Disconnect()
-                fastReelConn = nil
-            end
-            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
+            afkBtn:Set("▶️ Mulai Auto Fishing (Resmi)")
         end
     end
 })
-
--- Fungsi memulai fast reel
-local function startFastReel()
-    if fastReelConn then fastReelConn:Disconnect() end
-    fastReelConn = RunService.Heartbeat:Connect(function()
-        if not autoFishingActive or not fastReelActive or not selectedReelRemote then return end
-        pcall(function()
-            selectedReelRemote:FireServer()
-            wait(fastReelSpeed)
-        end)
-    end)
-end
 
 -- Toggle Fast Reel
-AutoFishTab:AddToggle({
-    Name = "⚡ Fast Reel (RISIKO BANNED)",
+Tab:AddToggle({
+    Name = "⚡ Fast Reel (Manual)",
     Default = false,
     Callback = function(state)
         fastReelActive = state
         if state then
-            if not selectedReelRemote then
-                OrionLib:MakeNotification({Name = "Error", Content = "Pilih remote reel dulu!", Time = 2})
+            if not ReelRemote then
+                OrionLib:MakeNotification({Name = "Error", Content = "Remote reel tidak ditemukan!", Time = 2})
                 fastReelActive = false
                 return
             end
-            if autoFishingActive then
-                startFastReel()
-            end
-            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif! Hati-hati banned.", Time = 3})
+            -- Loop fast reel
+            if fastReelConn then fastReelConn:Disconnect() end
+            fastReelConn = RunService.Heartbeat:Connect(function()
+                if fastReelActive and ReelRemote then
+                    pcall(function() ReelRemote:FireServer() end)
+                    wait(fastReelSpeed)
+                end
+            end)
+            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif!", Time = 2})
         else
-            if fastReelConn then
-                fastReelConn:Disconnect()
-                fastReelConn = nil
-            end
+            if fastReelConn then fastReelConn:Disconnect() end
         end
     end
 })
 
 -- Slider kecepatan fast reel
-AutoFishTab:AddSlider({
+Tab:AddSlider({
     Name = "Kecepatan Fast Reel (detik)",
-    Min = 0.1, Max = 1.0, Default = 0.3, Increment = 0.05,
-    ValueName = "dtk",
+    Min = 0.1, Max = 1.0, Default = 0.3,
     Callback = function(v) fastReelSpeed = v end
 })
 
--- Tombol test manual
-AutoFishTab:AddButton({
-    Name = "Test StartAutoFishing",
-    Callback = function()
-        if StartAutoFishing then StartAutoFishing:FireServer() end
-    end
-})
-
-if StopAutoFishing then
-    AutoFishTab:AddButton({
-        Name = "Test StopAutoFishing",
-        Callback = function()
-            StopAutoFishing:FireServer()
-        end
+-- Tombol test manual (opsional)
+if ReelRemote then
+    Tab:AddButton({
+        Name = "Test Reel Manual",
+        Callback = function() ReelRemote:FireServer() end
     })
 end
 
-AutoFishTab:AddButton({
-    Name = "Test Reel (manual)",
-    Callback = function()
-        if selectedReelRemote then
-            selectedReelRemote:FireServer()
-            OrionLib:MakeNotification({Name = "Test", Content = "Reel fired", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Error", Content = "Pilih remote reel dulu!", Time = 1})
-        end
-    end
-})
-
-AutoFishTab:AddParagraph({
-    Title = "⚠️ PERINGATAN",
-    Content = "Fast Reel mengirim remote reel berulang kali dengan cepat. Ini sangat berisiko menyebabkan banned! Gunakan dengan bijak."
-})
-
--- Notifikasi Selesai & Init
-OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish + Fast Reel", Time = 3})
 OrionLib:Init()
