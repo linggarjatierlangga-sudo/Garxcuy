@@ -26,12 +26,11 @@ highlightFolder.Parent = game.CoreGui
 local espEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
-local flySpeed = 50
+local flySpeed = 50  -- default, tapi slider dihapus
 local flyBodyVelocity = nil
 local noclipConn = nil
 local flyConn = nil
 local espConnections = {}
-local currentJump = 50  -- untuk force jump
 
 -- ===== TAB PLAYER =====
 local PlayerTab = Window:MakeTab({
@@ -60,138 +59,8 @@ PlayerTab:AddSlider({
     end
 })
 
--- Slider JumpPower (Versi Robust)
-PlayerTab:AddSlider({
-    Name = "JumpPower",
-    Min = 50,
-    Max = 350,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "jump",
-    Callback = function(value)
-        currentJump = value
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                -- Coba berbagai metode
-                local methods = {
-                    function() hum.JumpPower = value end,
-                    function() hum:SetAttribute("JumpPower", value) end,
-                    function() 
-                        if hum:FindFirstChild("JumpPower") then
-                            hum.JumpPower.Value = value 
-                        end
-                    end,
-                    function()
-                        hum.JumpHeight = value / 10  -- asumsi konversi
-                    end
-                }
-                for _, method in ipairs(methods) do
-                    local success = pcall(method)
-                    if success then break end
-                end
-            end
-        end
-    end
-})
-
--- Toggle Force Jump (Loop)
+-- NoClip Toggle (dipindah dari Movement)
 PlayerTab:AddToggle({
-    Name = "Force Jump Power (Loop)",
-    Default = false,
-    Callback = function(state)
-        while state do
-            local char = LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    pcall(function() hum.JumpPower = currentJump end)
-                end
-            end
-            wait(1)
-        end
-    end
-})
-
--- ===== SUPER JUMP =====
-local superJumpEnabled = false
-local superJumpPower = 100
-local superJumpConnection = nil
-
-PlayerTab:AddToggle({
-    Name = "Super Jump (BodyVelocity)",
-    Default = false,
-    Callback = function(state)
-        superJumpEnabled = state
-        if state then
-            superJumpConnection = UserInputService.JumpRequest:Connect(function()
-                if not superJumpEnabled then return end
-                local char = LocalPlayer.Character
-                if not char then return end
-                local rootPart = char:FindFirstChild("HumanoidRootPart")
-                if not rootPart then return end
-                
-                local bv = Instance.new("BodyVelocity")
-                bv.Velocity = Vector3.new(0, superJumpPower, 0)
-                bv.MaxForce = Vector3.new(0, math.huge, 0)
-                bv.Parent = rootPart
-                game:GetService("Debris"):AddItem(bv, 0.5)
-            end)
-        else
-            if superJumpConnection then
-                superJumpConnection:Disconnect()
-                superJumpConnection = nil
-            end
-        end
-    end
-})
-
-PlayerTab:AddSlider({
-    Name = "Super Jump Power",
-    Min = 50,
-    Max = 500,
-    Default = 100,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "force",
-    Callback = function(value)
-        superJumpPower = value
-    end
-})
-
--- Reset button
-PlayerTab:AddButton({
-    Name = "Reset to Defaults",
-    Callback = function()
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = 16
-                hum.JumpPower = 50
-                currentJump = 50
-            end
-        end
-        OrionLib:MakeNotification({
-            Name = "Reset",
-            Content = "Speed dan Jump kembali normal",
-            Image = "rbxassetid://4483345998",
-            Time = 2
-        })
-    end
-})
-
--- ===== TAB MOVEMENT =====
-local MoveTab = Window:MakeTab({
-    Name = "Movement",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- NoClip Toggle
-MoveTab:AddToggle({
     Name = "NoClip",
     Default = false,
     Callback = function(state)
@@ -225,8 +94,8 @@ MoveTab:AddToggle({
     end
 })
 
--- Fly Toggle
-MoveTab:AddToggle({
+-- Fly Toggle (dipindah dari Movement)
+PlayerTab:AddToggle({
     Name = "Fly Mode",
     Default = false,
     Callback = function(state)
@@ -284,17 +153,69 @@ MoveTab:AddToggle({
     end
 })
 
--- Slider Fly Speed
-MoveTab:AddSlider({
-    Name = "Fly Speed",
-    Min = 10,
+-- Infinity Jump (dulu Super Jump)
+local infinityJumpEnabled = false
+local infinityJumpPower = 100
+local infinityJumpConnection = nil
+
+PlayerTab:AddToggle({
+    Name = "Infinity Jump",
+    Default = false,
+    Callback = function(state)
+        infinityJumpEnabled = state
+        if state then
+            infinityJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if not infinityJumpEnabled then return end
+                local char = LocalPlayer.Character
+                if not char then return end
+                local rootPart = char:FindFirstChild("HumanoidRootPart")
+                if not rootPart then return end
+                
+                local bv = Instance.new("BodyVelocity")
+                bv.Velocity = Vector3.new(0, infinityJumpPower, 0)
+                bv.MaxForce = Vector3.new(0, math.huge, 0)
+                bv.Parent = rootPart
+                game:GetService("Debris"):AddItem(bv, 0.5)
+            end)
+        else
+            if infinityJumpConnection then
+                infinityJumpConnection:Disconnect()
+                infinityJumpConnection = nil
+            end
+        end
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Infinity Jump Power",
+    Min = 50,
     Max = 500,
-    Default = 50,
+    Default = 100,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
-    ValueName = "fly speed",
+    ValueName = "force",
     Callback = function(value)
-        flySpeed = value
+        infinityJumpPower = value
+    end
+})
+
+-- Reset button (WalkSpeed only, since JumpPower removed)
+PlayerTab:AddButton({
+    Name = "Reset WalkSpeed",
+    Callback = function()
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = 16
+            end
+        end
+        OrionLib:MakeNotification({
+            Name = "Reset",
+            Content = "WalkSpeed kembali normal",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
     end
 })
 
