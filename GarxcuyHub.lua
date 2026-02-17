@@ -1,6 +1,6 @@
 -- Script Fix by ShadowX
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("Double Example Hub", "DarkTheme")
+local Window = Library.CreateLib("GARXCUY HUB", "Synapse")
 
 -- Main Tab
 local MainTab = Window:NewTab("Main")
