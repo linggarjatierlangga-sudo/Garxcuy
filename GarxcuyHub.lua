@@ -1,8 +1,16 @@
--- GarxCuy Hub - Simple Version (Kavo UI)
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("GarxCuy Hub", "DarkTheme")
+-- Script by ShadowX - GarxCuy Hub (Orion Library)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({
+    Name = "GarxCuy Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "GarxCuyConfig",
+    IntroEnabled = true,
+    IntroText = "GarxCuy Hub",
+    IntroIcon = "rbxassetid://4483345998"
+})
 
--- Variabel
+-- Variabel global
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -11,146 +19,313 @@ local highlightFolder = Instance.new("Folder")
 highlightFolder.Name = "ESP_Highlights"
 highlightFolder.Parent = game.CoreGui
 
--- ===== TAB UTAMA =====
-local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Movement")
+-- Variabel fitur
+local espEnabled = false
+local noclipEnabled = false
+local flyEnabled = false
+local flyBodyVelocity = nil
+local noclipConn = nil
+local flyConn = nil
+local espConnections = {}
 
--- Speed & Jump Boost
-local speedEnabled = false
-MainSection:NewToggle("Speed & Jump Boost", "Naikin speed", function(state)
-    speedEnabled = state
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = state and 120 or 16
-            humanoid.JumpPower = state and 120 or 50
+-- ===== TAB PLAYER =====
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Section Player Settings
+local PlayerSection = PlayerTab:AddSection({
+    Name = "Player Settings"
+})
+
+-- Slider WalkSpeed
+PlayerTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = value
+            end
         end
     end
-end)
+})
 
--- NoClip
-local noclipEnabled = false
-local noclipConn
-MainSection:NewToggle("NoClip", "Tembus tembok", function(state)
-    noclipEnabled = state
-    if state then
-        noclipConn = RunService.Stepped:Connect(function()
-            if not noclipEnabled then return end
+-- Slider JumpPower
+PlayerTab:AddSlider({
+    Name = "JumpPower",
+    Min = 50,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.JumpPower = value
+            end
+        end
+    end
+})
+
+-- Reset button
+PlayerTab:AddButton({
+    Name = "Reset to Defaults",
+    Callback = function()
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = 16
+                humanoid.JumpPower = 50
+            end
+        end
+        OrionLib:MakeNotification({
+            Name = "Reset",
+            Content = "Speed dan Jump kembali normal",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+})
+
+-- ===== TAB MOVEMENT =====
+local MoveTab = Window:MakeTab({
+    Name = "Movement",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- NoClip Toggle
+MoveTab:AddToggle({
+    Name = "NoClip (Tembus Tembok)",
+    Default = false,
+    Callback = function(state)
+        noclipEnabled = state
+        if state then
+            noclipConn = RunService.Stepped:Connect(function()
+                if not noclipEnabled then return end
+                local char = LocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConn then
+                noclipConn:Disconnect()
+                noclipConn = nil
+            end
             local char = LocalPlayer.Character
             if char then
-                for _, part in pairs(char:GetDescendants()) do
+                for _, part in ipairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false
+                        part.CanCollide = true
                     end
                 end
             end
-        end)
-    else
-        if noclipConn then noclipConn:Disconnect() end
-        -- Balikin collide (opsional, game biasanya ngatur sendiri)
+        end
     end
-end)
+})
 
--- Fly
-local flyEnabled = false
-local flyConn, flyBV
-MainSection:NewToggle("Fly Mode", "Terbang pake WASD + Spasi + Ctrl", function(state)
-    flyEnabled = state
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not root or not humanoid then return end
-    
-    if state then
-        humanoid.PlatformStand = true
-        flyBV = Instance.new("BodyVelocity")
-        flyBV.Velocity = Vector3.new(0,0,0)
-        flyBV.MaxForce = Vector3.new(10000,10000,10000)
-        flyBV.Parent = root
+-- Fly Toggle
+MoveTab:AddToggle({
+    Name = "Fly Mode",
+    Default = false,
+    Callback = function(state)
+        flyEnabled = state
+        local char = LocalPlayer.Character
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        local rootPart = char:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
         
-        flyConn = RunService.Heartbeat:Connect(function()
-            if not flyEnabled then return end
-            local move = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                move = move + workspace.CurrentCamera.CFrame.LookVector
+        if state then
+            humanoid.PlatformStand = true
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+            flyBodyVelocity.Parent = rootPart
+            
+            flyConn = RunService.Heartbeat:Connect(function()
+                if not flyEnabled then return end
+                local moveDir = Vector3.new()
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveDir = moveDir + Vector3.new(0, 1, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                    moveDir = moveDir - Vector3.new(0, 1, 0)
+                end
+                
+                if flyBodyVelocity then
+                    flyBodyVelocity.Velocity = moveDir * 50
+                end
+            end)
+        else
+            if flyBodyVelocity then
+                flyBodyVelocity:Destroy()
+                flyBodyVelocity = nil
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                move = move - workspace.CurrentCamera.CFrame.LookVector
+            if flyConn then
+                flyConn:Disconnect()
+                flyConn = nil
             end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                move = move - workspace.CurrentCamera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                move = move + workspace.CurrentCamera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                move = move + Vector3.new(0,1,0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                move = move - Vector3.new(0,1,0)
-            end
-            flyBV.Velocity = move * 50
-        end)
-    else
-        if flyConn then flyConn:Disconnect() end
-        if flyBV then flyBV:Destroy() end
-        humanoid.PlatformStand = false
+            humanoid.PlatformStand = false
+        end
     end
-end)
+})
 
 -- ===== TAB ESP =====
-local ESPTab = Window:NewTab("ESP")
-local ESPSection = ESPTab:NewSection("Player ESP")
+local ESPTab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
--- Fungsi bikin highlight
-local function createHighlight(plr)
-    if plr == LocalPlayer then return end
-    if not plr.Character then return end
-    local hl = Instance.new("Highlight")
-    hl.Name = plr.Name.."_ESP"
-    hl.FillColor = plr.Team and plr.Team.TeamColor.Color or Color3.new(1,0,0)
-    hl.OutlineColor = Color3.new(1,1,1)
-    hl.FillTransparency = 0.5
-    hl.Parent = highlightFolder
-    hl.Adornee = plr.Character
+-- Fungsi ESP
+local function createHighlight(player)
+    if not player.Character then return end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name .. "_ESP"
+    if player.Team then
+        highlight.FillColor = player.Team.TeamColor.Color
+    else
+        highlight.FillColor = Color3.new(1, 0, 0)
+    end
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = highlightFolder
+    highlight.Adornee = player.Character
+    return highlight
 end
 
 -- Toggle ESP
-ESPSection:NewToggle("Enable ESP", "Lihat player tembus tembok", function(state)
-    if state then
-        -- Hapus semua highlight lama
-        for _, v in pairs(highlightFolder:GetChildren()) do v:Destroy() end
-        
-        -- Buat highlight untuk semua player
-        for _, plr in pairs(Players:GetPlayers()) do
-            createHighlight(plr)
-        end
-        
-        -- Koneksi player added
-        Players.PlayerAdded:Connect(function(plr)
-            plr.CharacterAdded:Connect(function()
-                createHighlight(plr)
+ESPTab:AddToggle({
+    Name = "Enable ESP",
+    Default = false,
+    Callback = function(state)
+        espEnabled = state
+        if state then
+            for _, v in ipairs(highlightFolder:GetChildren()) do
+                v:Destroy()
+            end
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    createHighlight(player)
+                end
+            end
+            espConnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(function()
+                    if espEnabled and player ~= LocalPlayer then
+                        createHighlight(player)
+                    end
+                end)
             end)
-        end)
-        
-        -- Koneksi player removing
-        Players.PlayerRemoving:Connect(function(plr)
-            local hl = highlightFolder:FindFirstChild(plr.Name.."_ESP")
-            if hl then hl:Destroy() end
-        end)
-        
-    else
-        -- Matikan ESP
-        for _, v in pairs(highlightFolder:GetChildren()) do v:Destroy() end
+            espConnections.CharacterAdded = {}
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    espConnections.CharacterAdded[player] = player.CharacterAdded:Connect(function()
+                        if espEnabled then
+                            createHighlight(player)
+                        end
+                    end)
+                end
+            end
+            espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+                local highlight = highlightFolder:FindFirstChild(player.Name .. "_ESP")
+                if highlight then highlight:Destroy() end
+            end)
+            espConnections.Heartbeat = RunService.Heartbeat:Connect(function()
+                if not espEnabled then return end
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local highlight = highlightFolder:FindFirstChild(player.Name .. "_ESP")
+                        if highlight and player.Team then
+                            highlight.FillColor = player.Team.TeamColor.Color
+                        end
+                    end
+                end
+            end)
+        else
+            for _, v in ipairs(highlightFolder:GetChildren()) do
+                v:Destroy()
+            end
+            for _, conn in pairs(espConnections) do
+                if conn then conn:Disconnect() end
+            end
+            espConnections = {}
+        end
     end
-end)
-
--- Notifikasi
-wait(1)
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "GarxCuy Hub",
-    Text = "Loaded! Fitur ESP, NoClip, Fly siap",
-    Duration = 3
 })
+
+-- ===== TAB OTHER =====
+local OtherTab = Window:MakeTab({
+    Name = "Other",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Chat Spoofer (simulasi)
+OtherTab:AddButton({
+    Name = "Chat Spoofers",
+    Callback = function()
+        -- Contoh chat spoof: kirim pesan atas nama orang lain (hanya simulasi, butuh exploit lebih lanjut)
+        OrionLib:MakeNotification({
+            Name = "Chat Spoofers",
+            Content = "Fitur ini hanya simulasi, butuh executor level tinggi",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+        -- Contoh: game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Pesan palsu", "All")
+    end
+})
+
+-- Typed Text (simulasi)
+OtherTab:AddButton({
+    Name = "Typed Text",
+    Callback = function()
+        OrionLib:MakeNotification({
+            Name = "Typed Text",
+            Content = "Fitur ini hanya simulasi",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end
+})
+
+-- Notifikasi startup
+OrionLib:MakeNotification({
+    Name = "GarxCuy Hub Loaded",
+    Content = "All features ready!",
+    Image = "rbxassetid://4483345998",
+    Time = 3
+})
+
+-- Init library
+OrionLib:Init()
