@@ -1,5 +1,4 @@
-
--- GarxCuy Hub for Mobile + EMOJI Tab (FULL)
+-- GarxCuy Hub for Mobile + EMOJI Tab + AUTO FISH
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
@@ -23,7 +22,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
-local TweenService = game:GetService("TweenService")
 
 -- Variabel global
 local flyEnabled = false
@@ -41,7 +39,7 @@ espFolder.Name = "ESP_Mobile"
 espFolder.Parent = game:GetService("CoreGui")
 local espConnections = {}
 
--- Track keyboard state (buat yang pake keyboard Bluetooth / OTG)
+-- Track keyboard state
 local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
 
 UserInputService.InputBegan:Connect(function(input, gp)
@@ -396,17 +394,186 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB EMOJI =====
+-- ===== TAB EMOJI (UNIVERSAL, TANPA ID) =====
 local EmojiTab = Window:MakeTab({
     Name = "EMOJI",
     Icon = "rbxassetid://4483345998"
 })
 
+-- Variabel buat nyimpen data emoji
+local emojiData = {}
+local selectedEmoji = nil
+
+-- Fungsi buat scan semua kemungkinan data emoji
+local function scanEmojiData()
+    emojiData = {}
+    
+    -- Scan di ReplicatedStorage
+    for _, obj in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+        if obj:IsA("Folder") or obj:IsA("Configuration") then
+            local name = obj.Name:lower()
+            if name:find("emoji") or name:find("emote") or name:find("sticker") then
+                table.insert(emojiData, {
+                    Source = "ReplicatedStorage",
+                    Name = obj.Name,
+                    Path = obj:GetFullName(),
+                    Object = obj
+                })
+            end
+        end
+    end
+    
+    -- Scan di Player
+    for _, obj in ipairs(LocalPlayer:GetDescendants()) do
+        if obj:IsA("Folder") or obj:IsA("Configuration") or obj:IsA("StringValue") or obj:IsA("BoolValue") then
+            local name = obj.Name:lower()
+            if name:find("emoji") or name:find("emote") or name:find("sticker") then
+                table.insert(emojiData, {
+                    Source = "Player",
+                    Name = obj.Name,
+                    Path = obj:GetFullName(),
+                    Object = obj
+                })
+            end
+        end
+    end
+    
+    return #emojiData > 0
+end
+
+-- Tombol buat scan data
 EmojiTab:AddButton({
-    Name = "🔥 Unlock All Emoji 🔥",
+    Name = "🔍 Scan Emoji Data",
+    Callback = function()
+        local count = scanEmojiData()
+        if count then
+            -- Update dropdown dengan hasil scan
+            local options = {}
+            for i, data in ipairs(emojiData) do
+                table.insert(options, string.format("[%d] %s (%s)", i, data.Name, data.Source))
+            end
+            emojiDropdown:Refresh(options, true)
+            
+            OrionLib:MakeNotification({
+                Name = "Scan Complete",
+                Content = "Ditemukan "..#emojiData.." data terkait emoji",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Scan Failed",
+                Content = "Tidak ada data emoji yang ditemukan",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Dropdown buat milih data yang ditemukan
+local emojiDropdown = EmojiTab:AddDropdown({
+    Name = "Pilih Data Emoji",
+    Options = {},
+    Default = "",
+    Callback = function(value)
+        local index = tonumber(value:match("%[(%d+)%]"))
+        if index and emojiData[index] then
+            selectedEmoji = emojiData[index]
+            
+            local obj = selectedEmoji.Object
+            local details = string.format("Path: %s\nType: %s", selectedEmoji.Path, obj.ClassName)
+            
+            if obj:IsA("StringValue") then
+                details = details .. "\nValue: " .. obj.Value
+            elseif obj:IsA("BoolValue") then
+                details = details .. "\nValue: " .. tostring(obj.Value)
+            elseif obj:IsA("NumberValue") then
+                details = details .. "\nValue: " .. obj.Value
+            elseif obj:IsA("Folder") then
+                local children = obj:GetChildren()
+                details = details .. "\nChildren: " .. #children
+                for i, child in ipairs(children) do
+                    if i <= 5 then
+                        details = details .. "\n  - " .. child.Name .. " (" .. child.ClassName .. ")"
+                    end
+                end
+                if #children > 5 then
+                    details = details .. "\n  ... dan " .. (#children-5) .. " lainnya"
+                end
+            end
+            
+            detailLabel:Set(details)
+        end
+    end
+})
+
+-- Label buat nampilin detail
+local detailLabel = EmojiTab:AddParagraph({
+    Title = "Detail Data",
+    Content = "Pilih data dari dropdown untuk melihat detail"
+})
+
+-- Tombol buat coba unlock berdasarkan data yang dipilih
+EmojiTab:AddButton({
+    Name = "🔓 Coba Unlock dari Data Ini",
+    Callback = function()
+        if not selectedEmoji then
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Pilih dulu data dari dropdown",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+            return
+        end
+        
+        local obj = selectedEmoji.Object
+        local success = false
+        
+        if obj:IsA("RemoteEvent") then
+            pcall(function()
+                obj:FireServer("UnlockAll")
+                obj:FireServer("UnlockEmoji")
+                obj:FireServer("BuyAll")
+                obj:FireServer("Unlock", "All")
+                obj:FireServer("Emoji", "Unlock")
+                success = true
+            end)
+        elseif obj:IsA("RemoteFunction") then
+            pcall(function()
+                obj:InvokeServer("UnlockAll")
+                obj:InvokeServer("UnlockEmoji")
+                success = true
+            end)
+        elseif obj:IsA("Folder") then
+            for _, child in ipairs(obj:GetChildren()) do
+                if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+                    pcall(function()
+                        child:FireServer("UnlockAll")
+                        child:FireServer("UnlockEmoji")
+                        success = true
+                    end)
+                end
+            end
+        end
+        
+        if success then
+            OrionLib:MakeNotification({
+                Name = "Unlock Attempt",
+                Content = "Mencoba unlock dari data terpilih",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+        end
+    end
+})
+
+-- Tombol unlock semua remote (brutal)
+EmojiTab:AddButton({
+    Name = "⚡ Unlock All Remote (Brutal)",
     Callback = function()
         local successCount = 0
-        -- Cari di ReplicatedStorage
         for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
             if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                 local name = remote.Name:lower()
@@ -422,47 +589,24 @@ EmojiTab:AddButton({
                 end
             end
         end
-        -- Cari di Player
-        for _, remote in ipairs(LocalPlayer:GetDescendants()) do
-            if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-                local name = remote.Name:lower()
-                if name:find("emoji") or name:find("emote") then
-                    pcall(function()
-                        remote:FireServer("UnlockAll")
-                        remote:FireServer("UnlockEmoji")
-                        successCount = successCount + 1
-                    end)
-                end
-            end
-        end
         
-        if successCount > 0 then
-            OrionLib:MakeNotification({
-                Name = "Emoji Unlock",
-                Content = "Mencoba "..successCount.." remote. Semoga emoji kebuka!",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        else
-            OrionLib:MakeNotification({
-                Name = "Emoji Unlock",
-                Content = "Tidak nemu remote emoji. Mungkin game ini beda sistem.",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-        end
+        OrionLib:MakeNotification({
+            Name = "Brutal Unlock",
+            Content = "Mencoba "..successCount.." remote",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
     end
 })
 
 EmojiTab:AddParagraph({
-    Title = "Info",
-    Content = "Fitur ini coba unlock emoji dengan cara spekulasi remote. Kalo gagal, berarti game pake sistem lain atau emoji memang harus dibeli."
+    Title = "Info Universal",
+    Content = "1. Klik 'Scan Emoji Data' untuk mencari semua data terkait emoji di game.\n2. Pilih data dari dropdown untuk melihat detail.\n3. Coba unlock dari data spesifik atau pakai brutal unlock.\n4. Fitur ini spekulatif, tergantung struktur game."
 })
 
--- Notifikasi Selesai & Init
-OrionLib:MakeNotification({
-    Name = "GarxCuy Mobile",
-    Content = "Loaded! (Full Version)",
-    Time = 3
+-- ===== TAB AUTO FISH =====
+local AutoFishTab = Window:MakeTab({
+    Name = "AUTO FISH",
+    Icon = "rbxassetid://4483345998"
 })
-OrionLib:Init()
+
