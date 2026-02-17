@@ -604,3 +604,8 @@ OtherTab:AddToggle({
                 fpsGui:Destroy()
                 fpsGui = nil
             end
+        end   
+    end       
+})            
+
+
