@@ -67,7 +67,7 @@ PlayerTab:AddSlider({
     Default = 50,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
-    ValueName = "jump",
+    ValueName = "JUMP HIGH",
     Callback = function(value)
         local char = LocalPlayer.Character
         if char then
