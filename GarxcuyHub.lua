@@ -1,24 +1,12 @@
 -- Script by ShadowX - GarxCuy Hub with Synapse Theme
-local Tab = Window:MakeTab({
-	Name = "Tab 1",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
-})
-
---[[
-Name = <GARXCUY> - The name of the tab.
-Icon = <GARXCUY> - The icon of the tab.
-PremiumOnly = <bool> - Makes the tab accessible to Sirus Premium users only.
-]]
-
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("GarxCuy Hub", "Synapse")  -- Ganti judul & tema
+local Window = Library.CreateLib("GarxCuy Hub", "Synapse")
 
--- Main Tab
+-- Main Tab (seperti sebelumnya)
 local MainTab = Window:NewTab("Main")
 local MainSection = MainTab:NewSection("Main Features")
 
--- Toggle buat speed & jump
+-- Toggle speed & jump
 local speedEnabled = false
 MainSection:NewToggle("Speed & Jump Boost", "Naikin walkspeed & jump power", function(state)
     speedEnabled = state
@@ -37,7 +25,7 @@ MainSection:NewToggle("Speed & Jump Boost", "Naikin walkspeed & jump power", fun
     end
 end)
 
--- Button buat fetch data (contoh doang)
+-- Button fetch data
 MainSection:NewButton("Fetch Example Data", "Ambil data dari URL (simulasi)", function()
     local success, result = pcall(function()
         return game:HttpGet("https://httpbin.org/get")
@@ -47,4 +35,14 @@ MainSection:NewButton("Fetch Example Data", "Ambil data dari URL (simulasi)", fu
     else
         warn("Gagal ambil data")
     end
+end)
+
+-- ===== TAB BARU: TAB 1 =====
+local Tab1 = Window:NewTab("Tab 1")  -- Nama tab sesuai request
+local Tab1Section = Tab1:NewSection("Tab 1 Section", "rbxassetid://4483345998")  -- Pake icon sesuai ID
+
+-- Contoh isi section
+Tab1Section:NewLabel("Ini adalah tab baru")
+Tab1Section:NewButton("Click Me", "Tombol contoh", function()
+    print("Tombol di Tab 1 diklik!")
 end)
