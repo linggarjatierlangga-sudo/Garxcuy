@@ -1,87 +1,59 @@
--- Auto Fishing + Fast Reel (SIMPLE)
--- Load Orion Library
+-- Fast Reel dengan Fishing_RemoteRetract
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
--- Services
+local Window = OrionLib:MakeWindow({Name = "Fast Reel Retract", IntroEnabled = false})
+local Tab = Window:MakeTab({Name = "Retract"})
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
--- Remote auto fishing resmi
-local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
-local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
-local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
-local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
+-- Cari remote Fishing_RemoteRetract
+local remote = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
 
--- Remote reel (pilih salah satu yang work)
-local ReelRemote = ReplicatedStorage:FindFirstChild("ReelFinished", true) 
-                 or ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true)
-                 or ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
+if not remote then
+    Tab:AddParagraph({Title = "Error", Content = "Fishing_RemoteRetract tidak ditemukan!"})
+else
+    local isActive = false
+    local connection = nil
+    local speed = 1.0
 
--- Variabel
-local autoFishingActive = false
-local fastReelActive = false
-local fastReelSpeed = 0.3
-local fastReelConn = nil
-
--- Buat window
-local Window = OrionLib:MakeWindow({Name = "Auto Fish + Fast Reel", IntroEnabled = false})
-local Tab = Window:MakeTab({Name = "Fishing", Icon = "rbxassetid://4483345998"})
-
--- Tombol Auto Fishing Resmi
-local afkBtn = Tab:AddButton({
-    Name = "▶️ Mulai Auto Fishing (Resmi)",
-    Callback = function()
-        if not autoFishingActive and StartAutoFishing then
-            StartAutoFishing:FireServer()
-            autoFishingActive = true
-            afkBtn:Set("⏸️ Hentikan Auto Fishing")
-        elseif autoFishingActive and StopAutoFishing then
-            StopAutoFishing:FireServer()
-            autoFishingActive = false
-            afkBtn:Set("▶️ Mulai Auto Fishing (Resmi)")
-        end
-    end
-})
-
--- Toggle Fast Reel
-Tab:AddToggle({
-    Name = "⚡ Fast Reel (Manual)",
-    Default = false,
-    Callback = function(state)
-        fastReelActive = state
-        if state then
-            if not ReelRemote then
-                OrionLib:MakeNotification({Name = "Error", Content = "Remote reel tidak ditemukan!", Time = 2})
-                fastReelActive = false
-                return
+    -- Toggle fast reel
+    Tab:AddToggle({
+        Name = "⚡ Fast Reel (Retract)",
+        Default = false,
+        Callback = function(state)
+            isActive = state
+            if state then
+                if connection then connection:Disconnect() end
+                connection = RunService.Heartbeat:Connect(function()
+                    if isActive then
+                        pcall(function()
+                            remote:FireServer()  -- coba tanpa parameter dulu
+                        end)
+                        wait(speed)
+                    end
+                end)
+                OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif!", Time = 2})
+            else
+                if connection then connection:Disconnect(); connection = nil end
             end
-            -- Loop fast reel
-            if fastReelConn then fastReelConn:Disconnect() end
-            fastReelConn = RunService.Heartbeat:Connect(function()
-                if fastReelActive and ReelRemote then
-                    pcall(function() ReelRemote:FireServer() end)
-                    wait(fastReelSpeed)
-                end
-            end)
-            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif!", Time = 2})
-        else
-            if fastReelConn then fastReelConn:Disconnect() end
         end
-    end
-})
+    })
 
--- Slider kecepatan fast reel
-Tab:AddSlider({
-    Name = "Kecepatan Fast Reel (detik)",
-    Min = 0.1, Max = 1.0, Default = 0.3,
-    Callback = function(v) fastReelSpeed = v end
-})
+    -- Slider kecepatan
+    Tab:AddSlider({
+        Name = "Kecepatan (detik)",
+        Min = 0.1, Max = 3.0, Default = 1.0, Increment = 0.1,
+        Callback = function(v) speed = v end
+    })
 
--- Tombol test manual (opsional)
-if ReelRemote then
+    -- Tombol test manual
     Tab:AddButton({
-        Name = "Test Reel Manual",
-        Callback = function() ReelRemote:FireServer() end
+        Name = "Test Manual",
+        Callback = function()
+            remote:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "Retract fired", Time = 1})
+        end
     })
 end
 
