@@ -1,12 +1,12 @@
--- Script Fix by ShadowX
+-- Script by ShadowX - GarxCuy Hub with Synapse Theme
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("GARXCUY HUB", "Synapse")
+local Window = Library.CreateLib("GarxCuy Hub", "Synapse")  -- Ganti judul & tema
 
 -- Main Tab
 local MainTab = Window:NewTab("Main")
 local MainSection = MainTab:NewSection("Main Features")
 
--- Toggle untuk Speed & Jump
+-- Toggle buat speed & jump
 local speedEnabled = false
 MainSection:NewToggle("Speed & Jump Boost", "Naikin walkspeed & jump power", function(state)
     speedEnabled = state
