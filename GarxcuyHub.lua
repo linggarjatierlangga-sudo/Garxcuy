@@ -1,4 +1,4 @@
--- Script by ShadowX - GarxCuy Hub (Orion Library) with Movement improvements
+-- Script by ShadowX - GarxCuy Hub (Orion Library) Complete
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
 local Window = OrionLib:MakeWindow({
     Name = "GarxCuy Hub",
@@ -23,7 +23,7 @@ highlightFolder.Parent = game.CoreGui
 local espEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
-local flySpeed = 50  -- default kecepatan terbang
+local flySpeed = 50
 local flyBodyVelocity = nil
 local noclipConn = nil
 local flyConn = nil
@@ -41,11 +41,30 @@ local PlayerSection = PlayerTab:AddSection({
     Name = "Player Settings"
 })
 
--- Slider JumpPower (tetap di Player)
+-- Slider WalkSpeed (sesuai request)
+PlayerTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 500,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = value
+            end
+        end
+    end
+})
+
+-- Slider JumpPower (sesuai request)
 PlayerTab:AddSlider({
     Name = "JumpPower",
     Min = 50,
-    Max = 500,
+    Max = 350,
     Default = 50,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
@@ -60,7 +79,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- Reset button (opsional, bisa tetap di sini)
+-- Reset button
 PlayerTab:AddButton({
     Name = "Reset to Defaults",
     Callback = function()
@@ -86,11 +105,6 @@ local MoveTab = Window:MakeTab({
     Name = "Movement",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
-})
-
--- Section Movement
-local MoveSection = MoveTab:AddSection({
-    Name = "Movement Features"
 })
 
 -- NoClip Toggle
@@ -187,26 +201,7 @@ MoveTab:AddToggle({
     end
 })
 
--- Slider WalkSpeed (pindah dari Player ke Movement)
-MoveTab:AddSlider({
-    Name = "WalkSpeed",
-    Min = 16,
-    Max = 500,
-    Default = 16,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    Callback = function(value)
-        local char = LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = value
-            end
-        end
-    end
-})
-
--- Slider Fly Speed (baru)
+-- Slider Fly Speed
 MoveTab:AddSlider({
     Name = "Fly Speed",
     Min = 10,
@@ -226,7 +221,7 @@ local ESPTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Fungsi ESP (sama seperti sebelumnya)
+-- Fungsi ESP
 local function createHighlight(player)
     if not player.Character then return end
     local highlight = Instance.new("Highlight")
