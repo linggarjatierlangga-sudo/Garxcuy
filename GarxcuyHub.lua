@@ -1,4 +1,4 @@
--- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH RESMI
+-- GarxCuy Hub for Mobile + ALL FITUR + AUTO FISH RESMI + FAST REEL
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
@@ -326,7 +326,7 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB AUTO FISH RESMI =====
+-- ===== TAB AUTO FISH RESMI + FAST REEL =====
 local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
 -- Cari remote auto fishing resmi
@@ -335,51 +335,129 @@ local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
 local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
 local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
 
--- Status auto fishing (lokal)
-local autoFishingActive = false
-local toggleBtn = nil
+-- Cari remote reel (untuk fast reel)
+local ReelFinished = ReplicatedStorage:FindFirstChild("ReelFinished", true) -- cari di semua descendant
+local Fishing_RemoteRetract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true)
+local FishingCatchSuccess = ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
 
-if StartAutoFishing then
-    -- Tombol toggle Start/Stop
-    toggleBtn = AutoFishTab:AddButton({
-        Name = "🎣 Mulai Auto Fishing",
-        Callback = function()
-            if not autoFishingActive then
-                -- Mulai auto fishing
+-- Status auto fishing dan fast reel
+local autoFishingActive = false
+local fastReelActive = false
+local fastReelConn = nil
+local fastReelSpeed = 0.3
+local selectedReelRemote = nil
+
+-- Dropdown pilihan remote reel
+local reelOptions = {}
+if ReelFinished then table.insert(reelOptions, "ReelFinished") end
+if Fishing_RemoteRetract then table.insert(reelOptions, "Fishing_RemoteRetract") end
+if FishingCatchSuccess then table.insert(reelOptions, "FishingCatchSuccess") end
+
+local reelDropdown = AutoFishTab:AddDropdown({
+    Name = "Pilih Remote Reel",
+    Options = reelOptions,
+    Default = #reelOptions > 0 and reelOptions[1] or "",
+    Callback = function(value)
+        if value == "ReelFinished" then selectedReelRemote = ReelFinished
+        elseif value == "Fishing_RemoteRetract" then selectedReelRemote = Fishing_RemoteRetract
+        elseif value == "FishingCatchSuccess" then selectedReelRemote = FishingCatchSuccess
+        end
+    end
+})
+
+-- Set default remote reel
+if #reelOptions > 0 then
+    selectedReelRemote = ReelFinished or Fishing_RemoteRetract or FishingCatchSuccess
+end
+
+-- Tombol toggle Start/Stop Auto Fishing
+local toggleBtn = AutoFishTab:AddButton({
+    Name = "🎣 Mulai Auto Fishing",
+    Callback = function()
+        if not autoFishingActive then
+            -- Mulai auto fishing resmi
+            if StartAutoFishing then
                 StartAutoFishing:FireServer()
                 autoFishingActive = true
                 toggleBtn:Set("⏹️ Hentikan Auto Fishing")
                 OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
-            else
-                -- Hentikan auto fishing
-                if StopAutoFishing then
-                    StopAutoFishing:FireServer()
-                else
-                    -- Jika tidak ada remote stop, mungkin StartAutoFishing bersifat toggle
-                    StartAutoFishing:FireServer()
+                
+                -- Jika fast reel aktif, mulai loop fast reel
+                if fastReelActive and selectedReelRemote then
+                    startFastReel()
                 end
-                autoFishingActive = false
-                toggleBtn:Set("🎣 Mulai Auto Fishing")
-                OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
+            else
+                OrionLib:MakeNotification({Name = "Error", Content = "StartAutoFishing tidak ditemukan!", Time = 2})
             end
+        else
+            -- Hentikan auto fishing
+            if StopAutoFishing then
+                StopAutoFishing:FireServer()
+            else
+                -- Jika tidak ada remote stop, mungkin StartAutoFishing bersifat toggle
+                StartAutoFishing:FireServer()
+            end
+            autoFishingActive = false
+            toggleBtn:Set("🎣 Mulai Auto Fishing")
+            
+            -- Hentikan fast reel jika aktif
+            if fastReelConn then
+                fastReelConn:Disconnect()
+                fastReelConn = nil
+            end
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
         end
-    })
-    
-    -- Info tambahan
-    AutoFishTab:AddParagraph({
-        Title = "Info",
-        Content = "Menggunakan remote resmi StartAutoFishing. Tekan tombol untuk toggle."
-    })
-else
-    AutoFishTab:AddParagraph({
-        Title = "Error",
-        Content = "Remote StartAutoFishing tidak ditemukan! Pastikan game mendukung."
-    })
+    end
+})
+
+-- Fungsi memulai fast reel
+local function startFastReel()
+    if fastReelConn then fastReelConn:Disconnect() end
+    fastReelConn = RunService.Heartbeat:Connect(function()
+        if not autoFishingActive or not fastReelActive or not selectedReelRemote then return end
+        pcall(function()
+            selectedReelRemote:FireServer()
+            wait(fastReelSpeed)
+        end)
+    end)
 end
 
--- Tombol test (opsional)
+-- Toggle Fast Reel
+AutoFishTab:AddToggle({
+    Name = "⚡ Fast Reel (RISIKO BANNED)",
+    Default = false,
+    Callback = function(state)
+        fastReelActive = state
+        if state then
+            if not selectedReelRemote then
+                OrionLib:MakeNotification({Name = "Error", Content = "Pilih remote reel dulu!", Time = 2})
+                fastReelActive = false
+                return
+            end
+            if autoFishingActive then
+                startFastReel()
+            end
+            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif! Hati-hati banned.", Time = 3})
+        else
+            if fastReelConn then
+                fastReelConn:Disconnect()
+                fastReelConn = nil
+            end
+        end
+    end
+})
+
+-- Slider kecepatan fast reel
+AutoFishTab:AddSlider({
+    Name = "Kecepatan Fast Reel (detik)",
+    Min = 0.1, Max = 1.0, Default = 0.3, Increment = 0.05,
+    ValueName = "dtk",
+    Callback = function(v) fastReelSpeed = v end
+})
+
+-- Tombol test manual
 AutoFishTab:AddButton({
-    Name = "Test Start",
+    Name = "Test StartAutoFishing",
     Callback = function()
         if StartAutoFishing then StartAutoFishing:FireServer() end
     end
@@ -387,13 +465,30 @@ AutoFishTab:AddButton({
 
 if StopAutoFishing then
     AutoFishTab:AddButton({
-        Name = "Test Stop",
+        Name = "Test StopAutoFishing",
         Callback = function()
             StopAutoFishing:FireServer()
         end
     })
 end
 
+AutoFishTab:AddButton({
+    Name = "Test Reel (manual)",
+    Callback = function()
+        if selectedReelRemote then
+            selectedReelRemote:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "Reel fired", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "Pilih remote reel dulu!", Time = 1})
+        end
+    end
+})
+
+AutoFishTab:AddParagraph({
+    Title = "⚠️ PERINGATAN",
+    Content = "Fast Reel mengirim remote reel berulang kali dengan cepat. Ini sangat berisiko menyebabkan banned! Gunakan dengan bijak."
+})
+
 -- Notifikasi Selesai & Init
-OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish Resmi", Time = 3})
+OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Semua fitur + Auto Fish + Fast Reel", Time = 3})
 OrionLib:Init()
