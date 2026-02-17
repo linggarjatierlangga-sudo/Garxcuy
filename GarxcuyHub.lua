@@ -1,5 +1,8 @@
--- Script by ShadowX - GarxCuy Hub (Orion Library) Complete
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/refs/heads/main/Librarys/Orion/Orion.lua')))()
+
 local Window = OrionLib:MakeWindow({
     Name = "GarxCuy Hub",
     HidePremium = false,
@@ -36,12 +39,7 @@ local PlayerTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Section Player Settings
-local PlayerSection = PlayerTab:AddSection({
-    Name = "Player Settings"
-})
-
--- Slider WalkSpeed (sesuai request)
+-- Slider WalkSpeed
 PlayerTab:AddSlider({
     Name = "WalkSpeed",
     Min = 16,
@@ -49,18 +47,19 @@ PlayerTab:AddSlider({
     Default = 16,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
+    ValueName = "speed",
     Callback = function(value)
         local char = LocalPlayer.Character
         if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = value
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = value
             end
         end
     end
 })
 
--- Slider JumpPower (sesuai request)
+-- Slider JumpPower
 PlayerTab:AddSlider({
     Name = "JumpPower",
     Min = 50,
@@ -68,12 +67,13 @@ PlayerTab:AddSlider({
     Default = 50,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
+    ValueName = "jump",
     Callback = function(value)
         local char = LocalPlayer.Character
         if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.JumpPower = value
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.JumpPower = value
             end
         end
     end
@@ -85,10 +85,10 @@ PlayerTab:AddButton({
     Callback = function()
         local char = LocalPlayer.Character
         if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = 16
+                hum.JumpPower = 50
             end
         end
         OrionLib:MakeNotification({
@@ -109,7 +109,7 @@ local MoveTab = Window:MakeTab({
 
 -- NoClip Toggle
 MoveTab:AddToggle({
-    Name = "NoClip (Tembus Tembok)",
+    Name = "NoClip",
     Default = false,
     Callback = function(state)
         noclipEnabled = state
@@ -150,12 +150,12 @@ MoveTab:AddToggle({
         flyEnabled = state
         local char = LocalPlayer.Character
         if not char then return end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        local hum = char:FindFirstChildOfClass("Humanoid")
         local rootPart = char:FindFirstChild("HumanoidRootPart")
         if not rootPart then return end
         
         if state then
-            humanoid.PlatformStand = true
+            hum.PlatformStand = true
             flyBodyVelocity = Instance.new("BodyVelocity")
             flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
             flyBodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
@@ -196,7 +196,7 @@ MoveTab:AddToggle({
                 flyConn:Disconnect()
                 flyConn = nil
             end
-            humanoid.PlatformStand = false
+            hum.PlatformStand = false
         end
     end
 })
@@ -209,6 +209,7 @@ MoveTab:AddSlider({
     Default = 50,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
+    ValueName = "fly speed",
     Callback = function(value)
         flySpeed = value
     end
@@ -305,25 +306,18 @@ local OtherTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Chat Spoofer (simulasi)
 OtherTab:AddButton({
-    Name = "Chat Spoofers",
+    Name = "Infinite Yield",
     Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Chat Spoofers",
-            Content = "Fitur ini hanya simulasi, butuh executor level tinggi",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end
 })
 
--- Typed Text (simulasi)
 OtherTab:AddButton({
-    Name = "Typed Text",
+    Name = "Chat Spoofers (Simulasi)",
     Callback = function()
         OrionLib:MakeNotification({
-            Name = "Typed Text",
+            Name = "Chat Spoofers",
             Content = "Fitur ini hanya simulasi",
             Image = "rbxassetid://4483345998",
             Time = 3
@@ -338,6 +332,40 @@ OrionLib:MakeNotification({
     Image = "rbxassetid://4483345998",
     Time = 3
 })
+
+-- ===== TOGGLE UI BUTTON (DRAGGABLE) =====
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Toggleui"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local Toggle = Instance.new("TextButton")
+Toggle.Name = "Toggle"
+Toggle.Parent = ScreenGui
+Toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Toggle.BackgroundTransparency = 0.5
+Toggle.Position = UDim2.new(0, 0, 0.454706937, 0)
+Toggle.Size = UDim2.new(0, 50, 0, 50)
+Toggle.Draggable = true
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0.2, 0)
+Corner.Parent = Toggle
+
+local Image = Instance.new("ImageLabel")
+Image.Name = "Icon"
+Image.Parent = Toggle
+Image.Size = UDim2.new(1, 0, 1, 0)
+Image.BackgroundTransparency = 1
+Image.Image = "rbxassetid://117239677500065"  -- Ganti icon sesuai selera
+
+local Corner2 = Instance.new("UICorner")
+Corner2.CornerRadius = UDim.new(0.2, 0)
+Corner2.Parent = Image
+
+Toggle.MouseButton1Click:Connect(function()
+    OrionLib:ToggleUi()
+end)
 
 -- Init library
 OrionLib:Init()
