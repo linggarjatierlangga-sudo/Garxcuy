@@ -18,6 +18,8 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 local highlightFolder = Instance.new("Folder")
 highlightFolder.Name = "ESP_Highlights"
 highlightFolder.Parent = game.CoreGui
@@ -26,7 +28,7 @@ highlightFolder.Parent = game.CoreGui
 local espEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
-local flySpeed = 50  -- default, tapi slider dihapus
+local flySpeed = 50
 local flyBodyVelocity = nil
 local noclipConn = nil
 local flyConn = nil
@@ -59,7 +61,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- NoClip Toggle (dipindah dari Movement)
+-- NoClip Toggle
 PlayerTab:AddToggle({
     Name = "NoClip",
     Default = false,
@@ -94,7 +96,7 @@ PlayerTab:AddToggle({
     end
 })
 
--- Fly Toggle (dipindah dari Movement)
+-- Fly Toggle
 PlayerTab:AddToggle({
     Name = "Fly Mode",
     Default = false,
@@ -117,16 +119,16 @@ PlayerTab:AddToggle({
                 if not flyEnabled then return end
                 local moveDir = Vector3.new()
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector
+                    moveDir = moveDir + Workspace.CurrentCamera.CFrame.LookVector
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector
+                    moveDir = moveDir - Workspace.CurrentCamera.CFrame.LookVector
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                    moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector
+                    moveDir = moveDir - Workspace.CurrentCamera.CFrame.RightVector
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                    moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector
+                    moveDir = moveDir + Workspace.CurrentCamera.CFrame.RightVector
                 end
                 if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                     moveDir = moveDir + Vector3.new(0, 1, 0)
@@ -153,7 +155,7 @@ PlayerTab:AddToggle({
     end
 })
 
--- Infinity Jump (dulu Super Jump)
+-- Infinity Jump
 local infinityJumpEnabled = false
 local infinityJumpPower = 100
 local infinityJumpConnection = nil
@@ -199,7 +201,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- Reset button (WalkSpeed only, since JumpPower removed)
+-- Reset button (WalkSpeed only)
 PlayerTab:AddButton({
     Name = "Reset WalkSpeed",
     Callback = function()
@@ -326,6 +328,124 @@ OtherTab:AddButton({
             Image = "rbxassetid://4483345998",
             Time = 3
         })
+    end
+})
+
+-- ===== TAB FREECAM =====
+local FreecamTab = Window:MakeTab({
+    Name = "FREECAM",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local freecamEnabled = false
+local freecamSpeed = 50
+local freecamPart = nil
+local freecamConnection = nil
+local freecamKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+local originalCF = nil
+local originalSubject = nil
+
+-- Input handlers untuk freecam
+local function onInputBegan(input, gp)
+    if gp then return end
+    if not freecamEnabled then return end
+    if input.KeyCode == Enum.KeyCode.W then freecamKeys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then freecamKeys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then freecamKeys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then freecamKeys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then freecamKeys.Space = true end
+    if input.KeyCode == Enum.KeyCode.LeftShift then freecamKeys.Shift = true end
+end
+
+local function onInputEnded(input)
+    if not freecamEnabled then return end
+    if input.KeyCode == Enum.KeyCode.W then freecamKeys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then freecamKeys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then freecamKeys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then freecamKeys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then freecamKeys.Space = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift then freecamKeys.Shift = false end
+end
+
+FreecamTab:AddToggle({
+    Name = "Enable Freecam",
+    Default = false,
+    Callback = function(state)
+        freecamEnabled = state
+        if state then
+            -- Simpan posisi kamera asli
+            originalCF = Camera.CFrame
+            originalSubject = Camera.CameraSubject
+            
+            -- Buat part virtual untuk kamera
+            freecamPart = Instance.new("Part")
+            freecamPart.Name = "FreecamPart"
+            freecamPart.Size = Vector3.new(1,1,1)
+            freecamPart.Transparency = 1
+            freecamPart.Anchored = true
+            freecamPart.CFrame = originalCF
+            freecamPart.Parent = Workspace
+            
+            -- Set kamera ke part
+            Camera.CameraSubject = freecamPart
+            Camera.CameraType = Enum.CameraType.Custom
+            
+            -- Koneksi input
+            UserInputService.InputBegan:Connect(onInputBegan)
+            UserInputService.InputEnded:Connect(onInputEnded)
+            
+            -- Loop gerak kamera
+            freecamConnection = RunService.RenderStepped:Connect(function(dt)
+                if not freecamEnabled or not freecamPart then return end
+                local move = Vector3.new()
+                if freecamKeys.W then move = move + Camera.CFrame.LookVector end
+                if freecamKeys.S then move = move - Camera.CFrame.LookVector end
+                if freecamKeys.A then move = move - Camera.CFrame.RightVector end
+                if freecamKeys.D then move = move + Camera.CFrame.RightVector end
+                if freecamKeys.Space then move = move + Vector3.new(0,1,0) end
+                if freecamKeys.Shift then move = move - Vector3.new(0,1,0) end
+                
+                if move.Magnitude > 0 then
+                    freecamPart.CFrame = freecamPart.CFrame + move.Unit * freecamSpeed * dt * 60
+                end
+            end)
+        else
+            -- Kembalikan kamera normal
+            if freecamPart then
+                freecamPart:Destroy()
+                freecamPart = nil
+            end
+            if freecamConnection then
+                freecamConnection:Disconnect()
+                freecamConnection = nil
+            end
+            if originalCF then
+                Camera.CFrame = originalCF
+            end
+            if originalSubject then
+                Camera.CameraSubject = originalSubject
+            else
+                Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or nil
+            end
+            Camera.CameraType = Enum.CameraType.Custom
+            
+            -- Reset keys
+            freecamKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+        end
+    end
+})
+
+FreecamTab:AddSlider({
+    Name = "Freecam Speed",
+    Min = 10,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        freecamSpeed = value
     end
 })
 
