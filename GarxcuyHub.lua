@@ -4,7 +4,7 @@
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/refs/heads/main/Librarys/Orion/Orion.lua')))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "GarxCuy Hub",
+    Name = "GarxCuy Hub V3",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "GarxCuyConfig",
@@ -13,7 +13,7 @@ local Window = OrionLib:MakeWindow({
     IntroIcon = "rbxassetid://4483345998"
 })
 
--- Variabel global
+-- Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -24,7 +24,7 @@ local highlightFolder = Instance.new("Folder")
 highlightFolder.Name = "ESP_Highlights"
 highlightFolder.Parent = game.CoreGui
 
--- Variabel fitur
+-- Global variables
 local espEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
@@ -34,6 +34,31 @@ local noclipConn = nil
 local flyConn = nil
 local espConnections = {}
 
+-- Key tracking for movement
+local keys = {
+    W = false, A = false, S = false, D = false,
+    Space = false, Shift = false
+}
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Shift = true end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Shift = false end
+end)
+
 -- ===== TAB PLAYER =====
 local PlayerTab = Window:MakeTab({
     Name = "Player",
@@ -41,7 +66,7 @@ local PlayerTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Slider WalkSpeed
+-- WalkSpeed Slider
 PlayerTab:AddSlider({
     Name = "WalkSpeed",
     Min = 16,
@@ -61,7 +86,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- NoClip Toggle
+-- NoClip Toggle (dipindah ke Player)
 PlayerTab:AddToggle({
     Name = "NoClip",
     Default = false,
@@ -96,7 +121,7 @@ PlayerTab:AddToggle({
     end
 })
 
--- Fly Toggle
+-- FLY MODE (FIXED)
 PlayerTab:AddToggle({
     Name = "Fly Mode",
     Default = false,
@@ -118,27 +143,17 @@ PlayerTab:AddToggle({
             flyConn = RunService.Heartbeat:Connect(function()
                 if not flyEnabled then return end
                 local moveDir = Vector3.new()
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    moveDir = moveDir + Workspace.CurrentCamera.CFrame.LookVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    moveDir = moveDir - Workspace.CurrentCamera.CFrame.LookVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                    moveDir = moveDir - Workspace.CurrentCamera.CFrame.RightVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                    moveDir = moveDir + Workspace.CurrentCamera.CFrame.RightVector
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    moveDir = moveDir + Vector3.new(0, 1, 0)
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                    moveDir = moveDir - Vector3.new(0, 1, 0)
-                end
+                if keys.W then moveDir = moveDir + Camera.CFrame.LookVector end
+                if keys.S then moveDir = moveDir - Camera.CFrame.LookVector end
+                if keys.A then moveDir = moveDir - Camera.CFrame.RightVector end
+                if keys.D then moveDir = moveDir + Camera.CFrame.RightVector end
+                if keys.Space then moveDir = moveDir + Vector3.new(0, 1, 0) end
+                if keys.Shift then moveDir = moveDir - Vector3.new(0, 1, 0) end
                 
-                if flyBodyVelocity then
-                    flyBodyVelocity.Velocity = moveDir * flySpeed
+                if moveDir.Magnitude > 0 then
+                    flyBodyVelocity.Velocity = moveDir.Unit * flySpeed
+                else
+                    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
                 end
             end)
         else
@@ -152,6 +167,19 @@ PlayerTab:AddToggle({
             end
             hum.PlatformStand = false
         end
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Fly Speed",
+    Min = 10,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        flySpeed = value
     end
 })
 
@@ -201,7 +229,7 @@ PlayerTab:AddSlider({
     end
 })
 
--- Reset button (WalkSpeed only)
+-- Reset WalkSpeed
 PlayerTab:AddButton({
     Name = "Reset WalkSpeed",
     Callback = function()
@@ -305,33 +333,101 @@ ESPTab:AddToggle({
     end
 })
 
--- ===== TAB OTHER =====
-local OtherTab = Window:MakeTab({
-    Name = "Other",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+-- ===== TARGET SECTION (LOCK PLAYER) =====
+local TargetSection = ESPTab:AddSection({
+    Name = "Target"
 })
 
-OtherTab:AddButton({
-    Name = "Infinite Yield",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+local selectedPlayer = nil
+local playerNames = {}
+local function updatePlayerList()
+    playerNames = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(playerNames, p.Name)
+        end
+    end
+end
+updatePlayerList()
+
+-- Dropdown
+local playerDropdown = ESPTab:AddDropdown({
+    Name = "Select Player",
+    Options = playerNames,
+    Default = "",
+    Callback = function(value)
+        selectedPlayer = Players:FindFirstChild(value)
     end
 })
 
-OtherTab:AddButton({
-    Name = "Chat Spoofers (Simulasi)",
-    Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Chat Spoofers",
-            Content = "Fitur ini hanya simulasi",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
+-- Update dropdown on player join/leave
+Players.PlayerAdded:Connect(function()
+    updatePlayerList()
+    playerDropdown:Refresh(playerNames, true)
+end)
+Players.PlayerRemoving:Connect(function()
+    updatePlayerList()
+    playerDropdown:Refresh(playerNames, true)
+end)
+
+-- Spectate toggle
+local spectating = false
+local spectateConn = nil
+ESPTab:AddToggle({
+    Name = "Spectate Player",
+    Default = false,
+    Callback = function(state)
+        spectating = state
+        if spectating and selectedPlayer then
+            local function update()
+                if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                    Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    Camera.CameraType = Enum.CameraType.Custom
+                end
+            end
+            update()
+            spectateConn = selectedPlayer.CharacterAdded:Connect(update)
+        else
+            if spectateConn then
+                spectateConn:Disconnect()
+                spectateConn = nil
+            end
+            -- Kembalikan ke localplayer
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            end
+            Camera.CameraType = Enum.CameraType.Custom
+        end
     end
 })
 
--- ===== TAB FREECAM =====
+-- Teleport button
+ESPTab:AddButton({
+    Name = "Teleport to Player",
+    Callback = function()
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                OrionLib:MakeNotification({
+                    Name = "Teleport",
+                    Content = "Teleported to " .. selectedPlayer.Name,
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
+                })
+            end
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Player tidak valid atau tidak memiliki karakter",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+        end
+    end
+})
+
+-- ===== TAB FREECAM (FIXED) =====
 local FreecamTab = Window:MakeTab({
     Name = "FREECAM",
     Icon = "rbxassetid://4483345998",
@@ -340,33 +436,10 @@ local FreecamTab = Window:MakeTab({
 
 local freecamEnabled = false
 local freecamSpeed = 50
-local freecamPart = nil
 local freecamConnection = nil
-local freecamKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
 local originalCF = nil
 local originalSubject = nil
-
--- Input handlers untuk freecam
-local function onInputBegan(input, gp)
-    if gp then return end
-    if not freecamEnabled then return end
-    if input.KeyCode == Enum.KeyCode.W then freecamKeys.W = true end
-    if input.KeyCode == Enum.KeyCode.A then freecamKeys.A = true end
-    if input.KeyCode == Enum.KeyCode.S then freecamKeys.S = true end
-    if input.KeyCode == Enum.KeyCode.D then freecamKeys.D = true end
-    if input.KeyCode == Enum.KeyCode.Space then freecamKeys.Space = true end
-    if input.KeyCode == Enum.KeyCode.LeftShift then freecamKeys.Shift = true end
-end
-
-local function onInputEnded(input)
-    if not freecamEnabled then return end
-    if input.KeyCode == Enum.KeyCode.W then freecamKeys.W = false end
-    if input.KeyCode == Enum.KeyCode.A then freecamKeys.A = false end
-    if input.KeyCode == Enum.KeyCode.S then freecamKeys.S = false end
-    if input.KeyCode == Enum.KeyCode.D then freecamKeys.D = false end
-    if input.KeyCode == Enum.KeyCode.Space then freecamKeys.Space = false end
-    if input.KeyCode == Enum.KeyCode.LeftShift then freecamKeys.Shift = false end
-end
+local originalType = nil
 
 FreecamTab:AddToggle({
     Name = "Enable Freecam",
@@ -374,64 +447,46 @@ FreecamTab:AddToggle({
     Callback = function(state)
         freecamEnabled = state
         if state then
-            -- Simpan posisi kamera asli
+            -- Simpan state asli
             originalCF = Camera.CFrame
             originalSubject = Camera.CameraSubject
+            originalType = Camera.CameraType
             
-            -- Buat part virtual untuk kamera
-            freecamPart = Instance.new("Part")
-            freecamPart.Name = "FreecamPart"
-            freecamPart.Size = Vector3.new(1,1,1)
-            freecamPart.Transparency = 1
-            freecamPart.Anchored = true
-            freecamPart.CFrame = originalCF
-            freecamPart.Parent = Workspace
+            -- Set kamera ke scriptable agar bisa dikontrol
+            Camera.CameraType = Enum.CameraType.Scriptable
             
-            -- Set kamera ke part
-            Camera.CameraSubject = freecamPart
-            Camera.CameraType = Enum.CameraType.Custom
-            
-            -- Koneksi input
-            UserInputService.InputBegan:Connect(onInputBegan)
-            UserInputService.InputEnded:Connect(onInputEnded)
-            
-            -- Loop gerak kamera
+            -- Loop gerak
             freecamConnection = RunService.RenderStepped:Connect(function(dt)
-                if not freecamEnabled or not freecamPart then return end
+                if not freecamEnabled then return end
                 local move = Vector3.new()
-                if freecamKeys.W then move = move + Camera.CFrame.LookVector end
-                if freecamKeys.S then move = move - Camera.CFrame.LookVector end
-                if freecamKeys.A then move = move - Camera.CFrame.RightVector end
-                if freecamKeys.D then move = move + Camera.CFrame.RightVector end
-                if freecamKeys.Space then move = move + Vector3.new(0,1,0) end
-                if freecamKeys.Shift then move = move - Vector3.new(0,1,0) end
+                if keys.W then move = move + Camera.CFrame.LookVector end
+                if keys.S then move = move - Camera.CFrame.LookVector end
+                if keys.A then move = move - Camera.CFrame.RightVector end
+                if keys.D then move = move + Camera.CFrame.RightVector end
+                if keys.Space then move = move + Vector3.new(0, 1, 0) end
+                if keys.Shift then move = move - Vector3.new(0, 1, 0) end
                 
                 if move.Magnitude > 0 then
-                    freecamPart.CFrame = freecamPart.CFrame + move.Unit * freecamSpeed * dt * 60
+                    Camera.CFrame = Camera.CFrame + move.Unit * freecamSpeed * dt * 60
                 end
             end)
         else
-            -- Kembalikan kamera normal
-            if freecamPart then
-                freecamPart:Destroy()
-                freecamPart = nil
-            end
             if freecamConnection then
                 freecamConnection:Disconnect()
                 freecamConnection = nil
             end
+            -- Kembalikan kamera
             if originalCF then
                 Camera.CFrame = originalCF
             end
             if originalSubject then
                 Camera.CameraSubject = originalSubject
-            else
-                Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or nil
             end
-            Camera.CameraType = Enum.CameraType.Custom
-            
-            -- Reset keys
-            freecamKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+            if originalType then
+                Camera.CameraType = originalType
+            else
+                Camera.CameraType = Enum.CameraType.Custom
+            end
         end
     end
 })
@@ -449,7 +504,58 @@ FreecamTab:AddSlider({
     end
 })
 
--- ===== FPS COUNTER =====
+-- ===== TAB OTHER =====
+local OtherTab = Window:MakeTab({
+    Name = "Other",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+OtherTab:AddButton({
+    Name = "Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end
+})
+
+OtherTab:AddButton({
+    Name = "Unlock All Emotes (Coba)",
+    Callback = function()
+        local attempts = 0
+        pcall(function()
+            for _, remote in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                if remote:IsA("RemoteEvent") and (remote.Name:lower():find("emote") or remote.Name:lower():find("emotes")) then
+                    remote:FireServer("UnlockAll")
+                    remote:FireServer("BuyAll")
+                    attempts = attempts + 1
+                end
+            end
+            for _, remote in ipairs(LocalPlayer:GetDescendants()) do
+                if remote:IsA("RemoteEvent") and (remote.Name:lower():find("emote") or remote.Name:lower():find("emotes")) then
+                    remote:FireServer("UnlockAll")
+                    attempts = attempts + 1
+                end
+            end
+        end)
+        if attempts > 0 then
+            OrionLib:MakeNotification({
+                Name = "Unlock Emotes",
+                Content = "Mencoba " .. attempts .. " remote. Cek apakah emotes terbuka.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Unlock Emotes",
+                Content = "Tidak menemukan remote emote.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- FPS Counter
 local fpsEnabled = false
 local fpsGui = nil
 
@@ -489,7 +595,6 @@ OtherTab:AddToggle({
                     lastTime = tick()
                 end
             end)
-            
             fpsGui.Connection = connection
         else
             if fpsGui then
@@ -499,51 +604,3 @@ OtherTab:AddToggle({
                 fpsGui:Destroy()
                 fpsGui = nil
             end
-        end
-    end
-})
-
--- Notifikasi startup
-OrionLib:MakeNotification({
-    Name = "GarxCuy Hub Loaded",
-    Content = "All features ready!",
-    Image = "rbxassetid://4483345998",
-    Time = 3
-})
-
--- ===== TOGGLE UI BUTTON (DRAGGABLE) =====
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Toggleui"
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
-
-local Toggle = Instance.new("TextButton")
-Toggle.Name = "Toggle"
-Toggle.Parent = ScreenGui
-Toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Toggle.BackgroundTransparency = 0.5
-Toggle.Position = UDim2.new(0, 0, 0.454706937, 0)
-Toggle.Size = UDim2.new(0, 50, 0, 50)
-Toggle.Draggable = true
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0.2, 0)
-Corner.Parent = Toggle
-
-local Image = Instance.new("ImageLabel")
-Image.Name = "Icon"
-Image.Parent = Toggle
-Image.Size = UDim2.new(1, 0, 1, 0)
-Image.BackgroundTransparency = 1
-Image.Image = "rbxassetid://117239677500065"
-
-local Corner2 = Instance.new("UICorner")
-Corner2.CornerRadius = UDim.new(0.2, 0)
-Corner2.Parent = Image
-
-Toggle.MouseButton1Click:Connect(function()
-    OrionLib:ToggleUi()
-end)
-
--- Init library
-OrionLib:Init()
