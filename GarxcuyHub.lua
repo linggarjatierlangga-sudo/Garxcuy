@@ -1,48 +1,91 @@
--- Script by ShadowX - GarxCuy Hub with Synapse Theme
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("GarxCuy Hub", "Synapse")
+-- Script by ShadowX - GarxCuy Hub with Orion Library
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({
+    Name = "GarxCuy Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "GarxCuyConfig",
+    IntroEnabled = true,
+    IntroText = "GarxCuy Hub",
+    IntroIcon = "rbxassetid://4483345998"
+})
 
--- Main Tab (seperti sebelumnya)
-local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Main Features")
+-- Tab 1
+local Tab = Window:MakeTab({
+    Name = "Tab 1",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
--- Toggle speed & jump
-local speedEnabled = false
-MainSection:NewToggle("Speed & Jump Boost", "Naikin walkspeed & jump power", function(state)
-    speedEnabled = state
-    local player = game.Players.LocalPlayer
-    if player and player.Character then
-        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            if state then
-                humanoid.WalkSpeed = 120
-                humanoid.JumpPower = 120
-            else
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
+-- Section
+local Section = Tab:AddSection({
+    Name = "Main Features"
+})
+
+-- Toggle Speed & Jump
+Tab:AddToggle({
+    Name = "Speed & Jump Boost",
+    Default = false,
+    Callback = function(state)
+        local player = game.Players.LocalPlayer
+        if player and player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                if state then
+                    humanoid.WalkSpeed = 120
+                    humanoid.JumpPower = 120
+                else
+                    humanoid.WalkSpeed = 16
+                    humanoid.JumpPower = 50
+                end
             end
         end
     end
-end)
+})
 
--- Button fetch data
-MainSection:NewButton("Fetch Example Data", "Ambil data dari URL (simulasi)", function()
-    local success, result = pcall(function()
-        return game:HttpGet("https://httpbin.org/get")
-    end)
-    if success then
-        print("Data fetched:", result)
-    else
-        warn("Gagal ambil data")
+-- Button Fetch Data
+Tab:AddButton({
+    Name = "Fetch Example Data",
+    Callback = function()
+        local success, result = pcall(function()
+            return game:HttpGet("https://httpbin.org/get")
+        end)
+        if success then
+            OrionLib:MakeNotification({
+                Name = "Success!",
+                Content = "Data fetched, check console",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+            print(result)
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Gagal ambil data",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
     end
-end)
+})
 
--- ===== TAB BARU: TAB 1 =====
-local Tab1 = Window:NewTab("Tab 1")  -- Nama tab sesuai request
-local Tab1Section = Tab1:NewSection("Tab 1 Section", "rbxassetid://4483345998")  -- Pake icon sesuai ID
+-- Colorpicker contoh (opsional)
+Tab:AddColorpicker({
+    Name = "Background Color",
+    Default = Color3.fromRGB(255, 0, 0),
+    Callback = function(color)
+        -- Contoh: ganti warna sesuatu (terserah lo)
+        print("Color changed to", color)
+    end
+})
 
--- Contoh isi section
-Tab1Section:NewLabel("Ini adalah tab baru")
-Tab1Section:NewButton("Click Me", "Tombol contoh", function()
-    print("Tombol di Tab 1 diklik!")
-end)
+-- Notifikasi saat script jalan
+OrionLib:MakeNotification({
+    Name = "GarxCuy Hub Loaded",
+    Content = "Welcome, goblok!",
+    Image = "rbxassetid://4483345998",
+    Time = 3
+})
+
+-- Init library
+OrionLib:Init()
