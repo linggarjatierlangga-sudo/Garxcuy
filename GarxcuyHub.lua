@@ -1,4 +1,4 @@
--- GarxCuy Hub for Mobile + EMOJI Tab + AUTO FISH
+-- GarxCuy Hub for Mobile + EMOJI Tab + AUTO FISH (FIXED)
 -- Cocok buat Delta / executor HP
 
 -- Load Orion Library
@@ -607,6 +607,4 @@ EmojiTab:AddParagraph({
 -- ===== TAB AUTO FISH =====
 local AutoFishTab = Window:MakeTab({
     Name = "AUTO FISH",
-    Icon = "rbxassetid://4483345998"
-})
-
+    Icon = "rbxassetid://44833459
