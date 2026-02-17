@@ -461,4 +461,4 @@ AutoFishTab:AddButton({ Name = "Test MinigameEnd", Callback = function() if Mini
 
 -- Notifikasi Selesai & Init
 OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! Auto Fish Fix Included", Time = 3})
-OrionLib:Init()
+OrionLib:Init() 
