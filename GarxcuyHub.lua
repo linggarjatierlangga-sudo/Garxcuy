@@ -324,100 +324,61 @@ OtherTab:AddToggle({
     end
 })
 
--- =========================
--- ORION + WINDOW 
--- =========================
-local OtherTab = Window:MakeTab({Name = "Autofishing", Icon = "rbxassetid://4483345998"})
+-- ===== TAB AUTO FISH (TEMPEL DISINI) =====
+local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
-local Window = OrionLib:MakeWindow({
-    Name = "SCRIPT LO",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "AutoFish"
-})
-
--- =========================
--- AUTO FISH TAB (WAJIB DI SINI)
-local AutoFishTab = Window:MakeTab({
-    Name = "AUTO FISH 🎣",
-    Icon = "rbxassetid://4483345998"
-})
-
-AutoFishTab:AddLabel("AUTO FISH LOADED")
-
-AutoFishTab:AddButton({
-    Name = "TEST",
-    Callback = function()
-        print("AUTO FISH TAB WORK")
-    end
-})
-
-
--- SERVICES
-local RS = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
--- REMOTES (SAFE FIND)
-local Fishing = RS:WaitForChild("Fishing", 5)
-local RodShop = RS:WaitForChild("RodShop", 5)
-
-local Throw = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("Throw")
-local BobberHitWater = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("BobberHitWater")
-local BE_BobberHitWater = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("BE_BobberHitWater")
+-- Remote fishing (cari dengan aman)
+local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
+local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
+local Throw = ToServer and ToServer:FindFirstChild("Throw")
+local BobberHitWater = ToServer and ToServer:FindFirstChild("BobberHitWater")
+local BE_BobberHitWater = ToServer and ToServer:FindFirstChild("BE_BobberHitWater")
+local RodShop = ReplicatedStorage:FindFirstChild("RodShop")
 local GetRod = RodShop and RodShop:FindFirstChild("ToServer") and RodShop.ToServer:FindFirstChild("GetEquippedRod")
 
-print("REMOTES:",
-    Throw,
-    BobberHitWater,
-    BE_BobberHitWater,
-    GetRod
-)
+-- Status auto fishing
+local autoActive = false
 
--- STATE
-local AUTO = false
-
--- TOGGLE
+-- Toggle untuk mengaktifkan/mematikan
 AutoFishTab:AddToggle({
     Name = "🔥 NO WAIT AUTO FISH",
     Default = false,
     Callback = function(v)
-        AUTO = v
-        print("AUTO FISH:", v)
+        autoActive = v
+        if v then
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "AKTIF! Risiko banned tinggi.", Time = 3})
+        else
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimatikan.", Time = 2})
+        end
     end
 })
 
--- MAIN LOOP (NO WAIT)
+-- Loop auto fishing (berjalan terus di latar)
 task.spawn(function()
     while true do
-        task.wait()
-        if AUTO then
-            -- GET ROD
-            local rod
+        task.wait() -- loop cepat, tanpa delay tetap
+        if autoActive then
+            -- Ambil rod (kalau perlu)
             if GetRod then
-                pcall(function()
-                    rod = GetRod:InvokeServer()
-                end)
+                pcall(function() GetRod:InvokeServer() end)
             end
-
-            -- CAST
+            -- Lempar pancing
             if Throw then
-                pcall(function()
-                    Throw:FireServer()
-                end)
+                pcall(function() Throw:FireServer() end)
             end
-
-            -- FORCE BOBBER HIT WATER
+            -- Simulasi kail kena air
             if BobberHitWater then
-                pcall(function()
-                    BobberHitWater:FireServer()
-                end)
+                pcall(function() BobberHitWater:FireServer() end)
             end
-
             if BE_BobberHitWater then
-                pcall(function()
-                    BE_BobberHitWater:FireServer()
-                end)
+                pcall(function() BE_BobberHitWater:FireServer() end)
             end
         end
     end
 end)
+
+-- Info tambahan
+AutoFishTab:AddParagraph({
+    Title = "⚠️ PERINGATAN",
+    Content = "Script ini mengirim remote terus-menerus tanpa jeda. Sangat berisiko terkena banned! Gunakan akun alt."
+})
