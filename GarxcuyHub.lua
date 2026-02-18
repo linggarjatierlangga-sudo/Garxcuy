@@ -324,150 +324,137 @@ OtherTab:AddToggle({
     end
 })
 
--- ==============================
--- AUTO FISH TAB (FIXED)
--- ==============================
+-- =========================
+-- ORION + WINDOW (WAJIB)
+-- =========================
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local Window = OrionLib:MakeWindow({
+    Name = "Fishing Hub",
+    HidePremium = false,
+    SaveConfig = false
+})
 
--- ===== TAB =====
+print("WINDOW OK")
+
+-- =========================
+-- AUTO FISH TAB (PASTI ADA)
+-- =========================
 local AutoFishTab = Window:MakeTab({
     Name = "AUTO FISH",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
--- ==============================
--- REMOTE FINDER (AMAN)
--- ==============================
-local function findRemote(keyword)
-    for _,v in pairs(ReplicatedStorage:GetDescendants()) do
-        if v:IsA("RemoteEvent") and v.Name:lower():find(keyword) then
-            return v
-        end
-    end
-end
+print("AUTO FISH TAB CREATED")
 
-local throwRemote      = findRemote("throw")
-local startMeterRemote = findRemote("start")
-local stopMeterRemote  = findRemote("stop")
-local retractRemote    = findRemote("retract")
-local catchRemote      = findRemote("catch")
-local minigameEnd      = findRemote("minigame")
+-- =========================
+-- SERVICES
+-- =========================
+local RS = game:GetService("ReplicatedStorage")
 
--- ==============================
--- FAST REEL STATE
--- ==============================
-local fastReelActive = false
-local fastReelSpeed = 0.12
+-- =========================
+-- REMOTES (TANPA ERROR)
+-- =========================
+local GetRod = RS.RodShop.ToServer.GetEquippedRod
+local Throw = RS.Fishing.ToServer:FindFirstChild("Throw")
+local BobberHit = RS.Fishing.ToServer.BobberHitWater
+local BE_BobberHit = RS.Fishing.ToServer.BE_BobberHitWater
 
--- ==============================
--- FAST REEL LOOP (STABLE)
--- ==============================
-local function startFastReel()
+local StartMeter = RS:FindFirstChild("StartMeter", true)
+local StopMeter  = RS:FindFirstChild("StopMeter", true)
+local Retract    = RS:FindFirstChild("Retract", true)
+local Catch      = RS:FindFirstChild("Catch", true)
+local EndMini    = RS:FindFirstChild("MinigameEnd", true)
+
+-- =========================
+-- STATE
+-- =========================
+local ACTIVE = false
+local SPEED = 0.06
+
+-- =========================
+-- NO WAIT LOOP
+-- =========================
+local function NoWaitLoop()
     task.spawn(function()
-        while fastReelActive do
+        while ACTIVE do
             pcall(function()
-
-                -- CAST
-                if throwRemote then
-                    throwRemote:FireServer()
+                -- server tau rod
+                if GetRod then
+                    GetRod:FireServer()
                 end
 
-                -- TUNGGU BAIT MASUK AIR
-                if not waitBaitTouch(3) then
-                    task.wait(0.5)
-                    return
+                -- cast
+                if Throw then
+                    Throw:FireServer()
                 end
 
-                -- TUNGGU IKAN NYANGKUT
-                if not waitFishHooked(5) then
-                    task.wait(0.5)
-                    return
+                -- paksa bobber dianggap kena air
+                if BobberHit then
+                    BobberHit:FireServer(true)
+                end
+                if BE_BobberHit then
+                    BE_BobberHit:FireServer(true)
                 end
 
-                -- START MINIGAME
-                if startMeterRemote then
-                    startMeterRemote:FireServer()
-                    task.wait(0.1)
+                -- start minigame
+                if StartMeter then
+                    StartMeter:FireServer()
                 end
 
-                -- REEL
-                for i = 1, math.random(4,6) do
-                    if retractRemote then
-                        retractRemote:FireServer()
+                -- reel cepet
+                for i = 1, 6 do
+                    if Retract then
+                        Retract:FireServer()
                     end
-                    task.wait(fastReelSpeed)
+                    task.wait(SPEED)
                 end
 
-                -- STOP + CATCH
-                if stopMeterRemote then
-                    stopMeterRemote:FireServer()
+                -- end + catch
+                if StopMeter then
+                    StopMeter:FireServer()
                 end
-
-                task.wait(0.05)
-
-                if catchRemote then
-                    catchRemote:FireServer(true)
+                if EndMini then
+                    EndMini:FireServer(true)
+                end
+                if Catch then
+                    Catch:FireServer(true)
                 end
             end)
 
-            task.wait(0.4)
+            task.wait(0.2)
         end
     end)
 end
 
--- ==============================
--- TOGGLE UI
--- ==============================
+-- =========================
+-- UI (INI YANG MUNCUL DI TAB)
+-- =========================
 AutoFishTab:AddToggle({
-    Name = "⚡ QUANTUM FAST REEL",
+    Name = "🔥 NO WAIT AUTO FISH",
     Default = false,
-    Callback = function(state)
-        fastReelActive = state
-        if state then
-            startFastReel()
+    Callback = function(v)
+        ACTIVE = v
+        if v then
+            NoWaitLoop()
             OrionLib:MakeNotification({
-                Name = "FAST REEL",
-                Content = "AKTIF (FIXED)",
-                Time = 2
-            })
-        else
-            OrionLib:MakeNotification({
-                Name = "FAST REEL",
-                Content = "DIMATIKAN",
+                Name = "AUTO FISH",
+                Content = "NO WAIT AKTIF",
                 Time = 2
             })
         end
     end
 })
 
--- ==============================
--- SPEED SLIDER
--- ==============================
 AutoFishTab:AddSlider({
-    Name = "Kecepatan Reel",
-    Min = 0.05,
-    Max = 0.5,
-    Default = 0.12,
+    Name = "Reel Speed",
+    Min = 0.03,
+    Max = 0.15,
+    Default = 0.06,
     Increment = 0.01,
     ValueName = "dtk",
     Callback = function(v)
-        fastReelSpeed = v
-    end
-})
-
--- ==============================
--- MANUAL CAST (OPTIONAL)
--- ==============================
-AutoFishTab:AddButton({
-    Name = "🎣 Cast Manual",
-    Callback = function()
-        if throwRemote then
-            throwRemote:FireServer()
-        end
+        SPEED = v
     end
 })
