@@ -324,178 +324,112 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB AUTO FISH =====
-local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
+-- ===== QUANTUM FAST REEL FIXED =====
 
--- Cari remote secara otomatis
-local RemoteList = {
-    Fishing_RemoteRetract = game:GetService("ReplicatedStorage"):FindFirstChild("Fishing_RemoteRetract"),
-    FishingCatchSuccess = game:GetService("ReplicatedStorage"):FindFirstChild("FishingCatchSuccess"),
-    Fishing_RemoteThrow = game:GetService("ReplicatedStorage"):FindFirstChild("Fishing_RemoteThrow"),
-    MinigameEnd = game:GetService("ReplicatedStorage"):FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameEnd"),
-    StopMeter = game:GetService("ReplicatedStorage"):FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StopMeter"),
-    StartMeter = game:GetService("ReplicatedStorage"):FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_StartMeter"),
-}
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Fungsi untuk tes parameter
-local function testRemote(remote)
-    if not remote then return nil end
-    local testParams = {nil, true, false, 1, "reel", {}} -- parameter umum
-    for _, param in ipairs(testParams) do
-        local success, err = pcall(function()
-            remote:FireServer(param)
-        end)
-        if success then
-            return param -- balikin parameter yang work
+-- Auto cari remote by keyword
+local function findRemote(keyword)
+    for _,v in pairs(RS:GetDescendants()) do
+        if v:IsA("RemoteEvent") and v.Name:lower():find(keyword) then
+            return v
         end
     end
-    return nil -- gagal semua
 end
 
--- Status
-local autoActive = false
+-- Remote utama
+local throwRemote      = findRemote("throw")
+local startMeterRemote = findRemote("start")
+local stopMeterRemote  = findRemote("stop")
+local retractRemote    = findRemote("retract")
+local catchRemote      = findRemote("catch")
+local minigameEnd      = findRemote("minigame")
+
 local fastReelActive = false
-local fastReelConn = nil
-local fastReelSpeed = 0.1
-local selectedParam = nil
-local retractRemote = RemoteList.Fishing_RemoteRetract
-local catchRemote = RemoteList.FishingCatchSuccess
-local throwRemote = RemoteList.Fishing_RemoteThrow
-local minigameEndRemote = RemoteList.MinigameEnd
-local stopMeterRemote = RemoteList.StopMeter
+local fastReelSpeed = 0.12
 
--- Auto Fishing Resmi (tetap)
-local afkBtn = AutoFishTab:AddButton({
-    Name = "▶️ Mulai Auto Fishing (Resmi)",
-    Callback = function()
-        local StartAutoFishing = game:GetService("ReplicatedStorage"):FindFirstChild("LevelSystem") and game:GetService("ReplicatedStorage").LevelSystem:FindFirstChild("ToServer") and game:GetService("ReplicatedStorage").LevelSystem.ToServer:FindFirstChild("StartAutoFishing")
-        local StopAutoFishing = game:GetService("ReplicatedStorage"):FindFirstChild("LevelSystem") and game:GetService("ReplicatedStorage").LevelSystem:FindFirstChild("ToServer") and game:GetService("ReplicatedStorage").LevelSystem.ToServer:FindFirstChild("StopAutoFishing")
-        if not autoActive and StartAutoFishing then
-            StartAutoFishing:FireServer()
-            autoActive = true
-            afkBtn:Set("⏸️ Hentikan Auto Fishing")
-            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
-        elseif autoActive and StopAutoFishing then
-            StopAutoFishing:FireServer()
-            autoActive = false
-            afkBtn:Set("▶️ Mulai Auto Fishing (Resmi)")
-            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
-        end
-    end
-})
+-- MAIN LOOP
+local function FastReelLoop()
+    task.spawn(function()
+        while fastReelActive do
+            pcall(function()
 
--- Tombol untuk auto-detect remote & parameter
-AutoFishTab:AddButton({
-    Name = "🔍 Auto Detect Fast Reel",
-    Callback = function()
-        local detected = {}
-        for name, remote in pairs(RemoteList) do
-            if remote then
-                local param = testRemote(remote)
-                if param ~= nil then
-                    detected[name] = {remote = remote, param = param}
+                -- 1️⃣ pastiin joran dilempar
+                if throwRemote then
+                    throwRemote:FireServer()
+                    task.wait(0.2)
                 end
-            end
-        end
-        if next(detected) then
-            -- Prioritaskan Fishing_RemoteRetract
-            if detected.Fishing_RemoteRetract then
-                retractRemote = detected.Fishing_RemoteRetract.remote
-                selectedParam = detected.Fishing_RemoteRetract.param
-            else
-                -- ambil remote pertama yang work
-                for _, v in pairs(detected) do
-                    retractRemote = v.remote
-                    selectedParam = v.param
-                    break
-                end
-            end
-            OrionLib:MakeNotification({Name = "Detect", Content = "Remote & parameter ditemukan!", Time = 2})
-        else
-            OrionLib:MakeNotification({Name = "Detect", Content = "Gagal detect, cek remote", Time = 2})
-        end
-    end
-})
 
--- Toggle Fast Reel Quantum
+                -- 2️⃣ start minigame
+                if startMeterRemote then
+                    startMeterRemote:FireServer()
+                    task.wait(0.1)
+                end
+
+                -- 3️⃣ reel beberapa kali (simulate human)
+                for i = 1, math.random(3,5) do
+                    if retractRemote then
+                        retractRemote:FireServer()
+                    end
+                    task.wait(fastReelSpeed + math.random(5,20)/1000)
+                end
+
+                -- 4️⃣ stop meter
+                if stopMeterRemote then
+                    stopMeterRemote:FireServer()
+                    task.wait(0.05)
+                end
+
+                -- 5️⃣ paksa sukses
+                if minigameEnd then
+                    minigameEnd:FireServer(true)
+                end
+
+                if catchRemote then
+                    catchRemote:FireServer(true)
+                end
+
+            end)
+
+            task.wait(0.3 + math.random(0,20)/1000)
+        end
+    end)
+end
+
+-- TOGGLE
 AutoFishTab:AddToggle({
-    Name = "⚡ QUANTUM FAST REEL",
+    Name = "⚡ QUANTUM FAST REEL (FIXED)",
     Default = false,
     Callback = function(state)
         fastReelActive = state
         if state then
-            if not retractRemote then
-                OrionLib:MakeNotification({Name = "Error", Content = "Remote reel tidak terdeteksi! Klik 'Auto Detect' dulu.", Time = 3})
-                fastReelActive = false
-                return
-            end
-            if fastReelConn then fastReelConn:Disconnect() end
-            -- Simulasi gerak biar gak dicurigai (body velocity kecil)
-            local bodyMove = Instance.new("BodyVelocity")
-            bodyMove.MaxForce = Vector3.new(1000,0,1000)
-            bodyMove.Velocity = Vector3.new(0,0,0)
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                bodyMove.Parent = LocalPlayer.Character.HumanoidRootPart
-            end
-            
-            fastReelConn = RunService.Heartbeat:Connect(function()
-                if not fastReelActive then return end
-                pcall(function()
-                    -- Fire retract dengan parameter yang sudah dideteksi
-                    if selectedParam == nil then
-                        retractRemote:FireServer()
-                    else
-                        retractRemote:FireServer(selectedParam)
-                    end
-                    
-                    -- Optional: langsung suksesin catch
-                    if catchRemote then
-                        catchRemote:FireServer(true)  -- coba parameter true
-                    end
-                    
-                    -- Optional: end minigame kalau ada
-                    if minigameEndRemote then
-                        minigameEndRemote:FireServer(true)
-                    end
-                    if stopMeterRemote then
-                        stopMeterRemote:FireServer()
-                    end
-                    
-                    -- Spoof gerak dikit
-                    if bodyMove and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        local randDir = Vector3.new(math.random(-10,10)/10, 0, math.random(-10,10)/10)
-                        bodyMove.Velocity = randDir * 5
-                    end
-                end)
-                wait(fastReelSpeed + math.random(0, 20)/1000) -- random delay anti-ban
-            end)
-            OrionLib:MakeNotification({Name = "QUANTUM FAST REEL", Content = "AKTIF DENGAN SPEED "..fastReelSpeed.."s", Time = 2})
+            FastReelLoop()
+            OrionLib:MakeNotification({
+                Name = "FAST REEL",
+                Content = "Aktif (Stable Mode)",
+                Time = 2
+            })
         else
-            if fastReelConn then fastReelConn:Disconnect(); fastReelConn = nil end
-            -- Hapus body move
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local bv = LocalPlayer.Character.HumanoidRootPart:FindFirstChildOfClass("BodyVelocity")
-                if bv then bv:Destroy() end
-            end
+            OrionLib:MakeNotification({
+                Name = "FAST REEL",
+                Content = "Dimatikan",
+                Time = 2
+            })
         end
     end
 })
 
--- Slider kecepatan
+-- SPEED CONTROL
 AutoFishTab:AddSlider({
-    Name = "Kecepatan Fast Reel (detik)",
-    Min = 0.01, Max = 1.0, Default = 0.1, Increment = 0.01,
+    Name = "Kecepatan Reel",
+    Min = 0.05,
+    Max = 0.5,
+    Default = 0.12,
+    Increment = 0.01,
     ValueName = "dtk",
-    Callback = function(v) fastReelSpeed = v end
-})
-
--- Tombol lempar otomatis (optional)
-AutoFishTab:AddButton({
-    Name = "🎣 Lempar Otomatis (Cast)",
-    Callback = function()
-        if throwRemote then
-            throwRemote:FireServer()
-            OrionLib:MakeNotification({Name = "Cast", Content = "Joran dilempar!", Time = 1})
-        end
+    Callback = function(v)
+        fastReelSpeed = v
     end
 })
