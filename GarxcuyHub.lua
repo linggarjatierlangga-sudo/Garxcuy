@@ -327,7 +327,7 @@ OtherTab:AddToggle({
 -- =========================
 -- ORION + WINDOW (WAJIB)
 -- =========================
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+localOrionLib=loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 local Window = OrionLib:MakeWindow({
     Name = "Fishing Hub",
@@ -348,113 +348,71 @@ local AutoFishTab = Window:MakeTab({
 
 print("AUTO FISH TAB CREATED")
 
--- =========================
 -- SERVICES
--- =========================
 local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- =========================
--- REMOTES (TANPA ERROR)
--- =========================
-local GetRod = RS.RodShop.ToServer.GetEquippedRod
-local Throw = RS.Fishing.ToServer:FindFirstChild("Throw")
-local BobberHit = RS.Fishing.ToServer.BobberHitWater
-local BE_BobberHit = RS.Fishing.ToServer.BE_BobberHitWater
+-- REMOTES (SAFE FIND)
+local Fishing = RS:WaitForChild("Fishing", 5)
+local RodShop = RS:WaitForChild("RodShop", 5)
 
-local StartMeter = RS:FindFirstChild("StartMeter", true)
-local StopMeter  = RS:FindFirstChild("StopMeter", true)
-local Retract    = RS:FindFirstChild("Retract", true)
-local Catch      = RS:FindFirstChild("Catch", true)
-local EndMini    = RS:FindFirstChild("MinigameEnd", true)
+local Throw = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("Throw")
+local BobberHitWater = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("BobberHitWater")
+local BE_BobberHitWater = Fishing and Fishing:FindFirstChild("ToServer") and Fishing.ToServer:FindFirstChild("BE_BobberHitWater")
+local GetRod = RodShop and RodShop:FindFirstChild("ToServer") and RodShop.ToServer:FindFirstChild("GetEquippedRod")
 
--- =========================
+print("REMOTES:",
+    Throw,
+    BobberHitWater,
+    BE_BobberHitWater,
+    GetRod
+)
+
 -- STATE
--- =========================
-local ACTIVE = false
-local SPEED = 0.06
+local AUTO = false
 
--- =========================
--- NO WAIT LOOP
--- =========================
-local function NoWaitLoop()
-    task.spawn(function()
-        while ACTIVE do
-            pcall(function()
-                -- server tau rod
-                if GetRod then
-                    GetRod:FireServer()
-                end
-
-                -- cast
-                if Throw then
-                    Throw:FireServer()
-                end
-
-                -- paksa bobber dianggap kena air
-                if BobberHit then
-                    BobberHit:FireServer(true)
-                end
-                if BE_BobberHit then
-                    BE_BobberHit:FireServer(true)
-                end
-
-                -- start minigame
-                if StartMeter then
-                    StartMeter:FireServer()
-                end
-
-                -- reel cepet
-                for i = 1, 6 do
-                    if Retract then
-                        Retract:FireServer()
-                    end
-                    task.wait(SPEED)
-                end
-
-                -- end + catch
-                if StopMeter then
-                    StopMeter:FireServer()
-                end
-                if EndMini then
-                    EndMini:FireServer(true)
-                end
-                if Catch then
-                    Catch:FireServer(true)
-                end
-            end)
-
-            task.wait(0.2)
-        end
-    end)
-end
-
--- =========================
--- UI (INI YANG MUNCUL DI TAB)
--- =========================
+-- TOGGLE
 AutoFishTab:AddToggle({
     Name = "🔥 NO WAIT AUTO FISH",
     Default = false,
     Callback = function(v)
-        ACTIVE = v
-        if v then
-            NoWaitLoop()
-            OrionLib:MakeNotification({
-                Name = "AUTO FISH",
-                Content = "NO WAIT AKTIF",
-                Time = 2
-            })
-        end
+        AUTO = v
+        print("AUTO FISH:", v)
     end
 })
 
-AutoFishTab:AddSlider({
-    Name = "Reel Speed",
-    Min = 0.03,
-    Max = 0.15,
-    Default = 0.06,
-    Increment = 0.01,
-    ValueName = "dtk",
-    Callback = function(v)
-        SPEED = v
+-- MAIN LOOP (NO WAIT)
+task.spawn(function()
+    while true do
+        task.wait()
+        if AUTO then
+            -- GET ROD
+            local rod
+            if GetRod then
+                pcall(function()
+                    rod = GetRod:InvokeServer()
+                end)
+            end
+
+            -- CAST
+            if Throw then
+                pcall(function()
+                    Throw:FireServer()
+                end)
+            end
+
+            -- FORCE BOBBER HIT WATER
+            if BobberHitWater then
+                pcall(function()
+                    BobberHitWater:FireServer()
+                end)
+            end
+
+            if BE_BobberHitWater then
+                pcall(function()
+                    BE_BobberHitWater:FireServer()
+                end)
+            end
+        end
     end
-})
+end)
