@@ -325,9 +325,9 @@ OtherTab:AddToggle({
 })
 
 -- =========================
--- ORION + WINDOW (WAJIB)
+-- ORION + WINDOW 
 -- =========================
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local OtherTab = Window:MakeTab({Name = "Autofishing", Icon = "rbxassetid://4483345998"})
 
 local Window = OrionLib:MakeWindow({
     Name = "SCRIPT LO",
@@ -335,8 +335,6 @@ local Window = OrionLib:MakeWindow({
     SaveConfig = true,
     ConfigFolder = "AutoFish"
 })
-
-print("WINDOW OK")
 
 -- =========================
 -- AUTO FISH TAB (WAJIB DI SINI)
