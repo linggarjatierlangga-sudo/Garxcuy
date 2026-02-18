@@ -372,43 +372,50 @@ local function startFastReel()
         while fastReelActive do
             pcall(function()
 
-                -- 1️⃣ CAST
+                -- CAST
                 if throwRemote then
                     throwRemote:FireServer()
-                    task.wait(0.2)
                 end
 
-                -- 2️⃣ START METER
+                -- TUNGGU BAIT MASUK AIR
+                if not waitBaitTouch(3) then
+                    task.wait(0.5)
+                    return
+                end
+
+                -- TUNGGU IKAN NYANGKUT
+                if not waitFishHooked(5) then
+                    task.wait(0.5)
+                    return
+                end
+
+                -- START MINIGAME
                 if startMeterRemote then
                     startMeterRemote:FireServer()
                     task.wait(0.1)
                 end
 
-                -- 3️⃣ REEL (SIMULASI MANUSIA)
-                for i = 1, math.random(3,5) do
+                -- REEL
+                for i = 1, math.random(4,6) do
                     if retractRemote then
                         retractRemote:FireServer()
                     end
-                    task.wait(fastReelSpeed + math.random(5,20)/1000)
+                    task.wait(fastReelSpeed)
                 end
 
-                -- 4️⃣ STOP METER
+                -- STOP + CATCH
                 if stopMeterRemote then
                     stopMeterRemote:FireServer()
-                    task.wait(0.05)
                 end
 
-                -- 5️⃣ FORCE SUCCESS
-                if minigameEnd then
-                    minigameEnd:FireServer(true)
-                end
+                task.wait(0.05)
 
                 if catchRemote then
                     catchRemote:FireServer(true)
                 end
             end)
 
-            task.wait(0.3 + math.random(0,20)/1000)
+            task.wait(0.4)
         end
     end)
 end
