@@ -327,26 +327,33 @@ OtherTab:AddToggle({
 -- =========================
 -- ORION + WINDOW (WAJIB)
 -- =========================
-localOrionLib=loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "Fishing Hub",
+    Name = "SCRIPT LO",
     HidePremium = false,
-    SaveConfig = false
+    SaveConfig = true,
+    ConfigFolder = "AutoFish"
 })
 
 print("WINDOW OK")
 
 -- =========================
--- AUTO FISH TAB (PASTI ADA)
--- =========================
+-- AUTO FISH TAB (WAJIB DI SINI)
 local AutoFishTab = Window:MakeTab({
-    Name = "AUTO FISH",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Name = "AUTO FISH 🎣",
+    Icon = "rbxassetid://4483345998"
 })
 
-print("AUTO FISH TAB CREATED")
+AutoFishTab:AddLabel("AUTO FISH LOADED")
+
+AutoFishTab:AddButton({
+    Name = "TEST",
+    Callback = function()
+        print("AUTO FISH TAB WORK")
+    end
+})
+
 
 -- SERVICES
 local RS = game:GetService("ReplicatedStorage")
