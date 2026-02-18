@@ -324,61 +324,116 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB AUTO FISH (TEMPEL DISINI) =====
-local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
+-- ===== TAB INSTANT FISHING (FIXED) =====
+local InstantFishTab = Window:MakeTab({
+    Name = "INSTANT FISHING",
+    Icon = "rbxassetid://4483345998"
+})
 
--- Remote fishing (cari dengan aman)
-local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
-local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
-local Throw = ToServer and ToServer:FindFirstChild("Throw")
-local BobberHitWater = ToServer and ToServer:FindFirstChild("BobberHitWater")
-local BE_BobberHitWater = ToServer and ToServer:FindFirstChild("BE_BobberHitWater")
-local RodShop = ReplicatedStorage:FindFirstChild("RodShop")
-local GetRod = RodShop and RodShop:FindFirstChild("ToServer") and RodShop.ToServer:FindFirstChild("GetEquippedRod")
+InstantFishTab:AddLabel("⚠️ RISIKO BANNED SANGAT TINGGI")
 
--- Status auto fishing
-local autoActive = false
+-- Services
+local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
--- Toggle untuk mengaktifkan/mematikan
-AutoFishTab:AddToggle({
-    Name = "🔥 NO WAIT AUTO FISH",
+-- Remote yang valid (udah lo temuin)
+local Throw = RS:FindFirstChild("Fishing_RemoteThrow")
+local Retract = RS:FindFirstChild("Fishing_RemoteRetract")
+local Catch = RS:FindFirstChild("FishingCatchSuccess")
+local MinigameEnd = RS:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameEnd")
+local AutoFishingState = RS:FindFirstChild("AutoFishingState_9883448335")
+local ToolEquipped = RS:FindFirstChild("AutoFishing_ToolEquipped_9883448335")
+local ToolUnequipped = RS:FindFirstChild("AutoFishing_ToolUnequipped_9883448335")
+
+-- Status
+local instantActive = false
+local instantConn = nil
+
+-- Toggle
+InstantFishTab:AddToggle({
+    Name = "⚡ INSTANT FISHING",
     Default = false,
     Callback = function(v)
-        autoActive = v
+        instantActive = v
+
         if v then
-            OrionLib:MakeNotification({Name = "Auto Fish", Content = "AKTIF! Risiko banned tinggi.", Time = 3})
+            -- Set state fishing (biar server anggap kita lagi mancing)
+            if AutoFishingState then
+                pcall(function() AutoFishingState:FireServer(true) end)
+            end
+            if ToolEquipped then
+                pcall(function() ToolEquipped:FireServer() end)
+            end
+
+            -- Loop utama
+            instantConn = RunService.Heartbeat:Connect(function()
+                if not instantActive then return end
+
+                -- Urutan logis: Cast → MinigameEnd → Retract → Catch
+                if Throw then
+                    pcall(function() Throw:FireServer() end)  -- lempar
+                end
+
+                if MinigameEnd then
+                    pcall(function() MinigameEnd:FireServer(true) end)  -- selesaikan minigame instan
+                end
+
+                if Retract then
+                    pcall(function() Retract:FireServer() end)  -- tarik pancing
+                end
+
+                if Catch then
+                    pcall(function() Catch:FireServer(true) end)  -- paksa ikan masuk
+                end
+
+                task.wait(0.15)  -- jeda kecil
+            end)
+
         else
-            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimatikan.", Time = 2})
+            -- Matikan state
+            if ToolUnequipped then
+                pcall(function() ToolUnequipped:FireServer() end)
+            end
+            if AutoFishingState then
+                pcall(function() AutoFishingState:FireServer(false) end)
+            end
+
+            if instantConn then
+                instantConn:Disconnect()
+                instantConn = nil
+            end
         end
     end
 })
 
--- Loop auto fishing (berjalan terus di latar)
-task.spawn(function()
-    while true do
-        task.wait() -- loop cepat, tanpa delay tetap
-        if autoActive then
-            -- Ambil rod (kalau perlu)
-            if GetRod then
-                pcall(function() GetRod:InvokeServer() end)
-            end
-            -- Lempar pancing
-            if Throw then
-                pcall(function() Throw:FireServer() end)
-            end
-            -- Simulasi kail kena air
-            if BobberHitWater then
-                pcall(function() BobberHitWater:FireServer() end)
-            end
-            if BE_BobberHitWater then
-                pcall(function() BE_BobberHitWater:FireServer() end)
-            end
-        end
-    end
-end)
+-- Tombol test manual
+if Throw then
+    InstantFishTab:AddButton({
+        Name = "Test Throw",
+        Callback = function() Throw:FireServer() end
+    })
+end
+if Retract then
+    InstantFishTab:AddButton({
+        Name = "Test Retract",
+        Callback = function() Retract:FireServer() end
+    })
+end
+if Catch then
+    InstantFishTab:AddButton({
+        Name = "Test Catch",
+        Callback = function() Catch:FireServer(true) end
+    })
+end
+if MinigameEnd then
+    InstantFishTab:AddButton({
+        Name = "Test MinigameEnd",
+        Callback = function() MinigameEnd:FireServer(true) end
+    })
+end
 
--- Info tambahan
-AutoFishTab:AddParagraph({
-    Title = "⚠️ PERINGATAN",
-    Content = "Script ini mengirim remote terus-menerus tanpa jeda. Sangat berisiko terkena banned! Gunakan akun alt."
+-- Info
+InstantFishTab:AddParagraph({
+    Title = "🚨 PERINGATAN",
+    Content = "Script ini mengirim remote terus-menerus. Sangat mudah dideteksi anti-cheat. Gunakan akun alt!"
 })
