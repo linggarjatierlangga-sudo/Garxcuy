@@ -324,26 +324,20 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== TAB INSTANT FISHING (FIXED) =====
+-- ===== INSTANT FISHING (FIXED URUTAN) =====
 local InstantFishTab = Window:MakeTab({
     Name = "INSTANT FISHING",
     Icon = "rbxassetid://4483345998"
 })
 
-InstantFishTab:AddLabel("⚠️ RISIKO BANNED SANGAT TINGGI")
+InstantFishTab:AddLabel("🚨 LINGGAR KONTOL 🚨")
 
--- Services
-local RS = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
--- Remote yang valid (udah lo temuin)
-local Throw = RS:FindFirstChild("Fishing_RemoteThrow")
-local Retract = RS:FindFirstChild("Fishing_RemoteRetract")
-local Catch = RS:FindFirstChild("FishingCatchSuccess")
-local MinigameEnd = RS:FindFirstChild("FishingRod_9883448335_7441d396-e015-4ea6-993f-757ca7d42bbb_MinigameEnd")
-local AutoFishingState = RS:FindFirstChild("AutoFishingState_9883448335")
-local ToolEquipped = RS:FindFirstChild("AutoFishing_ToolEquipped_9883448335")
-local ToolUnequipped = RS:FindFirstChild("AutoFishing_ToolUnequipped_9883448335")
+-- Remote yang valid
+local Throw = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow")
+local Retract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
+local Catch = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
+local Parked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")  -- ambil remote parkir
+local Reset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")    -- ambil remote reset
 
 -- Status
 local instantActive = false
@@ -351,89 +345,57 @@ local instantConn = nil
 
 -- Toggle
 InstantFishTab:AddToggle({
-    Name = "⚡ INSTANT FISHING",
+    Name = "⚡ INSTANT FISHING (URUTAN)",
     Default = false,
     Callback = function(v)
         instantActive = v
-
         if v then
-            -- Set state fishing (biar server anggap kita lagi mancing)
-            if AutoFishingState then
-                pcall(function() AutoFishingState:FireServer(true) end)
-            end
-            if ToolEquipped then
-                pcall(function() ToolEquipped:FireServer() end)
-            end
-
-            -- Loop utama
-            instantConn = RunService.Heartbeat:Connect(function()
-                if not instantActive then return end
-
-                -- Urutan logis: Cast → MinigameEnd → Retract → Catch
-                if Throw then
-                    pcall(function() Throw:FireServer() end)  -- lempar
+            OrionLib:MakeNotification({Name = "Instant", Content = "AKTIF! Jeda 2 detik antar aksi.", Time = 2})
+            
+            instantConn = task.spawn(function()
+                while instantActive do
+                    -- 1. CAST (lempar)
+                    if Throw then
+                        pcall(function() Throw:FireServer() end)
+                        print("[Step 1] Cast")
+                    end
+                    
+                    -- 2. TUNGGU kail nyemplung (2 detik)
+                    task.wait(2)
+                    
+                    -- 3. REEL / RETRACT (tarik)
+                    if Retract then
+                        pcall(function() Retract:FireServer() end)
+                        print("[Step 2] Retract")
+                    end
+                    
+                    -- 4. TUNGGU bentar (1 detik) biar server proses
+                    task.wait(1)
+                    
+                    -- 5. CATCH (paksa sukses) — coba tanpa parameter dulu
+                    if Catch then
+                        pcall(function() Catch:FireServer() end)  -- ganti jadi tanpa parameter
+                        print("[Step 3] Catch")
+                    end
+                    
+                    -- 6. RESET STATE (biar siap mancing lagi)
+                    if Parked then
+                        pcall(function() Parked:FireServer() end)
+                    end
+                    if Reset then
+                        pcall(function() Reset:FireServer() end)
+                    end
+                    
+                    -- 7. TUNGGU sebelum loop ulang (1 detik)
+                    task.wait(1)
+                    print("=== Siklus selesai, ulang ===")
                 end
-
-                if MinigameEnd then
-                    pcall(function() MinigameEnd:FireServer(true) end)  -- selesaikan minigame instan
-                end
-
-                if Retract then
-                    pcall(function() Retract:FireServer() end)  -- tarik pancing
-                end
-
-                if Catch then
-                    pcall(function() Catch:FireServer(true) end)  -- paksa ikan masuk
-                end
-
-                task.wait(0.15)  -- jeda kecil
             end)
-
         else
-            -- Matikan state
-            if ToolUnequipped then
-                pcall(function() ToolUnequipped:FireServer() end)
-            end
-            if AutoFishingState then
-                pcall(function() AutoFishingState:FireServer(false) end)
-            end
-
             if instantConn then
-                instantConn:Disconnect()
+                task.cancel(instantConn)
                 instantConn = nil
             end
         end
     end
-})
-
--- Tombol test manual
-if Throw then
-    InstantFishTab:AddButton({
-        Name = "Test Throw",
-        Callback = function() Throw:FireServer() end
-    })
-end
-if Retract then
-    InstantFishTab:AddButton({
-        Name = "Test Retract",
-        Callback = function() Retract:FireServer() end
-    })
-end
-if Catch then
-    InstantFishTab:AddButton({
-        Name = "Test Catch",
-        Callback = function() Catch:FireServer(true) end
-    })
-end
-if MinigameEnd then
-    InstantFishTab:AddButton({
-        Name = "Test MinigameEnd",
-        Callback = function() MinigameEnd:FireServer(true) end
-    })
-end
-
--- Info
-InstantFishTab:AddParagraph({
-    Title = "🚨 PERINGATAN",
-    Content = "Script ini mengirim remote terus-menerus. Sangat mudah dideteksi anti-cheat. Gunakan akun alt!"
 })
