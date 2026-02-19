@@ -324,78 +324,87 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== INSTANT FISHING (FIXED URUTAN) =====
+-- ===== INSTANT FISHING (TRIGGER LANDED) =====
 local InstantFishTab = Window:MakeTab({
     Name = "INSTANT FISHING",
     Icon = "rbxassetid://4483345998"
 })
 
-InstantFishTab:AddLabel("🚨 LINGGAR KONTOL 🚨")
+InstantFishTab:AddLabel("⚠️ RISIKO BANNED SANGAT TINGGI")
 
 -- Remote yang valid
 local Throw = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow")
 local Retract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
 local Catch = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
-local Parked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")  -- ambil remote parkir
-local Reset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")    -- ambil remote reset
+local Parked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")
+local Reset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")
+
+-- Event dari server
+local Landed = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("Landed")
+local GroundHit = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("GroundHit")
+local StartBite = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("StartBite")
 
 -- Status
 local instantActive = false
 local instantConn = nil
+local landedConn = nil
+
+-- Fungsi untuk memulai siklus
+local function startFishingCycle()
+    if not Throw then return end
+    -- Cast
+    Throw:FireServer()
+    print("[Cast]")
+end
+
+-- Saat bobber landed, langsung reel dan catch
+if Landed then
+    Landed.OnClientEvent:Connect(function()
+        if instantActive then
+            task.wait(0.1) -- jeda kecil biar server siap
+            if Retract then Retract:FireServer() end
+            if Catch then Catch:FireServer() end
+            print("[Landed] Reel & Catch fired")
+        end
+    end)
+end
+
+-- Alternatif pake GroundHit
+if GroundHit and not Landed then
+    GroundHit.OnClientEvent:Connect(function()
+        if instantActive then
+            task.wait(0.1)
+            if Retract then Retract:FireServer() end
+            if Catch then Catch:FireServer() end
+            print("[GroundHit] Reel & Catch fired")
+        end
+    end)
+end
 
 -- Toggle
 InstantFishTab:AddToggle({
-    Name = "⚡ INSTANT FISHING (URUTAN)",
+    Name = "⚡ INSTANT FISHING (LANDED TRIGGER)",
     Default = false,
     Callback = function(v)
         instantActive = v
         if v then
-            OrionLib:MakeNotification({Name = "Instant", Content = "AKTIF! Jeda 2 detik antar aksi.", Time = 2})
-            
+            OrionLib:MakeNotification({Name = "Instant", Content = "Aktif! Cast otomatis tiap 3 detik.", Time = 2})
             instantConn = task.spawn(function()
                 while instantActive do
-                    -- 1. CAST (lempar)
-                    if Throw then
-                        pcall(function() Throw:FireServer() end)
-                        print("[Step 1] Cast")
-                    end
-                    
-                    -- 2. TUNGGU kail nyemplung (2 detik)
-                    task.wait(2)
-                    
-                    -- 3. REEL / RETRACT (tarik)
-                    if Retract then
-                        pcall(function() Retract:FireServer() end)
-                        print("[Step 2] Retract")
-                    end
-                    
-                    -- 4. TUNGGU bentar (1 detik) biar server proses
-                    task.wait(1)
-                    
-                    -- 5. CATCH (paksa sukses) — coba tanpa parameter dulu
-                    if Catch then
-                        pcall(function() Catch:FireServer() end)  -- ganti jadi tanpa parameter
-                        print("[Step 3] Catch")
-                    end
-                    
-                    -- 6. RESET STATE (biar siap mancing lagi)
-                    if Parked then
-                        pcall(function() Parked:FireServer() end)
-                    end
-                    if Reset then
-                        pcall(function() Reset:FireServer() end)
-                    end
-                    
-                    -- 7. TUNGGU sebelum loop ulang (1 detik)
-                    task.wait(1)
-                    print("=== Siklus selesai, ulang ===")
+                    startFishingCycle()
+                    task.wait(3) -- cast setiap 3 detik
                 end
             end)
         else
-            if instantConn then
-                task.cancel(instantConn)
-                instantConn = nil
-            end
+            if instantConn then task.cancel(instantConn); instantConn = nil end
         end
+    end
+})
+
+-- Tombol test cast manual
+InstantFishTab:AddButton({
+    Name = "Test Cast",
+    Callback = function()
+        if Throw then Throw:FireServer() end
     end
 })
