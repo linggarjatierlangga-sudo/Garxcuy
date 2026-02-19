@@ -324,87 +324,102 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== INSTANT FISHING (TRIGGER LANDED) =====
+-- ===== INSTANT FISHING (FULL AUTO) =====
 local InstantFishTab = Window:MakeTab({
     Name = "INSTANT FISHING",
     Icon = "rbxassetid://4483345998"
 })
 
-InstantFishTab:AddLabel("⚠️ RISIKO BANNED SANGAT TINGGI")
+InstantFishTab:AddLabel("⚠️ RISIKO BANNED TINGGI")
 
--- Remote yang valid
-local Throw = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow")
-local Retract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract")
-local Catch = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
-local Parked = ReplicatedStorage:FindFirstChild("Fishing_RemoteParked")
-local Reset = ReplicatedStorage:FindFirstChild("Fishing_RemoteReset")
+-- Ambil remote dari hasil scan Diego
+local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
+local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
+local ToClient = Fishing and Fishing:FindFirstChild("ToClient")
 
--- Event dari server
-local Landed = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("Landed")
-local GroundHit = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("GroundHit")
-local StartBite = ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToClient") and ReplicatedStorage.Fishing.ToClient:FindFirstChild("StartBite")
+local CastReleased = ToServer and ToServer:FindFirstChild("CastReleased")
+local ReelFinished = ToServer and ToServer:FindFirstChild("ReelFinished")
+local Landed = ToClient and ToClient:FindFirstChild("Landed")
+local GroundHit = ToClient and ToClient:FindFirstChild("GroundHit")
 
--- Status
-local instantActive = false
-local instantConn = nil
-local landedConn = nil
+-- Variabel
+local autoFishing = false
+local castInterval = 3
+local autoCastConn = nil
 
--- Fungsi untuk memulai siklus
-local function startFishingCycle()
-    if not Throw then return end
-    -- Cast
-    Throw:FireServer()
-    print("[Cast]")
-end
-
--- Saat bobber landed, langsung reel dan catch
+-- Listener landed (dipasang sekali, jalan kalau autoFishing true)
 if Landed then
     Landed.OnClientEvent:Connect(function()
-        if instantActive then
-            task.wait(0.1) -- jeda kecil biar server siap
-            if Retract then Retract:FireServer() end
-            if Catch then Catch:FireServer() end
-            print("[Landed] Reel & Catch fired")
+        if autoFishing then
+            task.wait(0.2)  -- jeda biar server siap
+            if ReelFinished then
+                ReelFinished:FireServer()
+                print("[Auto] Reel after landed")
+            end
         end
     end)
-end
-
--- Alternatif pake GroundHit
-if GroundHit and not Landed then
+    InstantFishTab:AddLabel("✅ Landed event tersedia")
+elseif GroundHit then
     GroundHit.OnClientEvent:Connect(function()
-        if instantActive then
-            task.wait(0.1)
-            if Retract then Retract:FireServer() end
-            if Catch then Catch:FireServer() end
-            print("[GroundHit] Reel & Catch fired")
+        if autoFishing then
+            task.wait(0.2)
+            if ReelFinished then
+                ReelFinished:FireServer()
+                print("[Auto] Reel after ground hit")
+            end
         end
     end)
+    InstantFishTab:AddLabel("✅ GroundHit event tersedia")
+else
+    InstantFishTab:AddLabel("❌ Tidak ada event landed/groundhit!")
 end
 
--- Toggle
+-- Fungsi cast
+local function doCast()
+    if CastReleased then
+        CastReleased:FireServer()
+        print("[Auto] Cast")
+    end
+end
+
+-- Satu toggle untuk semuanya
 InstantFishTab:AddToggle({
-    Name = "⚡ INSTANT FISHING (LANDED TRIGGER)",
+    Name = "🎣 AUTO FISHING (FULL AUTO)",
     Default = false,
-    Callback = function(v)
-        instantActive = v
-        if v then
-            OrionLib:MakeNotification({Name = "Instant", Content = "Aktif! Cast otomatis tiap 3 detik.", Time = 2})
-            instantConn = task.spawn(function()
-                while instantActive do
-                    startFishingCycle()
-                    task.wait(3) -- cast setiap 3 detik
+    Callback = function(state)
+        autoFishing = state
+        if state then
+            -- Mulai loop cast
+            autoCastConn = task.spawn(function()
+                while autoFishing do
+                    doCast()
+                    task.wait(castInterval)
                 end
             end)
+            OrionLib:MakeNotification({
+                Name = "Auto Fishing",
+                Content = "Aktif! Cast tiap " .. castInterval .. " detik",
+                Time = 2
+            })
         else
-            if instantConn then task.cancel(instantConn); instantConn = nil end
+            -- Hentikan loop cast
+            if autoCastConn then
+                task.cancel(autoCastConn)
+                autoCastConn = nil
+            end
         end
     end
 })
 
--- Tombol test cast manual
+-- Slider interval cast
+InstantFishTab:AddSlider({
+    Name = "Interval Cast (detik)",
+    Min = 1, Max = 10, Default = 3,
+    Callback = function(v) castInterval = v end
+})
+
+-- Tombol test manual (opsional, bisa dihapus)
 InstantFishTab:AddButton({
-    Name = "Test Cast",
-    Callback = function()
-        if Throw then Throw:FireServer() end
-    end
+    Name = "Test Cast Manual",
+    Callback = doCast
 })
