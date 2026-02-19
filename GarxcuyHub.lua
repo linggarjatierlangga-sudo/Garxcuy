@@ -324,15 +324,75 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== AUTO FISHING + LOGGER (DEBUG) =====
-local InstantFishTab = Window:MakeTab({
-    Name = "AUTO FISH",
-    Icon = "rbxassetid://4483345998"
+-- AUTO FISHING + LOGGER
+-- Untuk game GET FISH, pake remote dari scan Diego
+
+-- Load Orion Library (tetap dipake buat menu)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "Auto Fish HP",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "AutoFishHP",
+    IntroEnabled = false
 })
 
-InstantFishTab:AddLabel("🔍 DEBUG: Cek console (F9)")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Ambil semua remote fishing dari hasil scan Diego
+-- ===== LOGGER DI LAYAR (PASTI MUNCUL) =====
+local loggerGui = Instance.new("ScreenGui")
+loggerGui.Name = "FishLoggerHP"
+loggerGui.Parent = game:GetService("CoreGui")  -- Paling aman
+loggerGui.ResetOnSpawn = false
+loggerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local frame = Instance.new("Frame")
+frame.Parent = loggerGui
+frame.Size = UDim2.new(0, 380, 0, 250)
+frame.Position = UDim2.new(0.5, -190, 0.5, -125)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.1
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(40,40,40)
+title.Text = "🐟 AUTO FISH LOGGER"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+Instance.new("UICorner", title).CornerRadius = UDim.new(0, 8)
+
+local logBox = Instance.new("TextBox")
+logBox.Parent = frame
+logBox.Size = UDim2.new(1, -10, 1, -40)
+logBox.Position = UDim2.new(0, 5, 0, 35)
+logBox.BackgroundColor3 = Color3.fromRGB(0,0,0)
+logBox.BackgroundTransparency = 0.3
+logBox.TextColor3 = Color3.fromRGB(0,255,0)
+logBox.TextSize = 12
+logBox.Font = Enum.Font.Code
+logBox.TextWrapped = true
+logBox.MultiLine = true
+logBox.ClearTextOnFocus = false
+logBox.TextEditable = false
+logBox.Text = "Logger siap...\n"
+
+local function addLog(msg)
+    local timestamp = os.date("%H:%M:%S")
+    logBox.Text = "[" .. timestamp .. "] " .. msg .. "\n" .. logBox.Text
+    if #logBox.Text > 5000 then
+        logBox.Text = string.sub(logBox.Text, 1, 4000)
+    end
+end
+
+-- ===== AMBIL REMOTE DARI SCAN DIEGO =====
 local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
 local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
 local ToClient = Fishing and Fishing:FindFirstChild("ToClient")
@@ -343,38 +403,12 @@ local Landed = ToClient and ToClient:FindFirstChild("Landed")
 local GroundHit = ToClient and ToClient:FindFirstChild("GroundHit")
 local StartBite = ToClient and ToClient:FindFirstChild("StartBite")
 
--- Logger untuk semua remote
-local function hookRemote(remote)
-    if remote and remote:IsA("RemoteEvent") then
-        local oldFire = remote.FireServer
-        remote.FireServer = function(self, ...)
-            print("[SERVER] " .. self.Name, ...)
-            return oldFire(self, ...)
-        end
-    end
-end
+if CastReleased then addLog("✅ CastReleased siap") else addLog("❌ CastReleased tidak ditemukan") end
+if ReelFinished then addLog("✅ ReelFinished siap") else addLog("❌ ReelFinished tidak ditemukan") end
+if Landed then addLog("✅ Landed siap") else addLog("❌ Landed tidak ditemukan") end
+if GroundHit then addLog("✅ GroundHit siap") end
 
-hookRemote(CastReleased)
-hookRemote(ReelFinished)
-
--- Listener client events
-if Landed then
-    Landed.OnClientEvent:Connect(function(...)
-        print("[CLIENT] Landed", ...)
-    end)
-end
-if GroundHit then
-    GroundHit.OnClientEvent:Connect(function(...)
-        print("[CLIENT] GroundHit", ...)
-    end)
-end
-if StartBite then
-    StartBite.OnClientEvent:Connect(function(...)
-        print("[CLIENT] StartBite", ...)
-    end)
-end
-
--- Auto fishing
+-- ===== AUTO FISHING =====
 local autoFishing = false
 local castInterval = 3
 local autoCastConn = nil
@@ -382,24 +416,21 @@ local autoCastConn = nil
 local function doCast()
     if CastReleased then
         CastReleased:FireServer()
+        addLog("🎣 Cast")
     end
 end
 
 local function doReel()
     if ReelFinished then
         ReelFinished:FireServer()
+        addLog("🎣 Reel")
     end
 end
 
+-- Listener landed/groundhit
 if Landed then
-    Landed.OnClientEvent:Connect(function()
-        if autoFishing then
-            task.wait(0.2)
-            doReel()
-        end
-    end)
-elseif GroundHit then
-    GroundHit.OnClientEvent:Connect(function()
+    Landed.OnClientEvent:Connect(function(...)
+        addLog("📍 Landed event")
         if autoFishing then
             task.wait(0.2)
             doReel()
@@ -407,8 +438,21 @@ elseif GroundHit then
     end)
 end
 
-InstantFishTab:AddToggle({
-    Name = "🎣 AUTO FISHING",
+if GroundHit then
+    GroundHit.OnClientEvent:Connect(function(...)
+        addLog("📍 GroundHit event")
+        if autoFishing then
+            task.wait(0.2)
+            doReel()
+        end
+    end)
+end
+
+-- ===== TAB AUTO FISH =====
+local FishTab = Window:MakeTab({Name = "Auto Fish", Icon = "rbxassetid://4483345998"})
+
+FishTab:AddToggle({
+    Name = "🎣 AUTO FISHING (Full Auto)",
     Default = false,
     Callback = function(state)
         autoFishing = state
@@ -419,20 +463,38 @@ InstantFishTab:AddToggle({
                     task.wait(castInterval)
                 end
             end)
-            print("[AUTO] Started")
+            addLog("▶️ Auto fishing dimulai")
         else
-            if autoCastConn then task.cancel(autoCastConn) end
-            print("[AUTO] Stopped")
+            if autoCastConn then
+                task.cancel(autoCastConn)
+                autoCastConn = nil
+            end
+            addLog("⏸️ Auto fishing dihentikan")
         end
     end
 })
 
-InstantFishTab:AddSlider({
-    Name = "Interval Cast",
+FishTab:AddSlider({
+    Name = "Interval Cast (detik)",
     Min = 1, Max = 10, Default = 3,
     Callback = function(v) castInterval = v end
 })
 
--- Tombol manual
-InstantFishTab:AddButton({ Name = "Cast", Callback = doCast })
-InstantFishTab:AddButton({ Name = "Reel", Callback = doReel })
+FishTab:AddButton({
+    Name = "Test Cast",
+    Callback = doCast
+})
+
+FishTab:AddButton({
+    Name = "Test Reel",
+    Callback = doReel
+})
+
+FishTab:AddButton({
+    Name = "Bersihkan Logger",
+    Callback = function() logBox.Text = "" end
+})
+
+addLog("✅ Script siap! Equip pancing lalu nyalakan auto fishing.")
+
+OrionLib:Init()
