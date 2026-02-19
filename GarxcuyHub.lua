@@ -324,15 +324,15 @@ OtherTab:AddToggle({
     end
 })
 
--- ===== INSTANT FISHING (FULL AUTO) =====
+-- ===== AUTO FISHING + LOGGER (DEBUG) =====
 local InstantFishTab = Window:MakeTab({
-    Name = "INSTANT FISHING",
+    Name = "AUTO FISH",
     Icon = "rbxassetid://4483345998"
 })
 
-InstantFishTab:AddLabel("⚠️ RISIKO BANNED TINGGI")
+InstantFishTab:AddLabel("🔍 DEBUG: Cek console (F9)")
 
--- Ambil remote dari hasil scan Diego
+-- Ambil semua remote fishing dari hasil scan Diego
 local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
 local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
 local ToClient = Fishing and Fishing:FindFirstChild("ToClient")
@@ -341,85 +341,98 @@ local CastReleased = ToServer and ToServer:FindFirstChild("CastReleased")
 local ReelFinished = ToServer and ToServer:FindFirstChild("ReelFinished")
 local Landed = ToClient and ToClient:FindFirstChild("Landed")
 local GroundHit = ToClient and ToClient:FindFirstChild("GroundHit")
+local StartBite = ToClient and ToClient:FindFirstChild("StartBite")
 
--- Variabel
+-- Logger untuk semua remote
+local function hookRemote(remote)
+    if remote and remote:IsA("RemoteEvent") then
+        local oldFire = remote.FireServer
+        remote.FireServer = function(self, ...)
+            print("[SERVER] " .. self.Name, ...)
+            return oldFire(self, ...)
+        end
+    end
+end
+
+hookRemote(CastReleased)
+hookRemote(ReelFinished)
+
+-- Listener client events
+if Landed then
+    Landed.OnClientEvent:Connect(function(...)
+        print("[CLIENT] Landed", ...)
+    end)
+end
+if GroundHit then
+    GroundHit.OnClientEvent:Connect(function(...)
+        print("[CLIENT] GroundHit", ...)
+    end)
+end
+if StartBite then
+    StartBite.OnClientEvent:Connect(function(...)
+        print("[CLIENT] StartBite", ...)
+    end)
+end
+
+-- Auto fishing
 local autoFishing = false
 local castInterval = 3
 local autoCastConn = nil
 
--- Listener landed (dipasang sekali, jalan kalau autoFishing true)
+local function doCast()
+    if CastReleased then
+        CastReleased:FireServer()
+    end
+end
+
+local function doReel()
+    if ReelFinished then
+        ReelFinished:FireServer()
+    end
+end
+
 if Landed then
     Landed.OnClientEvent:Connect(function()
         if autoFishing then
-            task.wait(0.2)  -- jeda biar server siap
-            if ReelFinished then
-                ReelFinished:FireServer()
-                print("[Auto] Reel after landed")
-            end
+            task.wait(0.2)
+            doReel()
         end
     end)
-    InstantFishTab:AddLabel("✅ Landed event tersedia")
 elseif GroundHit then
     GroundHit.OnClientEvent:Connect(function()
         if autoFishing then
             task.wait(0.2)
-            if ReelFinished then
-                ReelFinished:FireServer()
-                print("[Auto] Reel after ground hit")
-            end
+            doReel()
         end
     end)
-    InstantFishTab:AddLabel("✅ GroundHit event tersedia")
-else
-    InstantFishTab:AddLabel("❌ Tidak ada event landed/groundhit!")
 end
 
--- Fungsi cast
-local function doCast()
-    if CastReleased then
-        CastReleased:FireServer()
-        print("[Auto] Cast")
-    end
-end
-
--- Satu toggle untuk semuanya
 InstantFishTab:AddToggle({
-    Name = "🎣 AUTO FISHING (FULL AUTO)",
+    Name = "🎣 AUTO FISHING",
     Default = false,
     Callback = function(state)
         autoFishing = state
         if state then
-            -- Mulai loop cast
             autoCastConn = task.spawn(function()
                 while autoFishing do
                     doCast()
                     task.wait(castInterval)
                 end
             end)
-            OrionLib:MakeNotification({
-                Name = "Auto Fishing",
-                Content = "Aktif! Cast tiap " .. castInterval .. " detik",
-                Time = 2
-            })
+            print("[AUTO] Started")
         else
-            -- Hentikan loop cast
-            if autoCastConn then
-                task.cancel(autoCastConn)
-                autoCastConn = nil
-            end
+            if autoCastConn then task.cancel(autoCastConn) end
+            print("[AUTO] Stopped")
         end
     end
 })
 
--- Slider interval cast
 InstantFishTab:AddSlider({
-    Name = "Interval Cast (detik)",
+    Name = "Interval Cast",
     Min = 1, Max = 10, Default = 3,
     Callback = function(v) castInterval = v end
 })
 
--- Tombol test manual (opsional, bisa dihapus)
-InstantFishTab:AddButton({
-    Name = "Test Cast Manual",
-    Callback = doCast
-})
+-- Tombol manual
+InstantFishTab:AddButton({ Name = "Cast", Callback = doCast })
+InstantFishTab:AddButton({ Name = "Reel", Callback = doReel })
