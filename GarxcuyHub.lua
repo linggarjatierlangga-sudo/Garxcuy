@@ -324,171 +324,119 @@ OtherTab:AddToggle({
     end
 })
 
--- AUTO FISH FINAL (PASTI JALAN)
--- Hanya pakai event "Landed" (dari log lo)
+-- ===== TAB AUTO FISH =====
+local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
 
--- Load Orion Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
+-- Cari remote auto fishing
+local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
+local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
+local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
+local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
 
-local Window = OrionLib:MakeWindow({
-    Name = "Auto Fish Final",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "AutoFishFinal",
-    IntroEnabled = false
+-- Cari remote reel
+local ReelRemote = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true) 
+                 or ReplicatedStorage:FindFirstChild("ReelFinished", true)
+                 or ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
+
+-- Status
+local autoActive = false
+local fastReelActive = false
+local fastReelConn = nil
+local fastReelSpeed = 1.0
+local reelParam = "kosong"  -- parameter default
+
+-- Auto Fishing Resmi
+local afkBtn = AutoFishTab:AddButton({
+    Name = "▶️ Mulai Auto Fishing (Resmi)",
+    Callback = function()
+        if not autoActive and StartAutoFishing then
+            StartAutoFishing:FireServer()
+            autoActive = true
+            afkBtn:Set("⏸️ Hentikan Auto Fishing")
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
+        elseif autoActive and StopAutoFishing then
+            StopAutoFishing:FireServer()
+            autoActive = false
+            afkBtn:Set("▶️ Mulai Auto Fishing (Resmi)")
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
+        end
+    end
 })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- ===== LOGGER DI LAYAR =====
-local loggerGui = Instance.new("ScreenGui")
-loggerGui.Name = "FishLoggerFinal"
-loggerGui.Parent = game:GetService("CoreGui")
-loggerGui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame")
-frame.Parent = loggerGui
-frame.Size = UDim2.new(0, 400, 0, 300)
-frame.Position = UDim2.new(0.5, -200, 0.5, -150)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BackgroundTransparency = 0.1
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-
-local title = Instance.new("TextLabel")
-title.Parent = frame
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-title.Text = "🐟 AUTO FISH FINAL"
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 8)
-
-local logBox = Instance.new("TextBox")
-logBox.Parent = frame
-logBox.Size = UDim2.new(1, -10, 1, -40)
-logBox.Position = UDim2.new(0, 5, 0, 35)
-logBox.BackgroundColor3 = Color3.fromRGB(0,0,0)
-logBox.BackgroundTransparency = 0.3
-logBox.TextColor3 = Color3.fromRGB(0,255,0)
-logBox.TextSize = 12
-logBox.Font = Enum.Font.Code
-logBox.TextWrapped = true
-logBox.MultiLine = true
-logBox.ClearTextOnFocus = false
-logBox.TextEditable = false
-logBox.Text = "Logger siap...\n"
-
-local function addLog(msg)
-    local timestamp = os.date("%H:%M:%S")
-    logBox.Text = "[" .. timestamp .. "] " .. msg .. "\n" .. logBox.Text
-    if #logBox.Text > 5000 then
-        logBox.Text = string.sub(logBox.Text, 1, 4000)
+-- Pilihan Parameter Fast Reel
+AutoFishTab:AddDropdown({
+    Name = "Parameter Fast Reel",
+    Options = {"kosong", "true", "false", "1", "'reel'", "{}"},
+    Default = "kosong",
+    Callback = function(value)
+        reelParam = value
     end
-end
+})
 
--- ===== AMBIL REMOTE =====
-local Fishing = ReplicatedStorage:FindFirstChild("Fishing")
-local ToServer = Fishing and Fishing:FindFirstChild("ToServer")
-local ToClient = Fishing and Fishing:FindFirstChild("ToClient")
-
-local CastReleased = ToServer and ToServer:FindFirstChild("CastReleased")
-local ReelFinished = ToServer and ToServer:FindFirstChild("ReelFinished")
-local Landed = ToClient and ToClient:FindFirstChild("Landed")  -- 🔥 "Landed" doang!
-
-if CastReleased then addLog("✅ CastReleased siap") else addLog("❌ CastReleased tidak ditemukan") end
-if ReelFinished then addLog("✅ ReelFinished siap") else addLog("❌ ReelFinished tidak ditemukan") end
-if Landed then addLog("✅ Landed siap") else addLog("❌ Landed tidak ditemukan") end
-
--- ===== LISTENER LANDED =====
-if Landed then
-    Landed.OnClientEvent:Connect(function(data)
-        addLog("📍 Landed diterima: " .. tostring(data))
-        if autoFishing then
-            task.wait(0.2)
-            if ReelFinished then
-                ReelFinished:FireServer()
-                addLog("🎣 Auto Reel after Landed")
-            end
-        end
-    end)
-end
-
--- ===== AUTO FISHING =====
-local autoFishing = false
-local castInterval = 3
-local autoCastConn = nil
-
-local function doCast()
-    if CastReleased and autoFishing then
-        CastReleased:FireServer()
-        addLog("🎣 Cast")
-    end
-end
-
--- ===== TAB AUTO FISH =====
-local FishTab = Window:MakeTab({Name = "Auto Fish", Icon = "rbxassetid://4483345998"})
-
-FishTab:AddToggle({
-    Name = "🎣 AUTO FISHING",
+-- Toggle Fast Reel
+AutoFishTab:AddToggle({
+    Name = "⚡ Fast Reel",
     Default = false,
     Callback = function(state)
-        autoFishing = state
+        fastReelActive = state
         if state then
-            -- Mulai loop cast
-            autoCastConn = task.spawn(function()
-                while autoFishing do
-                    doCast()
-                    task.wait(castInterval)
-                end
-            end)
-            addLog("▶️ Auto fishing dimulai")
-        else
-            if autoCastConn then
-                task.cancel(autoCastConn)
-                autoCastConn = nil
+            if not ReelRemote then
+                OrionLib:MakeNotification({Name = "Error", Content = "Remote reel tidak ditemukan!", Time = 2})
+                fastReelActive = false
+                return
             end
-            addLog("⏸️ Auto fishing dihentikan")
+            if fastReelConn then fastReelConn:Disconnect() end
+            fastReelConn = RunService.Heartbeat:Connect(function()
+                if not fastReelActive then return end
+                pcall(function()
+                    if reelParam == "kosong" then
+                        ReelRemote:FireServer()
+                    elseif reelParam == "true" then
+                        ReelRemote:FireServer(true)
+                    elseif reelParam == "false" then
+                        ReelRemote:FireServer(false)
+                    elseif reelParam == "1" then
+                        ReelRemote:FireServer(1)
+                    elseif reelParam == "'reel'" then
+                        ReelRemote:FireServer("reel")
+                    elseif reelParam == "{}" then
+                        ReelRemote:FireServer({})
+                    end
+                end)
+                wait(fastReelSpeed)
+            end)
+            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif!", Time = 2})
+        else
+            if fastReelConn then fastReelConn:Disconnect(); fastReelConn = nil end
         end
     end
 })
 
-FishTab:AddSlider({
-    Name = "Interval Cast (detik)",
-    Min = 1, Max = 10, Default = 3,
-    Callback = function(v) castInterval = v end
+-- Slider kecepatan
+AutoFishTab:AddSlider({
+    Name = "Kecepatan Fast Reel (detik)",
+    Min = 0.1, Max = 3.0, Default = 1.0, Increment = 0.1,
+    ValueName = "dtk",
+    Callback = function(v) fastReelSpeed = v end
 })
 
-FishTab:AddButton({
-    Name = "Test Cast",
-    Callback = function()
-        if CastReleased then
-            CastReleased:FireServer()
-            addLog("🧪 Manual Cast")
+-- Tombol test manual
+if ReelRemote then
+    AutoFishTab:AddButton({
+        Name = "Test Reel Manual",
+        Callback = function()
+            ReelRemote:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "Reel fired", Time = 1})
         end
-    end
+    })
+end
+
+-- Info
+AutoFishTab:AddParagraph({
+    Title = "Info",
+    Content = "Auto Fishing Resmi: sekali klik, game yang jalanin.\nFast Reel: narik manual cepat (risiko banned!).\nPilih parameter sesuai hasil tes."
 })
 
-FishTab:AddButton({
-    Name = "Test Reel",
-    Callback = function()
-        if ReelFinished then
-            ReelFinished:FireServer()
-            addLog("🧪 Manual Reel")
-        end
-    end
-})
-
-FishTab:AddButton({
-    Name = "Bersihkan Logger",
-    Callback = function() logBox.Text = "" end
-})
-
-addLog("✅ Script siap! Event Landed akan memicu reel otomatis.")
-addLog("💡 Equip pancing, lalu nyalakan auto fishing.")
-
+-- Notifikasi Selesai
+OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! + Auto Fish + Fast Reel", Time = 3})
 OrionLib:Init()
