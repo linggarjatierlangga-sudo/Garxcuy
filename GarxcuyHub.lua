@@ -1,72 +1,112 @@
-https://raw.githubusercontent.com/adamowaissi22-boop/Axom-Scripts-/refs/heads/main/Axion%20Ui%20Library
-local Window = Axion:CreateWindow({
-    Name = "Axion - Demo Script",
-    Subtitle = "UI Library Demo",
-    Version = "v1.0",
-    Theme = "Default",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "AxionConfig",
-        FileName = "DemoConfig"
-    }
-})
-local MainTab = Window:CreateTab({
-    Name = "Main",
-    Icon = "⭐"
-})
+--[[
+    WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+-- Load the UI library
+local Library = loadstring(game:HttpGet('https://gist.githubusercontent.com/MjContiga1/5b9535166d60560ac884a871cb0dc418/raw/e7fdb16802d9486d8d04d3e41d3607d89e6b4a1b/Libsuck.lua'))()
 
-local VisualTab = Window:CreateTab({
-    Name = "Visual",
-    Icon = "👁️"
-})
-local noclipToggle = MainSection:CreateToggle({
-    Name = "NoClip",
-    CurrentValue = false,
-    Flag = "NoClip",
-    Callback = function(value)
-        -- Your code here
-    end
-})
-local teleportButton = MainSection:CreateButton({
-    Name = "Teleport to Spawn",
-    Callback = function()
-        local player = game.Players.LocalPlayer
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(0, 5, 0)
-    end
-})
-local walkSpeedSlider = VisualSection:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 200},
-    Increment = 1,
-    Suffix = " studs",
-    CurrentValue = 16,
-    Flag = "WalkSpeed",
-    Callback = function(value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-    end
-})
-local themeDropdown = SettingsSection:CreateDropdown({
-    Name = "Theme",
-    Options = {"Default", "Dark", "Light"},
-    CurrentOption = "Default",
-    Flag = "Theme",
-    Callback = function(value)
-        Window:SetTheme(value)
-    end
-})
-local textInput = Section:CreateInput({
-    Name = "Player Name",
-    PlaceholderText = "Enter player name...",
-    CurrentValue = "",
-    Flag = "PlayerName",
-    Callback = function(value)
-        -- Process input
-    end
-})
--- ===== AUTO FISHING TAB (AXION LIBRARY) =====
--- Tambahkan ini di bawah script demo Axion
+-- Create main window
+local window = Library:Window('Example UI')
 
--- Services yang diperlukan
+-- Create tabs with icons replace ur own icon id
+local mainTab = window:Tab({"Crafting", "rbxassetid://7734022041"})
+local localTab = window:Tab({"LocalPlayer", "rbxassetid://7743875962"})
+local settingsTab = window:Tab({"Reward", "rbxassetid://7733673987"})
+
+-- Main Tab Elements
+mainTab:Label("Welcome to the UI Library!")
+
+-- Button
+mainTab:Button('Click Me!', function()
+    print("Button clicked!")
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Notification";
+        Text = "Button was clicked!";
+        Duration = 3;
+    })
+end)
+
+-- Toggle
+mainTab:Toggle('Auto Clicker', false, function(state)
+    print("Auto Clicker is now:", state and "ON" or "OFF")
+end)
+
+-- Slider
+mainTab:Slider("Walk Speed", 16, 100, 16, function(value)
+    print("Walk Speed set to:", value)
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+end)
+
+-- Keybind
+mainTab:Keybind("Toggle UI", Enum.KeyCode.RightShift, function(key)
+    print("Key pressed:", key.Name)
+end)
+
+-- InputBox
+mainTab:InputBox("Enter Text", "Type something...", function(text)
+    print("Input text:", text)
+end)
+
+-- Single-select dropdown
+local singleDropdown = mainTab:Dropdown("Select Weapon", {"Sword", "Gun", "Knife"}, function(selected)
+    print("Selected weapon:", selected)
+end)
+
+-- Multi-select dropdown
+local multiDropdown = mainTab:Dropdown("Select Features", {"ESP", "Aimbot", "Speed", "Jump"}, function(selected)
+    print("Selected features:", table.concat(selected, ", "))
+end, true) -- true enables multi-select
+
+-- Button to refresh dropdowns
+mainTab:Button('Refresh Dropdowns', function()
+    singleDropdown:Refresh({"New Sword", "New Gun", "New Knife"})
+    multiDropdown:Refresh({"New ESP", "New Aimbot", "New Speed", "New Jump", "New Feature"})
+end)
+
+-- LocalPlayer Tab Elements
+localTab:Label("Local Player Settings")
+
+localTab:Slider("Jump Power", 50, 200, 50, function(value)
+    print("Jump Power set to:", value)
+    game.Players.LocalPlayer.Character.Humanoid.JumpPower = value
+end)
+
+localTab:Toggle("Infinite Jump", false, function(state)
+    print("Infinite Jump:", state and "ON" or "OFF")
+    -- Add infinite jump logic here
+end)
+
+localTab:InputBox("Player Name", "Enter player name...", function(text)
+    print("Looking for player:", text)
+    -- Add player search logic here
+end)
+
+-- Settings Tab Elements
+settingsTab:Label("UI Settings")
+
+settingsTab:Toggle('Dark Mode', true, function(state)
+    print("Dark Mode:", state)
+    -- Add dark mode logic here
+end)
+
+settingsTab:Slider("UI Transparency", 0, 100, 100, function(value)
+    print("UI Transparency:", value)
+    -- Apply transparency to UI elements
+end)
+
+settingsTab:Keybind("Toggle Menu", Enum.KeyCode.Insert, function(key)
+    print("Menu key changed to:", key.Name)
+    -- Update menu toggle key here
+end)
+
+settingsTab:InputBox("Custom Title", "Enter title...", function(text)
+    print("Custom title:", text)
+    -- Update UI title here
+end)
+
+-- ===== TAB AUTO FISH (LANGSUNG DI DALAM UI) =====
+local autoFishTab = window:Tab({"Auto Fish", "rbxassetid://4483345998"})
+
+-- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -85,175 +125,143 @@ local LevelToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
 local StartAuto = LevelToServer and LevelToServer:FindFirstChild("StartAutoFishing")
 local StopAuto = LevelToServer and LevelToServer:FindFirstChild("StopAutoFishing")
 
--- Buat tab baru untuk auto fishing
-local AutoFishTab = Window:CreateTab({
-    Name = "Auto Fish",
-    Icon = "🎣"
-})
+-- Variabel status
+local autoActive = false
+local fastActive = false
+local fastConn = nil
+local fastSpeed = 1.0
 
--- ===== SECTION: REMOTE STATUS =====
-local RemoteSection = AutoFishTab:CreateSection("Remote Status")
-RemoteSection:CreateLabel("Status remote yang ditemukan:")
+-- ===== SECTION: STATUS REMOTE =====
+autoFishTab:Label("📡 Remote Status")
 
 if Throw then
-    RemoteSection:CreateLabel("✅ Throw: " .. Throw.Name)
+    autoFishTab:Label("✅ Throw: " .. Throw.Name)
 else
-    RemoteSection:CreateLabel("❌ Throw: Tidak ditemukan")
+    autoFishTab:Label("❌ Throw: Tidak ditemukan")
 end
 
 if Retract then
-    RemoteSection:CreateLabel("✅ Retract: " .. Retract.Name)
+    autoFishTab:Label("✅ Retract: " .. Retract.Name)
 else
-    RemoteSection:CreateLabel("❌ Retract: Tidak ditemukan")
+    autoFishTab:Label("❌ Retract: Tidak ditemukan")
 end
 
 if Catch then
-    RemoteSection:CreateLabel("✅ Catch: " .. Catch.Name)
+    autoFishTab:Label("✅ Catch: " .. Catch.Name)
 else
-    RemoteSection:CreateLabel("❌ Catch: Tidak ditemukan")
+    autoFishTab:Label("❌ Catch: Tidak ditemukan")
 end
 
 if StartAuto then
-    RemoteSection:CreateLabel("✅ StartAutoFishing: Ditemukan")
+    autoFishTab:Label("✅ StartAutoFishing: Ditemukan")
 else
-    RemoteSection:CreateLabel("❌ StartAutoFishing: Tidak ditemukan")
+    autoFishTab:Label("❌ StartAutoFishing: Tidak ditemukan")
 end
 
 -- ===== SECTION: AUTO FISHING RESMI =====
-local AutoSection = AutoFishTab:CreateSection("Auto Fishing Resmi")
-local autoActive = false
+autoFishTab:Label("🎣 Auto Fishing Resmi")
 
-AutoSection:CreateToggle({
-    Name = "Aktifkan Auto Fishing",
-    CurrentValue = false,
-    Callback = function(value)
-        autoActive = value
-        if value then
-            if StartAuto then
-                StartAuto:FireServer()
-                print("[Auto] StartAutoFishing fired")
-            else
-                warn("StartAutoFishing tidak ditemukan")
-            end
+autoFishTab:Toggle('Aktifkan Auto Fishing', false, function(state)
+    autoActive = state
+    if state then
+        if StartAuto then
+            StartAuto:FireServer()
+            print("[Auto] StartAutoFishing fired")
         else
-            if StopAuto then
-                StopAuto:FireServer()
-            elseif StartAuto then
-                StartAuto:FireServer() -- Mungkin toggle
-            end
+            warn("StartAutoFishing tidak ditemukan")
+        end
+    else
+        if StopAuto then
+            StopAuto:FireServer()
+        elseif StartAuto then
+            StartAuto:FireServer() -- mungkin toggle
         end
     end
-})
+end)
 
 -- ===== SECTION: FAST REEL =====
-local FastSection = AutoFishTab:CreateSection("Fast Reel (Berisiko)")
-local fastActive = false
-local fastSpeed = 1.0
-local fastConn = nil
+autoFishTab:Label("⚡ Fast Reel (Berisiko)")
 
-local fastToggle = FastSection:CreateToggle({
-    Name = "Aktifkan Fast Reel",
-    CurrentValue = false,
-    Callback = function(value)
-        fastActive = value
-        if value then
-            if not Retract and not Catch then
-                warn("Tidak ada remote reel")
-                return
+autoFishTab:Toggle('Aktifkan Fast Reel', false, function(state)
+    fastActive = state
+    if state then
+        if not Retract and not Catch then
+            warn("Tidak ada remote reel")
+            return
+        end
+        fastConn = RunService.Heartbeat:Connect(function()
+            if not fastActive then return end
+            if Retract then
+                pcall(function() Retract:FireServer() end)
             end
-            fastConn = RunService.Heartbeat:Connect(function()
-                if not fastActive then return end
-                if Retract then
-                    pcall(function() Retract:FireServer() end)
-                end
-                if Catch then
-                    pcall(function() Catch:FireServer() end)
-                end
-                task.wait(fastSpeed)
-            end)
-        else
-            if fastConn then
-                fastConn:Disconnect()
-                fastConn = nil
+            if Catch then
+                pcall(function() Catch:FireServer() end)
             end
+            task.wait(fastSpeed)
+        end)
+    else
+        if fastConn then
+            fastConn:Disconnect()
+            fastConn = nil
         end
     end
-})
+end)
 
-FastSection:CreateSlider({
-    Name = "Kecepatan (detik)",
-    Range = {0.1, 3},
-    Increment = 0.1,
-    Suffix = "s",
-    CurrentValue = 1.0,
-    Callback = function(value)
-        fastSpeed = value
-    end
-})
+autoFishTab:Slider("Kecepatan (detik)", 0.1, 3, 1, function(value)
+    fastSpeed = value
+end)
 
 -- ===== SECTION: TEST MANUAL =====
-local TestSection = AutoFishTab:CreateSection("Test Manual")
+autoFishTab:Label("🛠️ Test Manual")
 
-TestSection:CreateButton({
-    Name = "Test Throw",
-    Callback = function()
-        if Throw then
-            Throw:FireServer()
-            print("[Test] Throw fired")
-        end
+autoFishTab:Button('Test Throw', function()
+    if Throw then
+        Throw:FireServer()
+        print("[Test] Throw fired")
     end
-})
+end)
 
-TestSection:CreateButton({
-    Name = "Test Retract",
-    Callback = function()
-        if Retract then
-            Retract:FireServer()
-            print("[Test] Retract fired")
-        end
+autoFishTab:Button('Test Retract', function()
+    if Retract then
+        Retract:FireServer()
+        print("[Test] Retract fired")
     end
-})
+end)
 
-TestSection:CreateButton({
-    Name = "Test Catch",
-    Callback = function()
-        if Catch then
-            Catch:FireServer(true) -- Coba dengan parameter true
-            print("[Test] Catch fired")
-        end
+autoFishTab:Button('Test Catch', function()
+    if Catch then
+        Catch:FireServer(true) -- coba dengan parameter true
+        print("[Test] Catch fired")
     end
-})
+end)
 
--- ===== SECTION: SIMULASI SEDERHANA =====
-local SimulSection = AutoFishTab:CreateSection("Simulasi")
+-- ===== SECTION: SIMULASI =====
+autoFishTab:Label("🔄 Simulasi Loop")
+
 local simulActive = false
 local simulConn = nil
 
-SimulSection:CreateToggle({
-    Name = "Loop Cast → Reel",
-    CurrentValue = false,
-    Callback = function(value)
-        simulActive = value
-        if value then
-            simulConn = RunService.Heartbeat:Connect(function()
-                if not simulActive then return end
-                if Throw then Throw:FireServer() end
-                task.wait(2) -- Tunggu 2 detik
-                if Retract then Retract:FireServer() end
-                if Catch then Catch:FireServer() end
-                task.wait(1) -- Jeda antar siklus
-            end)
-        else
-            if simulConn then
-                simulConn:Disconnect()
-                simulConn = nil
-            end
+autoFishTab:Toggle('Loop Cast → Reel', false, function(state)
+    simulActive = state
+    if state then
+        simulConn = RunService.Heartbeat:Connect(function()
+            if not simulActive then return end
+            if Throw then Throw:FireServer() end
+            task.wait(2)
+            if Retract then Retract:FireServer() end
+            if Catch then Catch:FireServer() end
+            task.wait(1)
+        end)
+    else
+        if simulConn then
+            simulConn:Disconnect()
+            simulConn = nil
         end
     end
-})
+end)
 
 -- ===== SECTION: INFO =====
-local InfoSection = AutoFishTab:CreateSection("Informasi")
-InfoSection:CreateLabel("⚠️ Game ini punya anti-cheat ketat")
-InfoSection:CreateLabel("Gunakan akun alt untuk testing")
-InfoSection:CreateLabel("Fast reel sangat berisiko banned")
+autoFishTab:Label("⚠️ Informasi")
+autoFishTab:Label("Game ini punya anti-cheat ketat.")
+autoFishTab:Label("Gunakan akun alt untuk testing.")
+autoFishTab:Label("Fast reel sangat berisiko banned.")
