@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "Rayfield Example Window",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = activity, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Rayfield Interface Suite",
-   LoadingSubtitle = "by Sirius",
+   LoadingSubtitle = "by Garhub",
    ShowText = "Rayfield", -- for mobile users to unhide Rayfield, change if you'd like
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
@@ -14,16 +14,11 @@ local Window = Rayfield:CreateWindow({
 
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = nil, -- Create a custom folder for your hub/game
-      FileName = "Big Hub"
+      FolderName = GARXHUB, -- Create a custom folder for your hub/game
+      FileName = "GAR Hub"
    },
 
-   Discord = {
-      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ ABCD would be ABCD
-      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
-   },
-
+ 
    KeySystem = false, -- Set this to true to use our key system
    KeySettings = {
       Title = "Untitled",
