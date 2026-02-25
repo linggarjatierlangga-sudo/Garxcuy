@@ -54,7 +54,7 @@ end)
 -- Multi-select dropdown
 local multiDropdown = mainTab:Dropdown("Select Features", {"ESP", "Aimbot", "Speed", "Jump"}, function(selected)
     print("Selected features:", table.concat(selected, ", "))
-end, true) -- true enables multi-select
+end, true)
 
 -- Button to refresh dropdowns
 mainTab:Button('Refresh Dropdowns', function()
@@ -72,12 +72,10 @@ end)
 
 localTab:Toggle("Infinite Jump", false, function(state)
     print("Infinite Jump:", state and "ON" or "OFF")
-    -- Add infinite jump logic here
 end)
 
 localTab:InputBox("Player Name", "Enter player name...", function(text)
     print("Looking for player:", text)
-    -- Add player search logic here
 end)
 
 -- Settings Tab Elements
@@ -85,183 +83,30 @@ settingsTab:Label("UI Settings")
 
 settingsTab:Toggle('Dark Mode', true, function(state)
     print("Dark Mode:", state)
-    -- Add dark mode logic here
 end)
 
 settingsTab:Slider("UI Transparency", 0, 100, 100, function(value)
     print("UI Transparency:", value)
-    -- Apply transparency to UI elements
 end)
 
 settingsTab:Keybind("Toggle Menu", Enum.KeyCode.Insert, function(key)
     print("Menu key changed to:", key.Name)
-    -- Update menu toggle key here
 end)
 
 settingsTab:InputBox("Custom Title", "Enter title...", function(text)
     print("Custom title:", text)
-    -- Update UI title here
 end)
 
--- ===== TAB AUTO FISH (LANGSUNG DI DALAM UI) =====
-local autoFishTab = window:Tab({"Auto Fish", "rbxassetid://4483345998"})
+-- ===== TAB UTILITIES =====
+local utilitiesTab = window:Tab({"Utilities", "rbxassetid://4483345998"})
 
--- Services
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+utilitiesTab:Label("🛠️ Admin Tools")
 
--- Remote fishing (ambil dengan aman)
-local Throw = ReplicatedStorage:FindFirstChild("Fishing_RemoteThrow") or 
-              (ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToServer") and ReplicatedStorage.Fishing.ToServer:FindFirstChild("CastReleased"))
-
-local Retract = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract") or 
-                (ReplicatedStorage:FindFirstChild("Fishing") and ReplicatedStorage.Fishing:FindFirstChild("ToServer") and ReplicatedStorage.Fishing.ToServer:FindFirstChild("ReelFinished"))
-
-local Catch = ReplicatedStorage:FindFirstChild("FishingCatchSuccess")
-
--- Auto fishing resmi
-local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
-local LevelToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
-local StartAuto = LevelToServer and LevelToServer:FindFirstChild("StartAutoFishing")
-local StopAuto = LevelToServer and LevelToServer:FindFirstChild("StopAutoFishing")
-
--- Variabel status
-local autoActive = false
-local fastActive = false
-local fastConn = nil
-local fastSpeed = 1.0
-
--- ===== SECTION: STATUS REMOTE =====
-autoFishTab:Label("📡 Remote Status")
-
-if Throw then
-    autoFishTab:Label("✅ Throw: " .. Throw.Name)
-else
-    autoFishTab:Label("❌ Throw: Tidak ditemukan")
-end
-
-if Retract then
-    autoFishTab:Label("✅ Retract: " .. Retract.Name)
-else
-    autoFishTab:Label("❌ Retract: Tidak ditemukan")
-end
-
-if Catch then
-    autoFishTab:Label("✅ Catch: " .. Catch.Name)
-else
-    autoFishTab:Label("❌ Catch: Tidak ditemukan")
-end
-
-if StartAuto then
-    autoFishTab:Label("✅ StartAutoFishing: Ditemukan")
-else
-    autoFishTab:Label("❌ StartAutoFishing: Tidak ditemukan")
-end
-
--- ===== SECTION: AUTO FISHING RESMI =====
-autoFishTab:Label("🎣 Auto Fishing Resmi")
-
-autoFishTab:Toggle('Aktifkan Auto Fishing', false, function(state)
-    autoActive = state
-    if state then
-        if StartAuto then
-            StartAuto:FireServer()
-            print("[Auto] StartAutoFishing fired")
-        else
-            warn("StartAutoFishing tidak ditemukan")
-        end
-    else
-        if StopAuto then
-            StopAuto:FireServer()
-        elseif StartAuto then
-            StartAuto:FireServer() -- mungkin toggle
-        end
-    end
+-- Infinity Yield button
+utilitiesTab:Button('Load Infinity Yield', function()
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
 end)
 
--- ===== SECTION: FAST REEL =====
-autoFishTab:Label("⚡ Fast Reel (Berisiko)")
-
-autoFishTab:Toggle('Aktifkan Fast Reel', false, function(state)
-    fastActive = state
-    if state then
-        if not Retract and not Catch then
-            warn("Tidak ada remote reel")
-            return
-        end
-        fastConn = RunService.Heartbeat:Connect(function()
-            if not fastActive then return end
-            if Retract then
-                pcall(function() Retract:FireServer() end)
-            end
-            if Catch then
-                pcall(function() Catch:FireServer() end)
-            end
-            task.wait(fastSpeed)
-        end)
-    else
-        if fastConn then
-            fastConn:Disconnect()
-            fastConn = nil
-        end
-    end
-end)
-
-autoFishTab:Slider("Kecepatan (detik)", 0.1, 3, 1, function(value)
-    fastSpeed = value
-end)
-
--- ===== SECTION: TEST MANUAL =====
-autoFishTab:Label("🛠️ Test Manual")
-
-autoFishTab:Button('Test Throw', function()
-    if Throw then
-        Throw:FireServer()
-        print("[Test] Throw fired")
-    end
-end)
-
-autoFishTab:Button('Test Retract', function()
-    if Retract then
-        Retract:FireServer()
-        print("[Test] Retract fired")
-    end
-end)
-
-autoFishTab:Button('Test Catch', function()
-    if Catch then
-        Catch:FireServer(true) -- coba dengan parameter true
-        print("[Test] Catch fired")
-    end
-end)
-
--- ===== SECTION: SIMULASI =====
-autoFishTab:Label("🔄 Simulasi Loop")
-
-local simulActive = false
-local simulConn = nil
-
-autoFishTab:Toggle('Loop Cast → Reel', false, function(state)
-    simulActive = state
-    if state then
-        simulConn = RunService.Heartbeat:Connect(function()
-            if not simulActive then return end
-            if Throw then Throw:FireServer() end
-            task.wait(2)
-            if Retract then Retract:FireServer() end
-            if Catch then Catch:FireServer() end
-            task.wait(1)
-        end)
-    else
-        if simulConn then
-            simulConn:Disconnect()
-            simulConn = nil
-        end
-    end
-end)
-
--- ===== SECTION: INFO =====
-autoFishTab:Label("⚠️ Informasi")
-autoFishTab:Label("Game ini punya anti-cheat ketat.")
-autoFishTab:Label("Gunakan akun alt untuk testing.")
-autoFishTab:Label("Fast reel sangat berisiko banned.")
+utilitiesTab:Label("Klik tombol di atas untuk memuat Infinity Yield.")
+utilitiesTab:Label("Infinity Yield adalah admin panel lengkap.")
+utilitiesTab:Label("Auto fishing telah dihapus sesuai permintaan.")
