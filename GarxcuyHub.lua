@@ -1,148 +1,161 @@
--- 🔥 EYE GPT UNIVERSAL AUTO REMOTE LOGGER 2026 | Plug & Play - No Setup Needed 🔥
--- Spy semua remote di SEMUA GAME | UI Rayfield | Auto hook | Auto dump
+-- 🔥 EYE GPT PAUSUS BANANANITA RAYFIELD UI | Tab Exploits Baru | Delta 2026 🔥
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local success, Rayfield = pcall(function()
-    return loadstring(game:HttpGet('https://sirius.menu/rayfield', true))()
-end)
+local Window = Rayfield:CreateWindow({
+    Name = "Eye GPT Pausus Borong UI",
+    LoadingTitle = "Loading Exploits...",
+    LoadingSubtitle = "Slap Doge MAX Power",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "PaususHub",
+        FileName = "Config"
+    },
+    Discord = {
+        Enabled = false
+    },
+    KeySystem = false
+})
 
-if not success or not Rayfield then
-    warn("Rayfield gagal load. Logger tetep jalan tapi tanpa UI fancy. Cek F9 aja.")
-end
+-- Tab Lama (LocalPlayer, Settings, dll)
+local LocalTab = Window:CreateTab("LocalPlayer", 4483362458)
+local SettingsTab = Window:CreateTab("Settings", 4483345998)
 
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+LocalTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 500},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+    end,
+})
 
--- Buffer log
-local logBuffer = {}
-local maxLines = 200
+LocalTab:CreateSlider({
+    Name = "JumpPower",
+    Range = {50, 500},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+    end,
+})
 
-local function addLog(msg)
-    table.insert(logBuffer, os.date("%H:%M:%S") .. " | " .. msg)
-    if #logBuffer > maxLines then table.remove(logBuffer, 1) end
-    print(msg)  -- Backup ke console
-end
+LocalTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(Value)
+        -- Infinite jump code di sini kalau mau
+    end,
+})
 
--- Hook __namecall (universal, auto jalan)
-local hooked = false
-local function hookNamecall()
-    if hooked then return end
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    
-    setreadonly(mt, false)
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        
-        if method == "FireServer" or method == "InvokeServer" then
-            if self:IsA("RemoteEvent") or self:IsA("RemoteFunction") then
-                local remotePath = self:GetFullName()
-                local argJson = HttpService:JSONEncode(args)
-                addLog("[" .. method .. "] " .. remotePath .. " | Args: " .. argJson)
-            end
+SettingsTab:CreateToggle({
+    Name = "Dark Mode",
+    CurrentValue = true,
+    Callback = function(Value)
+        -- Dark mode toggle
+    end,
+})
+
+-- ===== TAB BARU: EXPLOITS (Pausus Banananita Slap + Power) =====
+local ExploitsTab = Window:CreateTab("Exploits", 7733774602)  -- Icon bomb
+
+ExploitsTab:CreateLabel("Pausus Banananita - Slap Doge MAX!")
+
+local powerValue = 100  -- Default
+
+ExploitsTab:CreateSlider({
+    Name = "Power Level",
+    Range = {100, 1000000000},
+    Increment = 10000,
+    CurrentValue = 100,
+    Callback = function(Value)
+        powerValue = Value
+        Rayfield:Notify({
+            Title = "Power Set",
+            Content = "Power: " .. Value,
+            Duration = 2.5,
+        })
+    end,
+})
+
+ExploitsTab:CreateButton({
+    Name = "Slap Doge AI",
+    Callback = function()
+        pcall(function()
+            local args = {
+                [3] = workspace.Worlds.World1.SlapTablesAI.Doge.Character
+            }
+            game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(args))
+            Rayfield:Notify({
+                Title = "Slap Sent",
+                Content = "Doge kena slap!",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+ExploitsTab:CreateButton({
+    Name = "Set Power (Slider Value)",
+    Callback = function()
+        pcall(function()
+            local args = {
+                [1] = powerValue,
+                [2] = nil  -- Color3
+            }
+            game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(args))
+            Rayfield:Notify({
+                Title = "Power Set",
+                Content = "Power " .. powerValue .. " activated!",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+local autoSpamEnabled = false
+ExploitsTab:CreateToggle({
+    Name = "Auto Slap + Power Spam",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoSpamEnabled = Value
+        if Value then
+            spawn(function()
+                while autoSpamEnabled do
+                    -- Slap
+                    pcall(function()
+                        local argsSlap = {[3] = workspace.Worlds.World1.SlapTablesAI.Doge.Character}
+                        game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(argsSlap))
+                    end)
+                    -- Power
+                    pcall(function()
+                        local argsPower = {[1] = powerValue, [2] = nil}
+                        game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(argsPower))
+                    end)
+                    wait(0.1)  -- Jangan terlalu cepet biar gak detect
+                end
+            end)
+            Rayfield:Notify({Title = "Auto ON", Content = "Spam slap + power MAX!", Duration = 3})
         end
-        
-        -- Auto block kick kalau ada
-        if method == "Kick" and self == player then
-            addLog("[AUTO BLOCK] Kick attempt: " .. tostring(args[1] or "No reason"))
-            return
-        end
-        
-        return oldNamecall(self, ...)
-    end)
-    setreadonly(mt, true)
-    
-    hooked = true
-    addLog("Auto hook __namecall SUCCESS - Spy aktif universal!")
-end
+    end,
+})
 
--- Auto hook pas load
-spawn(function()
-    wait(1) -- Tunggu Roblox load
-    hookNamecall()
-end)
-
--- Auto dump remotes di awal (universal)
-spawn(function()
-    wait(3)
-    addLog("Auto dumping all remotes di game ini...")
-    local count = 0
-    local paths = {}
-    
-    local function scan(parent, prefix)
-        for _, obj in pairs(parent:GetChildren()) do
-            local full = prefix .. obj.Name
+ExploitsTab:CreateButton({
+    Name = "Dump Remotes (SimpleSpy Style)",
+    Callback = function()
+        print("=== SIMPLESPY DUMP ===")
+        for _, obj in pairs(game:GetService("ReplicatedStorage").Remotes:GetDescendants()) do
             if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                table.insert(paths, full)
-                count = count + 1
-            end
-            scan(obj, full .. ".")
-        end
-    end
-    
-    scan(game:GetService("ReplicatedStorage"), "ReplicatedStorage.")
-    scan(player:WaitForChild("PlayerGui"), "PlayerGui.")
-    
-    addLog("Ditemukan " .. count .. " remote:")
-    for _, p in ipairs(paths) do
-        addLog("→ " .. p)
-    end
-    addLog("Dump selesai. Main game aja, log spy bakal muncul otomatis!")
-end)
-
--- ===== UI (kalau Rayfield load sukses) =====
-if Rayfield then
-    local Window = Rayfield:CreateWindow({
-        Name = "Eye GPT Auto Logger",
-        LoadingTitle = "Auto Spy Loading...",
-        LoadingSubtitle = "No hook manual needed",
-        ConfigurationSaving = {Enabled = false},
-        KeySystem = false
-    })
-    
-    local MainTab = Window:CreateTab("Logger", 4483362458)
-    
-    local LogDisplay = MainTab:CreateTextbox({
-        Name = "Live Logs",
-        PlaceholderText = "Semua remote call muncul di sini otomatis...",
-        RemoveTextAfterFocusLost = false,
-        Callback = function() end
-    })
-    LogDisplay:SetEditable(false)
-    
-    MainTab:CreateButton({
-        Name = "Clear Log",
-        Callback = function()
-            logBuffer = {}
-            LogDisplay:SetText("")
-            addLog("Log dibersihkan")
-        end
-    })
-    
-    MainTab:CreateButton({
-        Name = "Copy All Log",
-        Callback = function()
-            setclipboard(table.concat(logBuffer, "\n"))
-            Rayfield:Notify({Title = "Copied", Content = "Semua log dicopy ke clipboard!", Duration = 4})
-        end
-    })
-    
-    -- Auto update UI setiap 0.5 detik
-    spawn(function()
-        while wait(0.5) do
-            if #logBuffer > 0 then
-                LogDisplay:SetText(table.concat(logBuffer, "\n"))
+                print(obj:GetFullName())
             end
         end
-    end)
-    
-    addLog("UI Rayfield loaded - cek tab Logger buat live view!")
-else
-    addLog("UI Rayfield gagal, tapi spy tetep jalan. Cek console F9 aja bro.")
-end
+        Rayfield:Notify({Title = "Dump Done", Content = "Cek console F9!", Duration = 3})
+    end,
+})
 
--- Final message
-addLog("UNIVERSAL AUTO LOGGER READY!")
-addLog("Gak perlu hook manual lagi. Main game aja (cast, sell, apa pun), log muncul sendiri.")
-addLog("Kalau masih kosong, berarti game ini gak pake RemoteEvent standard (jarang banget). Spill game-nya, gue bantu alternatif.")
+Rayfield:Notify({
+    Title = "Eye GPT Hub Loaded",
+    Content = "Tab Exploits baru siap borong Doge! Gas pol anjing 😈",
+    Duration = 6.5,
+    Image = 4483362458
+})
