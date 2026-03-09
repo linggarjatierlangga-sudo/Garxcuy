@@ -1,161 +1,137 @@
--- 🔥 EYE GPT PAUSUS BANANANITA RAYFIELD UI | Tab Exploits Baru | Delta 2026 🔥
+-- 🔥 EYE GPT PAUSUS BANANANITA RAYFIELD V2 | Auto Detect AI + Slap Any 🔥
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Eye GPT Pausus Borong UI",
-    LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "Slap Doge MAX Power",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "PaususHub",
-        FileName = "Config"
-    },
-    Discord = {
-        Enabled = false
-    },
+    Name = "Eye GPT Pausus Slap Hub",
+    LoadingTitle = "Scanning AI Targets...",
+    LoadingSubtitle = "GigaChad & Doge Killer",
+    ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
 
--- Tab Lama (LocalPlayer, Settings, dll)
-local LocalTab = Window:CreateTab("LocalPlayer", 4483362458)
-local SettingsTab = Window:CreateTab("Settings", 4483345998)
+-- Tab Exploits
+local ExploitsTab = Window:CreateTab("Exploits", 7733774602)
 
-LocalTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 500},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(Value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-    end,
-})
+ExploitsTab:CreateLabel("Pauses Banananita - Slap AI MAX Power!")
+ExploitsTab:CreateLabel("Auto detect semua AI di SlapTablesAI")
 
-LocalTab:CreateSlider({
-    Name = "JumpPower",
-    Range = {50, 500},
-    Increment = 1,
-    CurrentValue = 50,
-    Callback = function(Value)
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
-    end,
-})
-
-LocalTab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Callback = function(Value)
-        -- Infinite jump code di sini kalau mau
-    end,
-})
-
-SettingsTab:CreateToggle({
-    Name = "Dark Mode",
-    CurrentValue = true,
-    Callback = function(Value)
-        -- Dark mode toggle
-    end,
-})
-
--- ===== TAB BARU: EXPLOITS (Pausus Banananita Slap + Power) =====
-local ExploitsTab = Window:CreateTab("Exploits", 7733774602)  -- Icon bomb
-
-ExploitsTab:CreateLabel("Pausus Banananita - Slap Doge MAX!")
-
-local powerValue = 100  -- Default
-
+local powerValue = 100
 ExploitsTab:CreateSlider({
-    Name = "Power Level",
+    Name = "Power Level (100 - 1e9)",
     Range = {100, 1000000000},
-    Increment = 10000,
+    Increment = 100000,
     CurrentValue = 100,
     Callback = function(Value)
         powerValue = Value
-        Rayfield:Notify({
-            Title = "Power Set",
-            Content = "Power: " .. Value,
-            Duration = 2.5,
-        })
     end,
 })
 
+-- Dropdown Target AI (auto fill nanti)
+local aiTargets = {"Doge", "GigaChad"}  -- Default, nanti di-update
+local selectedTarget = "GigaChad"
+
+local targetDropdown = ExploitsTab:CreateDropdown({
+    Name = "Select AI Target",
+    Options = aiTargets,
+    CurrentOption = selectedTarget,
+    Callback = function(Option)
+        selectedTarget = Option
+    end,
+})
+
+-- Button Scan AI Characters
 ExploitsTab:CreateButton({
-    Name = "Slap Doge AI",
+    Name = "Scan All AI Targets",
     Callback = function()
+        local newOptions = {}
         pcall(function()
-            local args = {
-                [3] = workspace.Worlds.World1.SlapTablesAI.Doge.Character
-            }
-            game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(args))
-            Rayfield:Notify({
-                Title = "Slap Sent",
-                Content = "Doge kena slap!",
-                Duration = 2,
-            })
+            local slapFolder = workspace.Worlds.World1.SlapTablesAI
+            if slapFolder then
+                for _, ai in pairs(slapFolder:GetChildren()) do
+                    if ai:FindFirstChild("Character") and ai.Character:IsA("Model") then
+                        table.insert(newOptions, ai.Name)
+                    end
+                end
+                if #newOptions > 0 then
+                    targetDropdown:Refresh(newOptions)
+                    Rayfield:Notify({Title = "Scan Done", Content = #newOptions .. " AI ditemukan!", Duration = 4})
+                else
+                    Rayfield:Notify({Title = "Scan Failed", Content = "Gak nemu AI di SlapTablesAI", Duration = 4})
+                end
+            else
+                Rayfield:Notify({Title = "Path Error", Content = "workspace.Worlds.World1.SlapTablesAI gak ada", Duration = 4})
+            end
         end)
     end,
 })
 
+-- Button Slap Selected
 ExploitsTab:CreateButton({
-    Name = "Set Power (Slider Value)",
+    Name = "Slap Selected AI",
+    Callback = function()
+        pcall(function()
+            local slapFolder = workspace.Worlds.World1.SlapTablesAI
+            local targetAI = slapFolder:FindFirstChild(selectedTarget)
+            if targetAI and targetAI:FindFirstChild("Character") then
+                local args = {
+                    [3] = targetAI.Character
+                }
+                game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(args))
+                Rayfield:Notify({Title = "Slap Sent", Content = selectedTarget .. " kena slap!", Duration = 2})
+            else
+                Rayfield:Notify({Title = "Target Not Found", Content = selectedTarget .. " gak ada / Character hilang", Duration = 3})
+            end
+        end)
+    end,
+})
+
+-- Button Set Power
+ExploitsTab:CreateButton({
+    Name = "Set Power to Slider Value",
     Callback = function()
         pcall(function()
             local args = {
                 [1] = powerValue,
-                [2] = nil  -- Color3
+                [2] = nil
             }
             game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(args))
-            Rayfield:Notify({
-                Title = "Power Set",
-                Content = "Power " .. powerValue .. " activated!",
-                Duration = 2,
-            })
+            Rayfield:Notify({Title = "Power Updated", Content = "Power sekarang " .. powerValue, Duration = 2})
         end)
     end,
 })
 
-local autoSpamEnabled = false
+-- Toggle Auto Slap + Power
+local autoEnabled = false
 ExploitsTab:CreateToggle({
-    Name = "Auto Slap + Power Spam",
+    Name = "Auto Slap + Power MAX",
     CurrentValue = false,
     Callback = function(Value)
-        autoSpamEnabled = Value
+        autoEnabled = Value
         if Value then
             spawn(function()
-                while autoSpamEnabled do
-                    -- Slap
+                while autoEnabled do
                     pcall(function()
-                        local argsSlap = {[3] = workspace.Worlds.World1.SlapTablesAI.Doge.Character}
-                        game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(argsSlap))
-                    end)
-                    -- Power
-                    pcall(function()
+                        -- Slap
+                        local slapFolder = workspace.Worlds.World1.SlapTablesAI
+                        local target = slapFolder:FindFirstChild(selectedTarget)
+                        if target and target.Character then
+                            local argsSlap = {[3] = target.Character}
+                            game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(argsSlap))
+                        end
+                        -- Power
                         local argsPower = {[1] = powerValue, [2] = nil}
                         game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(argsPower))
                     end)
-                    wait(0.1)  -- Jangan terlalu cepet biar gak detect
+                    wait(0.15)  -- Anti lag/detect
                 end
             end)
-            Rayfield:Notify({Title = "Auto ON", Content = "Spam slap + power MAX!", Duration = 3})
+            Rayfield:Notify({Title = "Auto Started", Content = "Spam slap " .. selectedTarget .. " + power " .. powerValue, Duration = 4})
         end
-    end,
-})
-
-ExploitsTab:CreateButton({
-    Name = "Dump Remotes (SimpleSpy Style)",
-    Callback = function()
-        print("=== SIMPLESPY DUMP ===")
-        for _, obj in pairs(game:GetService("ReplicatedStorage").Remotes:GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                print(obj:GetFullName())
-            end
-        end
-        Rayfield:Notify({Title = "Dump Done", Content = "Cek console F9!", Duration = 3})
     end,
 })
 
 Rayfield:Notify({
-    Title = "Eye GPT Hub Loaded",
-    Content = "Tab Exploits baru siap borong Doge! Gas pol anjing 😈",
-    Duration = 6.5,
-    Image = 4483362458
+    Title = "Hub Loaded",
+    Content = "Klik 'Scan All AI Targets' dulu biar dropdown update! Gas slap GigaChad sampe server nangis 😈",
+    Duration = 6
 })
