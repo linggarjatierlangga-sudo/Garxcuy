@@ -1,91 +1,151 @@
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+-- 🔥 EYE GPT ROBLOX REMOTE LOGGER + UI v2.0 | Delta Compatible 🔥
+-- Spy remotes + UI Rayfield | Block kick | Log real-time
 
-local Window = OrionLib:MakeWindow({Name = "Title of the library", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
---[[
-Name = <string> - The name of the UI.
-HidePremium = <bool> - Whether or not the user details shows Premium status or not.
-SaveConfig = <bool> - Toggles the config saving in the UI.
-ConfigFolder = <string> - The name of the folder where the configs are saved.
-IntroEnabled = <bool> - Whether or not to show the intro animation.
-IntroText = <string> - Text to show in the intro animation.
-IntroIcon = <string> - URL to the image you want to use in the intro animation.
-Icon = <string> - URL to the image you want displayed on the window.
-CloseCallback = <function> - Function to execute when the window is closed.
-]]
+-- Load Rayfield UI (library stabil 2026)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local Tab = Window:MakeTab({
-	Name = "Tab 1",
-	Icon = "rbxassetid://4483345998",
-	PremiumOnly = false
+-- Window UI
+local Window = Rayfield:CreateWindow({
+    Name = "Eye GPT Remote Logger",
+    LoadingTitle = "Logger Activated",
+    LoadingSubtitle = "Spying remotes for " .. player.Name,
+    ConfigurationSaving = { Enabled = false },
+    Discord = { Enabled = false },
+    KeySystem = false
 })
 
---[[
-Name = <string> - The name of the tab.
-Icon = <string> - The icon of the tab.
-PremiumOnly = <bool> - Makes the tab accessible to Sirus Premium users only.
-]]
+-- Tab utama
+local LoggerTab = Window:CreateTab("Logger", 4483362458) -- icon logger
 
-local Section = Tab:AddSection({
-	Name = "Section"
+-- Status label
+local StatusLabel = LoggerTab:CreateLabel("Logger Status: Active | Waiting for remote calls...")
+
+-- Log Box (scrollable textbox)
+local LogBox = LoggerTab:CreateTextbox({
+    Name = "Live Log",
+    PlaceholderText = "All remote calls will appear here...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text) end
+})
+LogBox:SetEditable(false) -- read-only
+
+-- Log buffer (biar gak overload UI)
+local logBuffer = {}
+local maxLines = 200
+
+local function addLog(msg)
+    table.insert(logBuffer, os.date("%H:%M:%S") .. " | " .. msg)
+    if #logBuffer > maxLines then
+        table.remove(logBuffer, 1)
+    end
+    
+    -- Update UI
+    local displayText = table.concat(logBuffer, "\n")
+    LogBox:SetText(displayText)
+    
+    -- Update status
+    StatusLabel:Set("Logger Status: Active | Lines: " .. #logBuffer)
+    
+    -- Print ke console juga (backup)
+    print(msg)
+end
+
+-- Toggle spy
+local spyEnabled = true
+LoggerTab:CreateToggle({
+    Name = "Enable Remote Spy",
+    CurrentValue = true,
+    Callback = function(Value)
+        spyEnabled = Value
+        addLog("Remote Spy: " .. (Value and "ENABLED" or "DISABLED"))
+    end
 })
 
---[[
-Name = <string> - The name of the section.
-]]
-
-OrionLib:MakeNotification({
-	Name = "Title!",
-	Content = "Notification content... what will it say??",
-	Image = "rbxassetid://4483345998",
-	Time = 5
+-- Toggle block kick
+local blockKick = true
+LoggerTab:CreateToggle({
+    Name = "Block Kick Attempts",
+    CurrentValue = true,
+    Callback = function(Value)
+        blockKick = Value
+        addLog("Kick Blocker: " .. (Value and "ENABLED" or "DISABLED"))
+    end
 })
 
---[[
-Title = <string> - The title of the notification.
-Content = <string> - The content of the notification.
-Image = <string> - The icon of the notification.
-Time = <number> - The duration of the notfication.
-]]
-
-Tab:AddButton({
-	Name = "Button!",
-	Callback = function()
-      		print("button pressed")
-  	end    
+-- Button clear log
+LoggerTab:CreateButton({
+    Name = "Clear Log",
+    Callback = function()
+        logBuffer = {}
+        LogBox:SetText("")
+        addLog("Log cleared by user")
+    end
 })
 
---[[
-Name = <string> - The name of the button.
-Callback = <function> - The function of the button.
-]]
-
-Tab:AddToggle({
-	Name = "This is a toggle!",
-	Default = false,
-	Callback = function(Value)
-		print(Value)
-	end    
+-- Button copy log
+LoggerTab:CreateButton({
+    Name = "Copy All Log to Clipboard",
+    Callback = function()
+        local fullLog = table.concat(logBuffer, "\n")
+        setclipboard(fullLog)
+        Rayfield:Notify({
+            Title = "Logger",
+            Content = "All logs copied to clipboard!",
+            Duration = 3
+        })
+    end
 })
 
---[[
-Name = <string> - The name of the toggle.
-Default = <bool> - The default value of the toggle.
-Callback = <function> - The function of the toggle.
-]]
+-- HOOK NAMECALL (spy + block kick)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
 
-CoolToggle:Set(true)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if spyEnabled and (method == "FireServer" or method == "InvokeServer") and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) then
+        local remoteName = self:GetFullName()
+        local argStr = HttpService:JSONEncode(args)
+        local callType = (method == "InvokeServer") and "InvokeServer" or "FireServer"
+        
+        addLog("[" .. callType .. "] " .. remoteName .. " | Args: " .. argStr)
+    end
+    
+    if blockKick and method == "Kick" and self == player then
+        addLog("[BLOCKED KICK] Attempted kick: " .. tostring(args[1] or "No reason"))
+        return -- block kick
+    end
+    
+    return oldNamecall(self, ...)
+end)
 
-Tab:AddColorpicker({
-	Name = "Colorpicker",
-	Default = Color3.fromRGB(255, 0, 0),
-	Callback = function(Value)
-		print(Value)
-	end	  
+setreadonly(mt, true)
+
+-- Initial log
+addLog("Logger + UI Activated by Eye GPT")
+addLog("Spying all remote calls | Press F9 for backup console log")
+addLog("Game: " .. game.PlaceId .. " | Player: " .. player.Name)
+
+-- Optional: Dump remotes awal
+spawn(function()
+    addLog("Scanning remotes...")
+    local count = 0
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            count = count + 1
+        end
+    end
+    addLog("Found " .. count .. " remotes in game")
+end)
+
+Rayfield:Notify({
+    Title = "Logger Ready",
+    Content = "UI loaded! Check tab Logger for live remote spy.",
+    Duration = 5
 })
-
---[[
-Name = <string> - The name of the colorpicker.
-Default = <color3> - The default value of the colorpicker.
-Callback = <function> - The function of the colorpicker.
-]]
