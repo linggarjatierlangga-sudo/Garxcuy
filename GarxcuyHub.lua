@@ -1,93 +1,43 @@
--- 🔥 EYE GPT PAUSUS BANANANITA RAYFIELD V2 | Auto Detect AI + Slap Any 🔥
+-- 🔥 EYE GPT PAUSUS BANANANITA POWER BARBEL BOOST 🔥
+-- Fokus remote Power: [1] = value, [2] = nil
+-- Delta / Executor compatible
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Eye GPT Pausus Slap Hub",
-    LoadingTitle = "Scanning AI Targets...",
-    LoadingSubtitle = "GigaChad & Doge Killer",
+    Name = "Eye GPT Power Barbel Hub",
+    LoadingTitle = "Loading Power Boost...",
+    LoadingSubtitle = "Angkat Barbel MAX 1e9",
     ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
 
--- Tab Exploits
-local ExploitsTab = Window:CreateTab("Exploits", 7733774602)
+local PowerTab = Window:CreateTab("Power Boost", 4483362458)
 
-ExploitsTab:CreateLabel("Pauses Banananita - Slap AI MAX Power!")
-ExploitsTab:CreateLabel("Auto detect semua AI di SlapTablesAI")
+PowerTab:CreateLabel("Pauses Banananita - Power Angkat Barbel")
+PowerTab:CreateLabel("Ubah power dari 100 sampe 1.000.000.000")
 
 local powerValue = 100
-ExploitsTab:CreateSlider({
-    Name = "Power Level (100 - 1e9)",
+
+PowerTab:CreateSlider({
+    Name = "Power Value",
     Range = {100, 1000000000},
-    Increment = 100000,
+    Increment = 10000,
+    Suffix = "",
     CurrentValue = 100,
+    Flag = "PowerSlider",
     Callback = function(Value)
         powerValue = Value
+        Rayfield:Notify({
+            Title = "Power Updated",
+            Content = "Value sekarang: " .. Value,
+            Duration = 2.5
+        })
     end,
 })
 
--- Dropdown Target AI (auto fill nanti)
-local aiTargets = {"Doge", "GigaChad"}  -- Default, nanti di-update
-local selectedTarget = "GigaChad"
-
-local targetDropdown = ExploitsTab:CreateDropdown({
-    Name = "Select AI Target",
-    Options = aiTargets,
-    CurrentOption = selectedTarget,
-    Callback = function(Option)
-        selectedTarget = Option
-    end,
-})
-
--- Button Scan AI Characters
-ExploitsTab:CreateButton({
-    Name = "Scan All AI Targets",
-    Callback = function()
-        local newOptions = {}
-        pcall(function()
-            local slapFolder = workspace.Worlds.World1.SlapTablesAI
-            if slapFolder then
-                for _, ai in pairs(slapFolder:GetChildren()) do
-                    if ai:FindFirstChild("Character") and ai.Character:IsA("Model") then
-                        table.insert(newOptions, ai.Name)
-                    end
-                end
-                if #newOptions > 0 then
-                    targetDropdown:Refresh(newOptions)
-                    Rayfield:Notify({Title = "Scan Done", Content = #newOptions .. " AI ditemukan!", Duration = 4})
-                else
-                    Rayfield:Notify({Title = "Scan Failed", Content = "Gak nemu AI di SlapTablesAI", Duration = 4})
-                end
-            else
-                Rayfield:Notify({Title = "Path Error", Content = "workspace.Worlds.World1.SlapTablesAI gak ada", Duration = 4})
-            end
-        end)
-    end,
-})
-
--- Button Slap Selected
-ExploitsTab:CreateButton({
-    Name = "Slap Selected AI",
-    Callback = function()
-        pcall(function()
-            local slapFolder = workspace.Worlds.World1.SlapTablesAI
-            local targetAI = slapFolder:FindFirstChild(selectedTarget)
-            if targetAI and targetAI:FindFirstChild("Character") then
-                local args = {
-                    [3] = targetAI.Character
-                }
-                game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(args))
-                Rayfield:Notify({Title = "Slap Sent", Content = selectedTarget .. " kena slap!", Duration = 2})
-            else
-                Rayfield:Notify({Title = "Target Not Found", Content = selectedTarget .. " gak ada / Character hilang", Duration = 3})
-            end
-        end)
-    end,
-})
-
--- Button Set Power
-ExploitsTab:CreateButton({
-    Name = "Set Power to Slider Value",
+PowerTab:CreateButton({
+    Name = "Set Power Sekarang",
     Callback = function()
         pcall(function()
             local args = {
@@ -95,43 +45,83 @@ ExploitsTab:CreateButton({
                 [2] = nil
             }
             game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(args))
-            Rayfield:Notify({Title = "Power Updated", Content = "Power sekarang " .. powerValue, Duration = 2})
+            Rayfield:Notify({
+                Title = "Power Fired",
+                Content = "Boost " .. powerValue .. " dikirim!",
+                Duration = 3
+            })
         end)
     end,
 })
 
--- Toggle Auto Slap + Power
-local autoEnabled = false
-ExploitsTab:CreateToggle({
-    Name = "Auto Slap + Power MAX",
+local autoBoost = false
+PowerTab:CreateToggle({
+    Name = "Auto Boost Power (Spam)",
     CurrentValue = false,
     Callback = function(Value)
-        autoEnabled = Value
+        autoBoost = Value
         if Value then
             spawn(function()
-                while autoEnabled do
+                while autoBoost do
                     pcall(function()
-                        -- Slap
-                        local slapFolder = workspace.Worlds.World1.SlapTablesAI
-                        local target = slapFolder:FindFirstChild(selectedTarget)
-                        if target and target.Character then
-                            local argsSlap = {[3] = target.Character}
-                            game:GetService("ReplicatedStorage").Remotes.Animation:FireServer(unpack(argsSlap))
-                        end
-                        -- Power
-                        local argsPower = {[1] = powerValue, [2] = nil}
-                        game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(argsPower))
+                        local args = {
+                            [1] = powerValue,
+                            [2] = nil
+                        }
+                        game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(args))
                     end)
-                    wait(0.15)  -- Anti lag/detect
+                    wait(0.08)  -- Cepet tapi aman, jangan terlalu 0 biar gak kick
                 end
             end)
-            Rayfield:Notify({Title = "Auto Started", Content = "Spam slap " .. selectedTarget .. " + power " .. powerValue, Duration = 4})
+            Rayfield:Notify({
+                Title = "Auto Boost ON",
+                Content = "Spam power " .. powerValue .. " setiap detik!",
+                Duration = 4
+            })
+        else
+            Rayfield:Notify({
+                Title = "Auto Boost OFF",
+                Content = "Spam dihentikan",
+                Duration = 3
+            })
         end
     end,
 })
 
+PowerTab:CreateButton({
+    Name = "Set MAX Power (1e9)",
+    Callback = function()
+        powerValue = 1000000000
+        pcall(function()
+            local args = {
+                [1] = 1000000000,
+                [2] = nil
+            }
+            game:GetService("ReplicatedStorage").Remotes.Power:FireServer(unpack(args))
+        end)
+        Rayfield:Notify({
+            Title = "MAX POWER!",
+            Content = "Power di-set ke 1.000.000.000",
+            Duration = 3
+        })
+    end,
+})
+
+PowerTab:CreateButton({
+    Name = "Dump Remotes (Cek Nama)",
+    Callback = function()
+        print("=== REMOTES DUMP ===")
+        for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                print(obj:GetFullName())
+            end
+        end
+        Rayfield:Notify({Title = "Dump Done", Content = "Cek console F9 buat list remote!", Duration = 3})
+    end,
+})
+
 Rayfield:Notify({
-    Title = "Hub Loaded",
-    Content = "Klik 'Scan All AI Targets' dulu biar dropdown update! Gas slap GigaChad sampe server nangis 😈",
-    Duration = 6
+    Title = "Power Hub Loaded",
+    Content = "Angkat barbel lo sekarang MAX! Toggle Auto kalau mau infinite power.",
+    Duration = 5
 })
