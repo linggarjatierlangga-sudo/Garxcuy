@@ -1,356 +1,442 @@
---[[
-    SCRIPT SUPER LENGKAP: Rayfield Menu + Fly GUI 
-    Fitur: NoClip, Teleport, WalkSpeed, Theme, Input Player, Fly GUI dengan kontrol on-screen
-    Creator: GAR
-]]
+-- GarxCuy Hub + Auto Fishing Resmi + Fast Reel
+-- Load Orion Library
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
--- Load Rayfield Library (ganti link jika perlu)
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
--- Variables global
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
-local userInputService = game:GetService("UserInputService")
-
--- State untuk fly GUI
-local flyGuiActive = false
-local flyGuiInstance = nil
-
--- ==================== FUNGSI FLY GUI ====================
-local function setupFlyGUI()
-    if flyGuiActive then return end
-    flyGuiActive = true
-
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FlyScreenGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = player:WaitForChild("PlayerGui")
-    flyGuiInstance = screenGui
-
-    -- Variabel lokal fly
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    local HRP = character:WaitForChild("HumanoidRootPart")
-    local flySpeed = 50
-    local flying = false
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-    local bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.CFrame = HRP.CFrame
-    bodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
-    local TweenService = game:GetService("TweenService")
-    local RunService = game:GetService("RunService")
-    local Camera = workspace.CurrentCamera
-
-    -- Loading frame
-    local loadingFrame = Instance.new("Frame")
-    loadingFrame.Name = "LoadingFrame"
-    loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-    loadingFrame.Position = UDim2.new(0, 0, 0, 0)
-    loadingFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    loadingFrame.BackgroundTransparency = 0
-    loadingFrame.Parent = screenGui
-
-    local loadingLabel = Instance.new("TextLabel")
-    loadingLabel.Name = "LoadingLabel"
-    loadingLabel.Size = UDim2.new(0.5, 0, 0.2, 0)
-    loadingLabel.Position = UDim2.new(0.25, 0, 0.4, 0)
-    loadingLabel.BackgroundTransparency = 1
-    loadingLabel.Text = "Loading..."
-    loadingLabel.TextScaled = true
-    loadingLabel.Font = Enum.Font.GothamBold
-    loadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loadingLabel.Parent = loadingFrame
-
-    -- Container kontrol fly
-    local flyControlsContainer = Instance.new("Frame")
-    flyControlsContainer.Name = "FlyControlsContainer"
-    flyControlsContainer.Size = UDim2.new(1, 0, 1, 0)
-    flyControlsContainer.BackgroundTransparency = 1
-    flyControlsContainer.Parent = screenGui
-
-    local dpadSize = UDim2.new(0, 60, 0, 60)
-    local toggleButton, forwardButton, backButton, leftButton, rightButton, upButton, downButton, uiToggleButton
-    local uiVisible = true
-    local inputFlags = { forward = false, back = false, left = false, right = false, up = false, down = false }
-
-    local function startFlying()
-        flying = true
-        bodyVelocity.Parent = HRP
-        bodyGyro.Parent = HRP
-        humanoid.PlatformStand = true
-    end
-
-    local function stopFlying()
-        flying = false
-        bodyVelocity.Parent = nil
-        bodyGyro.Parent = nil
-        humanoid.PlatformStand = false
-    end
-
-    local function createButton(parent, name, text, pos, size)
-        local btn = Instance.new("TextButton")
-        btn.Name = name
-        btn.Text = text
-        btn.Size = size
-        btn.Position = pos
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextScaled = true
-        btn.BackgroundTransparency = 0.2
-        btn.Parent = parent
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
-        corner.Parent = btn
-        return btn
-    end
-
-    local function tweenFlyControls(visible)
-        local tweenTime = 0.5
-        for _, btn in pairs(flyControlsContainer:GetChildren()) do
-            if btn:IsA("TextButton") then
-                local targetBackgroundTransparency = visible and 0.2 or 1
-                local targetTextTransparency = visible and 0 or 1
-                local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                local tween = TweenService:Create(btn, tweenInfo, {
-                    BackgroundTransparency = targetBackgroundTransparency,
-                    TextTransparency = targetTextTransparency
-                })
-                tween:Play()
-                btn.Active = visible
-                btn.Selectable = visible
-            end
-        end
-    end
-
-    local function addTouchEvents(button, flagName)
-        button.MouseButton1Down:Connect(function() inputFlags[flagName] = true end)
-        button.MouseButton1Up:Connect(function() inputFlags[flagName] = false end)
-        button.MouseLeave:Connect(function() inputFlags[flagName] = false end)
-    end
-
-    toggleButton = createButton(flyControlsContainer, "ToggleFlyButton", "Toggle Fly", UDim2.new(1, -110, 0, 10), UDim2.new(0, 100, 0, 50))
-    toggleButton.MouseButton1Click:Connect(function()
-        if flying then
-            stopFlying()
-            toggleButton.Text = "Fly OFF"
-        else
-            startFlying()
-            toggleButton.Text = "Fly ON"
-        end
-    end)
-
-    forwardButton = createButton(flyControlsContainer, "ForwardButton", "↑", UDim2.new(0, 70, 1, -190), dpadSize)
-    backButton = createButton(flyControlsContainer, "BackButton", "↓", UDim2.new(0, 70, 1, -70), dpadSize)
-    leftButton = createButton(flyControlsContainer, "LeftButton", "←", UDim2.new(0, 10, 1, -130), dpadSize)
-    rightButton = createButton(flyControlsContainer, "RightButton", "→", UDim2.new(0, 130, 1, -130), dpadSize)
-    upButton = createButton(flyControlsContainer, "UpButton", "Up", UDim2.new(1, -110, 1, -190), dpadSize)
-    downButton = createButton(flyControlsContainer, "DownButton", "Down", UDim2.new(1, -110, 1, -70), dpadSize)
-
-    uiToggleButton = createButton(screenGui, "UIToggleButton", "Hide UI", UDim2.new(0, 10, 0, 10), UDim2.new(0, 100, 0, 50))
-    uiToggleButton.MouseButton1Click:Connect(function()
-        uiVisible = not uiVisible
-        tweenFlyControls(uiVisible)
-        uiToggleButton.Text = uiVisible and "Hide UI" or "Show UI"
-    end)
-
-    addTouchEvents(forwardButton, "forward")
-    addTouchEvents(backButton, "back")
-    addTouchEvents(leftButton, "left")
-    addTouchEvents(rightButton, "right")
-    addTouchEvents(upButton, "up")
-    addTouchEvents(downButton, "down")
-
-    -- Update karakter saat respawn
-    player.CharacterAdded:Connect(function(newCharacter)
-        character = newCharacter
-        humanoid = newCharacter:WaitForChild("Humanoid")
-        HRP = newCharacter:WaitForChild("HumanoidRootPart")
-        flying = false
-    end)
-
-    -- Loop fly
-    RunService.RenderStepped:Connect(function(deltaTime)
-        if flying and HRP and HRP.Parent then
-            local moveDirection = Vector3.new(0, 0, 0)
-            local camCF = Camera.CFrame
-            if inputFlags.forward then moveDirection = moveDirection + camCF.LookVector end
-            if inputFlags.back then moveDirection = moveDirection - camCF.LookVector end
-            if inputFlags.left then moveDirection = moveDirection - camCF.RightVector end
-            if inputFlags.right then moveDirection = moveDirection + camCF.RightVector end
-            if inputFlags.up then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-            if inputFlags.down then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
-            if moveDirection.Magnitude > 0 then moveDirection = moveDirection.Unit end
-            bodyVelocity.Velocity = moveDirection * flySpeed
-            bodyGyro.CFrame = camCF
-        end
-    end)
-
-    -- Hilangkan loading setelah 2 detik
-    task.delay(2, function()
-        local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tweenFrame = TweenService:Create(loadingFrame, tweenInfo, { BackgroundTransparency = 1 })
-        local tweenLabel = TweenService:Create(loadingLabel, tweenInfo, { TextTransparency = 1 })
-        tweenFrame:Play()
-        tweenLabel:Play()
-        tweenFrame.Completed:Connect(function() loadingFrame:Destroy() end)
-    end)
-end
-
-local function destroyFlyGUI()
-    if flyGuiInstance then
-        flyGuiInstance:Destroy()
-        flyGuiInstance = nil
-    end
-    flyGuiActive = false
-end
-
--- ==================== RAYFIELD MENU ====================
-local Window = Rayfield:CreateWindow({
-    Name = "🥊 SLAP BATTLES HUB + FLY GUI",
-    LoadingTitle = "Slap Battles Script",
-    LoadingSubtitle = "by Zora AI",
-    ConfigurationSaving = { Enabled = true, FolderName = "SlapBattlesHub", FileName = "Config" },
-    Discord = { Enabled = false, Invite = "", RememberJoins = true },
-    KeySystem = false
+-- Buat Window
+local Window = OrionLib:MakeWindow({
+    Name = "GarxCuy Hub (Mobile)",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "GarxCuyMobile",
+    IntroEnabled = true,
+    IntroText = "GarxCuy Mobile",
+    IntroIcon = "rbxassetid://4483345998"
 })
 
--- Tab Main
-local MainTab = Window:CreateTab("Main", nil)
-local MainSection = MainTab:CreateSection("Player Controls")
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Variabel global fitur lain
+local flyEnabled = false
+local freecamEnabled = false
+local flySpeed = 50
+local freecamSpeed = 50
+local flyBV = nil
+local freecamConn = nil
+local noclipEnabled = false
+local noclipConn = nil
+local flyConn = nil
+local espEnabled = false
+local espFolder = Instance.new("Folder")
+espFolder.Name = "ESP_Mobile"
+espFolder.Parent = game:GetService("CoreGui")
+local espConnections = {}
+
+-- Track keyboard state
+local keys = {W=false, A=false, S=false, D=false, Up=false, Down=false}
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Up = true end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = true end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Up = false end
+    if input.KeyCode == Enum.KeyCode.LeftShift then keys.Down = false end
+end)
+
+-- ===== TAB PLAYER =====
+local PlayerTab = Window:MakeTab({Name = "Player", Icon = "rbxassetid://4483345998"})
+
+-- WalkSpeed Slider
+PlayerTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16, Max = 500, Default = 16,
+    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = value end
+        end
+    end
+})
 
 -- NoClip Toggle
-local noclipEnabled = false
-local noclipConnection
-MainSection:CreateToggle({
-    Name = "NoClip",
-    CurrentValue = false,
-    Callback = function(value)
-        noclipEnabled = value
-        if value then
-            local char = player.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            hrp.Anchored = true
-            noclipConnection = runService.RenderStepped:Connect(function()
-                if not noclipEnabled or not player.Character then return end
-                local char = player.Character
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-                local moveDir = Vector3.new(0,0,0)
-                local speed = 50
-                if userInputService:IsKeyDown(Enum.KeyCode.W) then
-                    moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector * speed
+PlayerTab:AddToggle({
+    Name = "NoClip", Default = false,
+    Callback = function(state)
+        noclipEnabled = state
+        if state then
+            if noclipConn then noclipConn:Disconnect() end
+            noclipConn = RunService.Stepped:Connect(function()
+                if noclipEnabled and LocalPlayer.Character then
+                    for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
                 end
-                if userInputService:IsKeyDown(Enum.KeyCode.S) then
-                    moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector * speed
-                end
-                if userInputService:IsKeyDown(Enum.KeyCode.A) then
-                    moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector * speed
-                end
-                if userInputService:IsKeyDown(Enum.KeyCode.D) then
-                    moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector * speed
-                end
-                if userInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    moveDir = moveDir + Vector3.new(0, speed, 0)
-                end
-                if userInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    moveDir = moveDir - Vector3.new(0, speed, 0)
-                end
-                hrp.CFrame = hrp.CFrame + moveDir
             end)
         else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
-            local char = player.Character
-            if char then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.Anchored = false
+            if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
+            if LocalPlayer.Character then
+                for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = true end
                 end
             end
         end
     end
 })
 
--- Teleport to Spawn
-MainSection:CreateButton({
-    Name = "Teleport to Spawn",
+-- Fly Mode
+PlayerTab:AddToggle({
+    Name = "Fly Mode", Default = false,
+    Callback = function(state)
+        flyEnabled = state
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        if state then
+            hum.PlatformStand = true
+            flyBV = Instance.new("BodyVelocity")
+            flyBV.Velocity = Vector3.new(0,0,0)
+            flyBV.MaxForce = Vector3.new(10000,10000,10000)
+            flyBV.Parent = root
+            
+            if flyConn then flyConn:Disconnect() end
+            flyConn = RunService.Heartbeat:Connect(function()
+                if not flyEnabled then return end
+                local move = Vector3.new()
+                if keys.W then move = move + Camera.CFrame.LookVector end
+                if keys.S then move = move - Camera.CFrame.LookVector end
+                if keys.A then move = move - Camera.CFrame.RightVector end
+                if keys.D then move = move + Camera.CFrame.RightVector end
+                if keys.Up then move = move + Vector3.new(0,1,0) end
+                if keys.Down then move = move - Vector3.new(0,1,0) end
+                
+                if move.Magnitude > 0 then
+                    flyBV.Velocity = move.Unit * flySpeed
+                else
+                    flyBV.Velocity = Vector3.new(0,0,0)
+                end
+            end)
+        else
+            if flyConn then flyConn:Disconnect(); flyConn = nil end
+            if flyBV then flyBV:Destroy(); flyBV = nil end
+            hum.PlatformStand = false
+        end
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Fly Speed", Min = 10, Max = 500, Default = 50,
+    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
+    Callback = function(value) flySpeed = value end
+})
+
+-- Infinity Jump
+local infinityJump = false
+PlayerTab:AddToggle({
+    Name = "Infinity Jump", Default = false,
+    Callback = function(state) infinityJump = state end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if infinityJump and LocalPlayer.Character then
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 100, 0)
+            bv.MaxForce = Vector3.new(0, math.huge, 0)
+            bv.Parent = root
+            game:GetService("Debris"):AddItem(bv, 0.5)
+        end
+    end
+end)
+
+-- Reset WalkSpeed
+PlayerTab:AddButton({
+    Name = "Reset WalkSpeed",
     Callback = function()
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.CFrame = CFrame.new(0, 5, 0)
-            Rayfield:Notify({ Title = "Teleport", Content = "You have been teleported to spawn!", Duration = 2 })
+        if LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = 16 end
+        end
+        OrionLib:MakeNotification({Name = "Reset", Content = "WalkSpeed normal", Image = "rbxassetid://4483345998", Time = 2})
+    end
+})
+
+-- ===== TAB FREECAM =====
+local FreecamTab = Window:MakeTab({Name = "Freecam", Icon = "rbxassetid://4483345998"})
+local originalCF = nil
+
+FreecamTab:AddToggle({
+    Name = "Enable Freecam", Default = false,
+    Callback = function(state)
+        freecamEnabled = state
+        if state then
+            originalCF = Camera.CFrame
+            Camera.CameraType = Enum.CameraType.Scriptable
+            
+            if freecamConn then freecamConn:Disconnect() end
+            freecamConn = RunService.RenderStepped:Connect(function(dt)
+                if not freecamEnabled then return end
+                local move = Vector3.new()
+                if keys.W then move = move + Camera.CFrame.LookVector end
+                if keys.S then move = move - Camera.CFrame.LookVector end
+                if keys.A then move = move - Camera.CFrame.RightVector end
+                if keys.D then move = move + Camera.CFrame.RightVector end
+                if keys.Up then move = move + Vector3.new(0,1,0) end
+                if keys.Down then move = move - Vector3.new(0,1,0) end
+                
+                if move.Magnitude > 0 then
+                    Camera.CFrame = Camera.CFrame + move.Unit * freecamSpeed * dt * 60
+                end
+            end)
         else
-            Rayfield:Notify({ Title = "Error", Content = "Character not found", Duration = 2 })
+            if freecamConn then freecamConn:Disconnect(); freecamConn = nil end
+            if originalCF then Camera.CFrame = originalCF end
+            Camera.CameraType = Enum.CameraType.Custom
         end
     end
 })
 
--- Toggle Fly GUI
-MainSection:CreateToggle({
-    Name = "Enable Fly GUI (Mobile Friendly)",
-    CurrentValue = false,
-    Callback = function(value)
-        if value then
-            setupFlyGUI()
+FreecamTab:AddSlider({
+    Name = "Freecam Speed", Min = 10, Max = 500, Default = 50,
+    Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "speed",
+    Callback = function(value) freecamSpeed = value end
+})
+
+-- ===== TAB ESP =====
+local ESPTab = Window:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998"})
+
+local function createESP(p)
+    if p == LocalPlayer then return end
+    local old = espFolder:FindFirstChild(p.Name)
+    if old then old:Destroy() end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = p.Name
+    highlight.FillColor = p.Team and p.Team.TeamColor.Color or Color3.new(1,0,0)
+    highlight.OutlineColor = Color3.new(1,1,1)
+    highlight.FillTransparency = 0.5
+    highlight.Parent = espFolder
+    if p.Character then
+        highlight.Adornee = p.Character
+    else
+        p.CharacterAdded:Connect(function(char) highlight.Adornee = char end)
+    end
+end
+
+ESPTab:AddToggle({
+    Name = "Enable ESP", Default = false,
+    Callback = function(state)
+        espEnabled = state
+        if state then
+            espFolder:ClearAllChildren()
+            for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+            espConnections.PlayerAdded = Players.PlayerAdded:Connect(createESP)
+            espConnections.PlayerRemoving = Players.PlayerRemoving:Connect(function(p)
+                local h = espFolder:FindFirstChild(p.Name)
+                if h then h:Destroy() end
+            end)
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    espConnections["Char_"..p.Name] = p.CharacterAdded:Connect(function() createESP(p) end)
+                end
+            end
         else
-            destroyFlyGUI()
+            for _, conn in pairs(espConnections) do if conn then conn:Disconnect() end end
+            espConnections = {}
+            espFolder:ClearAllChildren()
         end
     end
 })
 
--- Tab Visual
-local VisualTab = Window:CreateTab("Visual", nil)
-local VisualSection = VisualTab:CreateSection("Movement")
+-- ===== TAB OTHER =====
+local OtherTab = Window:MakeTab({Name = "Other", Icon = "rbxassetid://4483345998"})
 
--- Walk Speed Slider (range terukur 16-200)
-VisualSection:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 200},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 16,
-    Callback = function(value)
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = value
-        end
+OtherTab:AddButton({
+    Name = "Infinite Yield",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end
 })
 
--- Tab Settings
-local SettingsTab = Window:CreateTab("Settings", nil)
-local SettingsSection = SettingsTab:CreateSection("UI Settings")
-
--- Theme Dropdown
-SettingsSection:CreateDropdown({
-    Name = "Theme",
-    Options = {"Default", "Dark", "Light"},
-    CurrentOption = "Default",
-    Callback = function(value)
-        if Window.SetTheme then
-            Window:SetTheme(value)
+-- FPS Counter
+local fpsGui = nil
+local fpsConn = nil
+OtherTab:AddToggle({
+    Name = "Show FPS", Default = false,
+    Callback = function(s)
+        if s then
+            if fpsGui then fpsGui:Destroy() end
+            fpsGui = Instance.new("ScreenGui")
+            fpsGui.Parent = game:GetService("CoreGui")
+            
+            local bg = Instance.new("Frame")
+            bg.Size = UDim2.new(0, 100, 0, 40)
+            bg.Position = UDim2.new(0, 10, 0, 10)
+            bg.BackgroundColor3 = Color3.new(0,0,0)
+            bg.BackgroundTransparency = 0.5
+            bg.Parent = fpsGui
+            
+            local txt = Instance.new("TextLabel")
+            txt.Size = UDim2.new(1,0,1,0)
+            txt.BackgroundTransparency = 1
+            txt.TextColor3 = Color3.new(1,1,1)
+            txt.TextSize = 20
+            txt.Font = Enum.Font.GothamBold
+            txt.Parent = bg
+            
+            local lastTime = tick()
+            local frames = 0
+            if fpsConn then fpsConn:Disconnect() end
+            fpsConn = RunService.RenderStepped:Connect(function()
+                frames = frames + 1
+                if tick() - lastTime >= 1 then
+                    txt.Text = "FPS: " .. frames
+                    frames = 0
+                    lastTime = tick()
+                end
+            end)
         else
-            print("Theme change to: " .. value)
+            if fpsConn then fpsConn:Disconnect(); fpsConn = nil end
+            if fpsGui then fpsGui:Destroy(); fpsGui = nil end
         end
     end
 })
 
--- Player Name Input
-SettingsSection:CreateInput({
-    Name = "Player Name",
-    PlaceholderText = "Enter player name...",
-    CurrentValue = "",
-    Callback = function(value)
-        local target = game.Players:FindFirstChild(value)
-        if target then
-            Rayfield:Notify({ Title = "Player Found", Content = "Target: " .. target.Name, Duration = 2 })
-        else
-            Rayfield:Notify({ Title = "Not Found", Content = "Player " .. value .. " not in server", Duration = 2 })
+-- ===== TAB AUTO FISH =====
+local AutoFishTab = Window:MakeTab({Name = "AUTO FISH", Icon = "rbxassetid://4483345998"})
+
+-- Cari remote auto fishing
+local LevelSystem = ReplicatedStorage:FindFirstChild("LevelSystem")
+local ToServer = LevelSystem and LevelSystem:FindFirstChild("ToServer")
+local StartAutoFishing = ToServer and ToServer:FindFirstChild("StartAutoFishing")
+local StopAutoFishing = ToServer and ToServer:FindFirstChild("StopAutoFishing")
+
+-- Cari remote reel
+local ReelRemote = ReplicatedStorage:FindFirstChild("Fishing_RemoteRetract", true) 
+                 or ReplicatedStorage:FindFirstChild("ReelFinished", true)
+                 or ReplicatedStorage:FindFirstChild("FishingCatchSuccess", true)
+
+-- Status
+local autoActive = false
+local fastReelActive = false
+local fastReelConn = nil
+local fastReelSpeed = 1.0
+local reelParam = "kosong"  -- parameter default
+
+-- Auto Fishing Resmi
+local afkBtn = AutoFishTab:AddButton({
+    Name = "▶️ Mulai Auto Fishing (Resmi)",
+    Callback = function()
+        if not autoActive and StartAutoFishing then
+            StartAutoFishing:FireServer()
+            autoActive = true
+            afkBtn:Set("⏸️ Hentikan Auto Fishing")
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dimulai!", Time = 2})
+        elseif autoActive and StopAutoFishing then
+            StopAutoFishing:FireServer()
+            autoActive = false
+            afkBtn:Set("▶️ Mulai Auto Fishing (Resmi)")
+            OrionLib:MakeNotification({Name = "Auto Fish", Content = "Dihentikan!", Time = 2})
         end
     end
 })
+
+-- Pilihan Parameter Fast Reel
+AutoFishTab:AddDropdown({
+    Name = "Parameter Fast Reel",
+    Options = {"kosong", "true", "false", "1", "'reel'", "{}"},
+    Default = "kosong",
+    Callback = function(value)
+        reelParam = value
+    end
+})
+
+-- Toggle Fast Reel
+AutoFishTab:AddToggle({
+    Name = "⚡ Fast Reel",
+    Default = false,
+    Callback = function(state)
+        fastReelActive = state
+        if state then
+            if not ReelRemote then
+                OrionLib:MakeNotification({Name = "Error", Content = "Remote reel tidak ditemukan!", Time = 2})
+                fastReelActive = false
+                return
+            end
+            if fastReelConn then fastReelConn:Disconnect() end
+            fastReelConn = RunService.Heartbeat:Connect(function()
+                if not fastReelActive then return end
+                pcall(function()
+                    if reelParam == "kosong" then
+                        ReelRemote:FireServer()
+                    elseif reelParam == "true" then
+                        ReelRemote:FireServer(true)
+                    elseif reelParam == "false" then
+                        ReelRemote:FireServer(false)
+                    elseif reelParam == "1" then
+                        ReelRemote:FireServer(1)
+                    elseif reelParam == "'reel'" then
+                        ReelRemote:FireServer("reel")
+                    elseif reelParam == "{}" then
+                        ReelRemote:FireServer({})
+                    end
+                end)
+                wait(fastReelSpeed)
+            end)
+            OrionLib:MakeNotification({Name = "Fast Reel", Content = "Aktif!", Time = 2})
+        else
+            if fastReelConn then fastReelConn:Disconnect(); fastReelConn = nil end
+        end
+    end
+})
+
+-- Slider kecepatan
+AutoFishTab:AddSlider({
+    Name = "Kecepatan Fast Reel (detik)",
+    Min = 0.1, Max = 3.0, Default = 1.0, Increment = 0.1,
+    ValueName = "dtk",
+    Callback = function(v) fastReelSpeed = v end
+})
+
+-- Tombol test manual
+if ReelRemote then
+    AutoFishTab:AddButton({
+        Name = "Test Reel Manual",
+        Callback = function()
+            ReelRemote:FireServer()
+            OrionLib:MakeNotification({Name = "Test", Content = "Reel fired", Time = 1})
+        end
+    })
+end
+
+-- Info
+AutoFishTab:AddParagraph({
+    Title = "Info",
+    Content = "Auto Fishing Resmi: sekali klik, game yang jalanin.\nFast Reel: narik manual cepat (risiko banned!).\nPilih parameter sesuai hasil tes."
+})
+
+-- Notifikasi Selesai
+OrionLib:MakeNotification({Name = "GarxCuy Mobile", Content = "Loaded! + Auto Fish + Fast Reel", Time = 3})
+OrionLib:Init()
