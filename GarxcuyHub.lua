@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "INI GAR N CUYY YA KUNYUKK",
+    Name = "Eye GPT Animate + Click Hub",
     LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "MATAMUU PICEKK",
+    LoadingSubtitle = "Speed x100 + Effect Bomb",
     ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
@@ -113,10 +113,10 @@ GameTab:CreateToggle({
     end
 })
 
--- ========== AIMBOT (HANYA KE MURDERER) ==========
+-- ========== AIMBOT KHUSUS MURDERER (MOBILE FRIENDLY) ==========
 local aimbotActive = false
 local aimbotConnection = nil
-local aimbotFOV = 100
+local aimbotFOV = 150
 
 local function getClosestMurderer()
     local closest = nil
@@ -124,9 +124,7 @@ local function getClosestMurderer()
     local mousePos = UserInputService:GetMouseLocation()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            -- Hanya target jika role-nya Murderer
-            local role = getPlayerRole(player)
-            if role == "Murderer" then
+            if getPlayerRole(player) == "Murderer" then
                 local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
                 if onScreen then
                     local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
@@ -141,35 +139,44 @@ local function getClosestMurderer()
     return closest
 end
 
-local function aimAtTarget(target)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPos = target.Character.HumanoidRootPart.Position
-        local screenPos = Camera:WorldToViewportPoint(targetPos)
-        if screenPos.Z > 0 then
-            mousemoveabs(screenPos.X, screenPos.Y)
+local function aimAtMurderer()
+    local target = getClosestMurderer()
+    if not target then return end
+    local hrp = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+    if onScreen then
+        local mousePos = UserInputService:GetMouseLocation()
+        local deltaX = screenPos.X - mousePos.X
+        local deltaY = screenPos.Y - mousePos.Y
+        -- Metode gerak mouse untuk mobile (coba beberapa)
+        if syn and syn.input then
+            syn.input.MoveMouse(deltaX, deltaY)
+        elseif mouse1move then
+            mouse1move(deltaX, deltaY)
+        elseif mousemoverel then
+            mousemoverel(deltaX, deltaY)
         end
     end
 end
 
-local function startAimbot()
+local function startAimbotLoop()
     if aimbotConnection then aimbotConnection:Disconnect() end
     aimbotConnection = RunService.RenderStepped:Connect(function()
-        if not aimbotActive then return end
-        local target = getClosestMurderer()
-        if target then
-            aimAtTarget(target)
+        if aimbotActive then
+            aimAtMurderer()
         end
     end)
 end
 
 GameTab:CreateToggle({
-    Name = "🎯 Aimbot (Hanya ke Murderer)",
+    Name = "🎯 Aimbot Khusus Murderer (Auto Aim)",
     CurrentValue = false,
     Callback = function(state)
         aimbotActive = state
         if state then
-            startAimbot()
-            Rayfield:Notify({Title = "Aimbot", Content = "Hanya membidik Murderer!", Duration = 2})
+            startAimbotLoop()
+            Rayfield:Notify({Title = "Aimbot", Content = "Membidik Murderer!", Duration = 2})
         else
             if aimbotConnection then aimbotConnection:Disconnect(); aimbotConnection = nil end
         end
@@ -177,23 +184,22 @@ GameTab:CreateToggle({
 })
 
 GameTab:CreateSlider({
-    Name = "FOV Aimbot (Radius)",
+    Name = "FOV Aimbot (Radius Layar)",
     Range = {50, 300},
     Increment = 10,
-    CurrentValue = 100,
+    CurrentValue = 150,
     Callback = function(value)
         aimbotFOV = value
     end
 })
 
--- ========== FLY + NOCLIP SCRIPT ==========
+-- ========== FLY + NOCLIP ==========
 GameTab:CreateButton({
     Name = "🚀 Load Fly + Noclip",
     Callback = function()
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-And-Noclip-GUI-192488"))()
-        Rayfield:Notify({Title = "Fly + Noclip", Content = "Script loaded!", Duration = 3})
+        Rayfield:Notify({Title = "Fly + Noclip", Content = "Loaded!", Duration = 2})
     end
 })
 
--- Notifikasi selesai
 Rayfield:Notify({Title = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
