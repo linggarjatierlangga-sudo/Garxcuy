@@ -1,9 +1,10 @@
+-- ESP MURDER MYSTERY F B R (Dengan Cache Role & Deteksi Backpack)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Eye GPT Animate + Click Hub",
+    Name = "GAR N CUY KUNYUK",
     LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "Speed x100 + Effect Bomb",
+    LoadingSubtitle = "INI UJI COBA YA KUNYUKKKK",
     ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
@@ -13,7 +14,7 @@ local EffectTab = Window:CreateTab("Click Effect", 7733774602)
 local GuiTab = Window:CreateTab("GUI Module", 4483345998)
 local GameTab = Window:CreateTab("Game Exploits", 7734022041)
 
--- ========== ESP MURDER MYSTERY 2 ==========
+-- ========== ESP MURDER MYSTERY 2 (STABIL) ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -21,30 +22,55 @@ local RunService = game:GetService("RunService")
 local highlightFolder = nil
 local espActive = false
 local connection = nil
+local roleCache = {} -- Cache role pemain
 
--- Fungsi untuk mendapatkan role pemain
+-- Fungsi untuk mendapatkan role pemain (lebih stabil)
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
+
+    -- Cek dari cache dulu (biar tidak berubah-ubah)
+    if roleCache[player] and (tick() - (roleCache[player].time or 0)) < 1.5 then
+        return roleCache[player].role
+    end
+
     local char = player.Character
-    if not char then return "Unknown" end
+    local role = "Innocent"
 
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if not tool then return "Innocent" end
-
-    local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
-    if weaponType == "Knife" then
-        return "Murderer"
-    elseif weaponType == "Gun" then
-        return "Sheriff"
+    -- Cek tool yang dipegang
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool")
+        if tool then
+            local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+            if weaponType == "Knife" then
+                role = "Murderer"
+            elseif weaponType == "Gun" then
+                role = "Sheriff"
+            end
+        end
     end
 
-    local toolName = tool.Name:lower()
-    if toolName:find("knife") or toolName:find("dagger") then
-        return "Murderer"
-    elseif toolName:find("gun") or toolName:find("pistol") then
-        return "Sheriff"
+    -- Jika tidak ditemukan di tangan, cek backpack (inventory)
+    if role == "Innocent" then
+        local backpack = player:FindFirstChildOfClass("Backpack")
+        if backpack then
+            for _, tool in ipairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+                    if weaponType == "Knife" then
+                        role = "Murderer"
+                        break
+                    elseif weaponType == "Gun" then
+                        role = "Sheriff"
+                        break
+                    end
+                end
+            end
+        end
     end
-    return "Innocent"
+
+    -- Update cache
+    roleCache[player] = {role = role, time = tick()}
+    return role
 end
 
 -- Fungsi update ESP
@@ -62,17 +88,16 @@ local function updateESP()
                 highlight.FillTransparency = 0.5
                 highlight.OutlineTransparency = 0
             else
-                -- Update Adornee jika karakter berubah
                 highlight.Adornee = player.Character
             end
             if role == "Murderer" then
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)    -- Merah
                 highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
             elseif role == "Sheriff" then
-                highlight.FillColor = Color3.fromRGB(0, 0, 255)
+                highlight.FillColor = Color3.fromRGB(0, 0, 255)    -- Biru
                 highlight.OutlineColor = Color3.fromRGB(0, 0, 255)
             else
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                highlight.FillColor = Color3.fromRGB(0, 255, 0)    -- Hijau
                 highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
             end
         end
@@ -86,28 +111,26 @@ GameTab:CreateToggle({
     Callback = function(state)
         espActive = state
         if state then
-            -- Buat folder highlight jika belum ada
             if not highlightFolder then
                 highlightFolder = Instance.new("Folder")
                 highlightFolder.Name = "MM2_ESP"
                 highlightFolder.Parent = game:GetService("CoreGui")
             end
-            -- Hapus semua highlight lama
             for _, child in ipairs(highlightFolder:GetChildren()) do
                 child:Destroy()
             end
-            -- Mulai loop update
+            roleCache = {} -- reset cache
             if connection then connection:Disconnect() end
             connection = RunService.RenderStepped:Connect(updateESP)
             Rayfield:Notify({Title = "ESP", Content = "Aktif! Murderer merah, Sheriff biru.", Duration = 3})
         else
-            -- Matikan ESP, hapus semua highlight
             if connection then connection:Disconnect(); connection = nil end
             if highlightFolder then
                 for _, child in ipairs(highlightFolder:GetChildren()) do
                     child:Destroy()
                 end
             end
+            roleCache = {}
             Rayfield:Notify({Title = "ESP", Content = "Dimatikan.", Duration = 2})
         end
     end
