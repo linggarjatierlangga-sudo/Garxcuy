@@ -1,19 +1,16 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Eye GPT Animate + Click Hub",
+    Name = "Eye GPT All-in-One Hub",
     LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "Speed x100 + Effect Bomb",
+    LoadingSubtitle = "ESP + Aimbot + Auto Take",
     ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
 
-local AnimTab = Window:CreateTab("Animation Hack", 4483362458)
-local EffectTab = Window:CreateTab("Click Effect", 7733774602)
-local GuiTab = Window:CreateTab("GUI Module", 4483345998)
 local GameTab = Window:CreateTab("Game Exploits", 7734022041)
 
--- ========== ESP MURDER MYSTERY 2 (STABIL) ==========
+-- ========== SERVICES ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -21,9 +18,10 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 
+-- ========== ESP MURDERER & SHERIFF ==========
 local highlightFolder = nil
 local espActive = false
-local connection = nil
+local espConnection = nil
 local roleCache = {}
 
 local function getPlayerRole(player)
@@ -100,11 +98,11 @@ GameTab:CreateToggle({
             end
             for _, child in ipairs(highlightFolder:GetChildren()) do child:Destroy() end
             roleCache = {}
-            if connection then connection:Disconnect() end
-            connection = RunService.RenderStepped:Connect(updateESP)
+            if espConnection then espConnection:Disconnect() end
+            espConnection = RunService.RenderStepped:Connect(updateESP)
             Rayfield:Notify({Title = "ESP", Content = "Aktif!", Duration = 2})
         else
-            if connection then connection:Disconnect(); connection = nil end
+            if espConnection then espConnection:Disconnect(); espConnection = nil end
             if highlightFolder then
                 for _, child in ipairs(highlightFolder:GetChildren()) do child:Destroy() end
             end
@@ -113,7 +111,7 @@ GameTab:CreateToggle({
     end
 })
 
--- ========== AIMBOT KHUSUS MURDERER (MOBILE FRIENDLY) ==========
+-- ========== AIMBOT KHUSUS MURDERER ==========
 local aimbotActive = false
 local aimbotConnection = nil
 local aimbotFOV = 150
@@ -149,7 +147,6 @@ local function aimAtMurderer()
         local mousePos = UserInputService:GetMouseLocation()
         local deltaX = screenPos.X - mousePos.X
         local deltaY = screenPos.Y - mousePos.Y
-        -- Metode gerak mouse untuk mobile (coba beberapa)
         if syn and syn.input then
             syn.input.MoveMouse(deltaX, deltaY)
         elseif mouse1move then
@@ -202,4 +199,82 @@ GameTab:CreateButton({
     end
 })
 
-Rayfield:Notify({Title = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
+-- ========== AUTO TAKE BRAINROT COSMIC/SECRET ==========
+local autoTakeActive = false
+
+local function findTakeButton()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    for _, button in ipairs(playerGui:GetDescendants()) do
+        if button:IsA("TextButton") or button:IsA("ImageButton") then
+            local text = (button.Text or button.Name or ""):lower()
+            if text:find("claim") or text:find("take") or text:find("collect") then
+                return button
+            end
+        end
+    end
+    return nil
+end
+
+local function setupAutoTake()
+    -- Hook notifikasi jika ada
+    if _G.FishNotification then
+        local old = _G.FishNotification
+        _G.FishNotification = function(fishName, weight, tier)
+            if autoTakeActive and fishName and fishName:lower():find("brainrot") then
+                local tierUpper = string.upper(tier or "")
+                if tierUpper:find("COSMIC") or tierUpper:find("SECRET") then
+                    task.wait(0.5)
+                    local btn = findTakeButton()
+                    if btn then
+                        btn:Click()
+                        print("[AutoTake] Brainrot " .. tier .. " diambil")
+                    end
+                end
+            end
+            if old then return old(fishName, weight, tier) end
+        end
+    else
+        -- Pantau GUI
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+        playerGui.DescendantAdded:Connect(function(desc)
+            if autoTakeActive and desc:IsA("TextLabel") and desc.Text and desc.Text:lower():find("brainrot") then
+                local parent = desc.Parent
+                local isCosmicOrSecret = false
+                if parent then
+                    for _, child in ipairs(parent:GetChildren()) do
+                        if child:IsA("TextLabel") then
+                            local txt = child.Text:lower()
+                            if txt:find("cosmic") or txt:find("secret") then
+                                isCosmicOrSecret = true
+                                break
+                            end
+                        end
+                    end
+                end
+                if isCosmicOrSecret then
+                    task.wait(0.5)
+                    local btn = findTakeButton()
+                    if btn then btn:Click() end
+                end
+            end
+        end)
+    end
+end
+
+GameTab:CreateToggle({
+    Name = "⭐ Auto Take Brainrot Cosmic/Secret",
+    CurrentValue = false,
+    Callback = function(state)
+        autoTakeActive = state
+        if state then
+            setupAutoTake()
+            Rayfield:Notify({Title = "Auto Take", Content = "Aktif! Tunggu Brainrot Cosmic/Secret.", Duration = 3})
+        else
+            Rayfield:Notify({Title = "Auto Take", Content = "Dimatikan.", Duration = 2})
+        end
+    end
+})
+
+-- Notifikasi awal
+Rayfield:Notify({Title = "Eye GPT All-in-One Hub", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
