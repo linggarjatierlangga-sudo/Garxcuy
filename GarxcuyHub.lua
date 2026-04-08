@@ -299,30 +299,215 @@ local function startStealLoop()
     end)
 end
 
-GameTab:CreateToggle({
-    Name = "💀 Auto Steal Brainrot (Cosmic/Divine/Eternal/Secret)",
+-- ========== AUTO STEAL BRAINROT (PER RARITY) ==========
+local autoSteal = {
+    Cosmic = false,
+    Divine = false,
+    Eternal = false,
+    Secret = false
+}
+local stealConnections = {
+    Cosmic = nil,
+    Divine = nil,
+    Eternal = nil,
+    Secret = nil
+}
+local lastStolen = {
+    Cosmic = 0,
+    Divine = 0,
+    Eternal = 0,
+    Secret = 0
+}
+local stealCooldown = 5 -- cooldown 5 detik per rarity
+
+-- Coba panggil module PositionFinder
+local PositionFinder = nil
+pcall(function()
+    PositionFinder = require(game:GetService("ReplicatedStorage").Library.Client.BrainrotEggCmds.BrainrotEggPositionFinder)
+end)
+
+-- Fungsi mencari part brainrot berdasarkan rarity tertentu
+local function findBrainrotPartByRarity(targetRarity)
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Name:lower():find("brainrot") or part.Name:lower():find("egg")) then
+            local rarity = part:GetAttribute("Rarity")
+            if rarity and string.upper(rarity) == targetRarity then
+                return part
+            end
+        end
+    end
+    return nil
+end
+
+-- Teleport ke part
+local function teleportToPart(part)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = part.CFrame * CFrame.new(0, 3, 0)
+    end
+end
+
+-- Fungsi mengambil brainrot berdasarkan rarity
+local function takeBrainrot(rarity)
+    local productId = nil
+    if rarity == "COSMIC" then
+        productId = 3569343071
+    elseif rarity == "DIVINE" then
+        productId = 3569343474
+    elseif rarity == "ETERNAL" then
+        productId = 3569343339
+    elseif rarity == "SECRET" then
+        productId = 3569343224
+    end
+    if productId then
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("PurchaseStealTakeBack", true)
+        if remote then
+            remote:FireServer(productId)
+            print("[AutoSteal] " .. rarity .. " - Purchase sent")
+        else
+            -- Fallback: cari tombol Take di GUI
+            local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if playerGui then
+                for _, btn in ipairs(playerGui:GetDescendants()) do
+                    if (btn:IsA("TextButton") or btn:IsA("ImageButton")) and (btn.Text:lower():find("take") or btn.Name:lower():find("take")) then
+                        btn:Click()
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Fungsi loop untuk masing-masing rarity
+local function startStealLoop(rarity)
+    if stealConnections[rarity] then stealConnections[rarity]:Disconnect() end
+    stealConnections[rarity] = RunService.RenderStepped:Connect(function()
+        if not autoSteal[rarity] then return end
+        if tick() - lastStolen[rarity] < stealCooldown then return end
+        
+        local targetPart = nil
+        -- Coba pakai PositionFinder (opsional)
+        if PositionFinder then
+            local success, positions = pcall(function()
+                return PositionFinder.ComputePositions(1, nil, nil)
+            end)
+            if success and positions and #positions > 0 then
+                local pos = positions[1]
+                for _, part in ipairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") and (part.Position - pos).Magnitude < 2 then
+                        local partRarity = part:GetAttribute("Rarity")
+                        if partRarity and string.upper(partRarity) == rarity then
+                            targetPart = part
+                            break
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Fallback scanning manual
+        if not targetPart then
+            targetPart = findBrainrotPartByRarity(rarity)
+        end
+        
+        if targetPart then
+            lastStolen[rarity] = tick()
+            teleportToPart(targetPart)
+            task.wait(0.5)
+            takeBrainrot(rarity)
+            task.wait(1) -- jeda biar gak kecepetan
+        end
+    end)
+end
+
+-- Buat toggle untuk setiap rarity
+local cosmicToggle = GameTab:CreateToggle({
+    Name = "💀 Auto Steal Brainrot COSMIC",
     CurrentValue = false,
     Callback = function(state)
-        autoStealActive = state
+        autoSteal.Cosmic = state
         if state then
-            startStealLoop()
-            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari brainrot...", Duration = 3})
+            startStealLoop("COSMIC")
+            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Cosmic...", Duration = 2})
         else
-            if stealConnection then stealConnection:Disconnect(); stealConnection = nil end
+            if stealConnections.Cosmic then stealConnections.Cosmic:Disconnect(); stealConnections.Cosmic = nil end
         end
     end
 })
 
-GameTab:CreateButton({
-    Name = "📍 Teleport ke Brainrot Terdekat",
-    Callback = function()
-        local part = findBrainrotPart()
-        if part then
-            teleportToPart(part)
-            Rayfield:Notify({Title = "Teleport", Content = "Sudah!", Duration = 1})
+local divineToggle = GameTab:CreateToggle({
+    Name = "💀 Auto Steal Brainrot DIVINE",
+    CurrentValue = false,
+    Callback = function(state)
+        autoSteal.Divine = state
+        if state then
+            startStealLoop("DIVINE")
+            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Divine...", Duration = 2})
         else
-            Rayfield:Notify({Title = "Teleport", Content = "Tidak ada brainrot.", Duration = 1})
+            if stealConnections.Divine then stealConnections.Divine:Disconnect(); stealConnections.Divine = nil end
         end
+    end
+})
+
+local eternalToggle = GameTab:CreateToggle({
+    Name = "💀 Auto Steal Brainrot ETERNAL",
+    CurrentValue = false,
+    Callback = function(state)
+        autoSteal.Eternal = state
+        if state then
+            startStealLoop("ETERNAL")
+            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Eternal...", Duration = 2})
+        else
+            if stealConnections.Eternal then stealConnections.Eternal:Disconnect(); stealConnections.Eternal = nil end
+        end
+    end
+})
+
+local secretToggle = GameTab:CreateToggle({
+    Name = "💀 Auto Steal Brainrot SECRET",
+    CurrentValue = false,
+    Callback = function(state)
+        autoSteal.Secret = state
+        if state then
+            startStealLoop("SECRET")
+            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Secret...", Duration = 2})
+        else
+            if stealConnections.Secret then stealConnections.Secret:Disconnect(); stealConnections.Secret = nil end
+        end
+    end
+})
+
+-- Tombol teleport manual ke masing-masing rarity (opsional)
+GameTab:CreateButton({
+    Name = "📍 Teleport ke Cosmic Terdekat",
+    Callback = function()
+        local part = findBrainrotPartByRarity("COSMIC")
+        if part then teleportToPart(part) else Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Cosmic", Duration = 1}) end
+    end
+})
+
+GameTab:CreateButton({
+    Name = "📍 Teleport ke Divine Terdekat",
+    Callback = function()
+        local part = findBrainrotPartByRarity("DIVINE")
+        if part then teleportToPart(part) else Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Divine", Duration = 1}) end
+    end
+})
+
+GameTab:CreateButton({
+    Name = "📍 Teleport ke Eternal Terdekat",
+    Callback = function()
+        local part = findBrainrotPartByRarity("ETERNAL")
+        if part then teleportToPart(part) else Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Eternal", Duration = 1}) end
+    end
+})
+
+GameTab:CreateButton({
+    Name = "📍 Teleport ke Secret Terdekat",
+    Callback = function()
+        local part = findBrainrotPartByRarity("SECRET")
+        if part then teleportToPart(part) else Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Secret", Duration = 1}) end
     end
 })
 
