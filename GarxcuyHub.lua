@@ -3,7 +3,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Eye GPT All-in-One Hub",
     LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "ESP + Aimbot + Auto Take",
+    LoadingSubtitle = "ESP + Aimbot + Auto Steal Brainrot",
     ConfigurationSaving = {Enabled = false},
     KeySystem = false
 })
@@ -160,9 +160,7 @@ end
 local function startAimbotLoop()
     if aimbotConnection then aimbotConnection:Disconnect() end
     aimbotConnection = RunService.RenderStepped:Connect(function()
-        if aimbotActive then
-            aimAtMurderer()
-        end
+        if aimbotActive then aimAtMurderer() end
     end)
 end
 
@@ -199,79 +197,131 @@ GameTab:CreateButton({
     end
 })
 
--- ========== AUTO TAKE BRAINROT COSMIC/SECRET ==========
-local autoTakeActive = false
+-- ========== AUTO STEAL BRAINROT (COSMIC/DIVINE/ETERNAL/SECRET) ==========
+local autoStealActive = false
+local stealConnection = nil
+local currentTargetPart = nil
 
-local function findTakeButton()
-    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return nil end
-    for _, button in ipairs(playerGui:GetDescendants()) do
-        if button:IsA("TextButton") or button:IsA("ImageButton") then
-            local text = (button.Text or button.Name or ""):lower()
-            if text:find("claim") or text:find("take") or text:find("collect") then
-                return button
+-- Coba panggil module PositionFinder
+local PositionFinder = nil
+pcall(function()
+    PositionFinder = require(game:GetService("ReplicatedStorage").Library.Client.BrainrotEggCmds.BrainrotEggPositionFinder)
+end)
+
+-- Fungsi mencari part brainrot (fallback)
+local function findBrainrotPart()
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Name:lower():find("brainrot") or part.Name:lower():find("egg")) then
+            local rarity = part:GetAttribute("Rarity")
+            if rarity then
+                local rUp = string.upper(rarity)
+                if rUp:find("COSMIC") or rUp:find("DIVINE") or rUp:find("ETERNAL") or rUp:find("SECRET") then
+                    return part
+                end
+            else
+                return part
             end
         end
     end
     return nil
 end
 
-local function setupAutoTake()
-    -- Hook notifikasi jika ada
-    if _G.FishNotification then
-        local old = _G.FishNotification
-        _G.FishNotification = function(fishName, weight, tier)
-            if autoTakeActive and fishName and fishName:lower():find("brainrot") then
-                local tierUpper = string.upper(tier or "")
-                if tierUpper:find("COSMIC") or tierUpper:find("SECRET") then
-                    task.wait(0.5)
-                    local btn = findTakeButton()
-                    if btn then
-                        btn:Click()
-                        print("[AutoTake] Brainrot " .. tier .. " diambil")
-                    end
-                end
-            end
-            if old then return old(fishName, weight, tier) end
-        end
-    else
-        -- Pantau GUI
-        local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-        playerGui.DescendantAdded:Connect(function(desc)
-            if autoTakeActive and desc:IsA("TextLabel") and desc.Text and desc.Text:lower():find("brainrot") then
-                local parent = desc.Parent
-                local isCosmicOrSecret = false
-                if parent then
-                    for _, child in ipairs(parent:GetChildren()) do
-                        if child:IsA("TextLabel") then
-                            local txt = child.Text:lower()
-                            if txt:find("cosmic") or txt:find("secret") then
-                                isCosmicOrSecret = true
-                                break
-                            end
-                        end
-                    end
-                end
-                if isCosmicOrSecret then
-                    task.wait(0.5)
-                    local btn = findTakeButton()
-                    if btn then btn:Click() end
-                end
-            end
-        end)
+local function teleportToPart(part)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = part.CFrame * CFrame.new(0, 3, 0)
     end
 end
 
+local function takeBrainrot(rarity)
+    local productId = nil
+    local rarityUpper = string.upper(rarity or "")
+    if rarityUpper:find("COSMIC") then
+        productId = 3569343071
+    elseif rarityUpper:find("DIVINE") then
+        productId = 3569343474
+    elseif rarityUpper:find("ETERNAL") then
+        productId = 3569343339
+    elseif rarityUpper:find("SECRET") then
+        productId = 3569343224
+    end
+    if productId then
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("PurchaseStealTakeBack", true)
+        if remote then
+            remote:FireServer(productId)
+            print("[AutoSteal] Purchase", productId)
+        else
+            -- Cari tombol take di GUI
+            local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if playerGui then
+                for _, btn in ipairs(playerGui:GetDescendants()) do
+                    if (btn:IsA("TextButton") or btn:IsA("ImageButton")) and (btn.Text:lower():find("take") or btn.Name:lower():find("take")) then
+                        btn:Click()
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function startStealLoop()
+    if stealConnection then stealConnection:Disconnect() end
+    stealConnection = RunService.RenderStepped:Connect(function()
+        if not autoStealActive then return end
+        local targetPart = nil
+        if PositionFinder then
+            local success, positions = pcall(function()
+                return PositionFinder.ComputePositions(1, nil, nil)
+            end)
+            if success and positions and #positions > 0 then
+                local pos = positions[1]
+                for _, part in ipairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") and (part.Position - pos).Magnitude < 2 then
+                        targetPart = part
+                        break
+                    end
+                end
+            end
+        end
+        if not targetPart then
+            targetPart = findBrainrotPart()
+        end
+        if targetPart and targetPart ~= currentTargetPart then
+            currentTargetPart = targetPart
+            teleportToPart(targetPart)
+            task.wait(0.5)
+            local rarity = targetPart:GetAttribute("Rarity") or "Secret"
+            takeBrainrot(rarity)
+            task.wait(1)
+            currentTargetPart = nil
+        end
+    end)
+end
+
 GameTab:CreateToggle({
-    Name = "⭐ Auto Take Brainrot Cosmic/Secret",
+    Name = "💀 Auto Steal Brainrot (Cosmic/Divine/Eternal/Secret)",
     CurrentValue = false,
     Callback = function(state)
-        autoTakeActive = state
+        autoStealActive = state
         if state then
-            setupAutoTake()
-            Rayfield:Notify({Title = "Auto Take", Content = "Aktif! Tunggu Brainrot Cosmic/Secret.", Duration = 3})
+            startStealLoop()
+            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari brainrot...", Duration = 3})
         else
-            Rayfield:Notify({Title = "Auto Take", Content = "Dimatikan.", Duration = 2})
+            if stealConnection then stealConnection:Disconnect(); stealConnection = nil end
+        end
+    end
+})
+
+GameTab:CreateButton({
+    Name = "📍 Teleport ke Brainrot Terdekat",
+    Callback = function()
+        local part = findBrainrotPart()
+        if part then
+            teleportToPart(part)
+            Rayfield:Notify({Title = "Teleport", Content = "Sudah!", Duration = 1})
+        else
+            Rayfield:Notify({Title = "Teleport", Content = "Tidak ada brainrot.", Duration = 1})
         end
     end
 })
