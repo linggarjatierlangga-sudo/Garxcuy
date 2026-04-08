@@ -208,7 +208,7 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO STEAL BRAINROT (PISAH BASE & ARENA) ==========
+-- ========== AUTO STEAL BRAINROT (HANYA NPC BERGERAK) ==========
 local autoSteal = {
     Cosmic = false,
     Eternal = false,
@@ -228,7 +228,7 @@ local stealCooldown = 3
 local baseRadius = 150       -- radius base (default)
 local basePosition = nil     -- akan diisi oleh player
 
--- Mapping nama asset ke rarity
+-- Mapping nama asset ke rarity (untuk fallback jika tidak ada attribute)
 local assetRarityMap = {
     ["Cocofanto Elefanto"] = "COSMIC",
     ["Tralalero Tralala"] = "COSMIC",
@@ -257,16 +257,25 @@ local function isInsideBase(pos)
     return (pos - basePosition).Magnitude <= baseRadius
 end
 
--- Mencari brainrot di luar base
+-- Fungsi utama mencari brainrot berdasarkan rarity (HANYA yang memiliki Humanoid)
 local function findBrainrotPartByRarity(targetRarity)
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
+        -- Hanya proses Model (karena brainrot adalah model NPC)
+        if obj:IsA("Model") then
+            -- Cek apakah objek memiliki Humanoid (cirinya brainrot hidup)
+            local humanoid = obj:FindFirstChildOfClass("Humanoid")
+            if not humanoid then
+                -- Jika tidak punya Humanoid, abaikan (bukan brainrot)
+                goto continue
+            end
+            
             -- Cek rarity
             local rarityAttr = obj:GetAttribute("Rarity")
             local matched = false
             if rarityAttr and string.upper(rarityAttr) == targetRarity then
                 matched = true
             else
+                -- Fallback ke nama asset
                 local mappedRarity = assetRarityMap[obj.Name]
                 if mappedRarity and mappedRarity == targetRarity then
                     matched = true
@@ -280,6 +289,7 @@ local function findBrainrotPartByRarity(targetRarity)
                     end
                 end
             end
+            
             if matched then
                 local part = getBasePart(obj)
                 if part and not isInsideBase(part.Position) then
@@ -287,6 +297,7 @@ local function findBrainrotPartByRarity(targetRarity)
                 end
             end
         end
+        ::continue::
     end
     return nil
 end
@@ -303,7 +314,7 @@ local function teleportToBrainrot(obj)
     return false
 end
 
--- Ambil brainrot
+-- Ambil brainrot (panggil remote)
 local function takeBrainrot(rarity)
     local productId = nil
     if rarity == "COSMIC" then productId = 3569343071
@@ -316,6 +327,7 @@ local function takeBrainrot(rarity)
             print("[AutoSteal] " .. rarity .. " - Purchase sent")
             return true
         else
+            -- Fallback: cari tombol Take di GUI
             local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
             if playerGui then
                 for _, btn in ipairs(playerGui:GetDescendants()) do
@@ -438,7 +450,7 @@ GameTab:AddToggle({
     end
 })
 
--- Tombol teleport manual (juga terfilter base)
+-- Tombol teleport manual (terfilter base dan hanya brainrot dengan Humanoid)
 local function manualTeleport(rarity)
     local target = findBrainrotPartByRarity(rarity)
     if target then
@@ -463,9 +475,3 @@ GameTab:AddButton({
     Name = "📍 Teleport ke Secret (luar base)",
     Callback = function() manualTeleport("SECRET") end
 })
-    
--- Notifikasi awal
-OrionLib:MakeNotification({Name = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
-
--- Init Orion
-OrionLib:Init()
