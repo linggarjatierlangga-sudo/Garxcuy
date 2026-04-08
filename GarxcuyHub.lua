@@ -1,7 +1,6 @@
 -- ========== ORION LIBRARY ==========
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
--- ========== WINDOW ==========
 local Window = OrionLib:MakeWindow({
     Name = "Eye GPT All-in-One Hub",
     HidePremium = false,
@@ -12,13 +11,11 @@ local Window = OrionLib:MakeWindow({
     IntroIcon = "rbxassetid://4483345998"
 })
 
--- ========== TAB ==========
 local GameTab = Window:MakeTab({
     Name = "Game Exploits",
     Icon = "rbxassetid://7734022041"
 })
 
--- ========== SERVICES ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -344,7 +341,6 @@ local function startStealLoop(rarity)
     end)
 end
 
--- GUI Elements untuk Auto Steal
 GameTab:AddButton({
     Name = "🏠 Set Base Position (Berdiri di tengah base lalu tekan)",
     Callback = function()
@@ -453,8 +449,5 @@ GameTab:AddButton({
     Callback = function() manualTeleport("SECRET") end
 })
 
--- Notifikasi awal
 OrionLib:MakeNotification({Name = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
-
--- Init Orion
 OrionLib:Init()
