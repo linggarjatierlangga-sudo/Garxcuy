@@ -208,7 +208,7 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO STEAL BRAINROT PER RARITY (BERDASARKAN NAMA ASSET) ==========
+-- ========== AUTO STEAL BRAINROT (PISAH BASE & ARENA) ==========
 local autoSteal = {
     Cosmic = false,
     Eternal = false,
@@ -225,36 +225,64 @@ local lastStolen = {
     Secret = 0
 }
 local stealCooldown = 3
+local baseRadius = 150       -- radius base (default)
+local basePosition = nil     -- akan diisi oleh player
 
 -- Mapping nama asset ke rarity
 local assetRarityMap = {
-    -- Cosmic
     ["Cocofanto Elefanto"] = "COSMIC",
     ["Tralalero Tralala"] = "COSMIC",
     ["Odin Din Din Dun"] = "COSMIC",
-    -- Eternal
     ["Garama and Madundung"] = "ETERNAL",
-    -- Secret
     ["Graipuss Medussi"] = "SECRET",
     ["La Vacca Saturno Saturnita"] = "SECRET",
     ["Karkerkar Kurkur"] = "SECRET",
 }
 
+-- Dapatkan BasePart dari objek
+local function getBasePart(obj)
+    if obj:IsA("BasePart") then return obj
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then return obj.PrimaryPart end
+        for _, part in ipairs(obj:GetDescendants()) do
+            if part:IsA("BasePart") then return part end
+        end
+    end
+    return nil
+end
+
+-- Cek apakah posisi berada di dalam base (jika basePosition sudah diset)
+local function isInsideBase(pos)
+    if not basePosition then return false end
+    return (pos - basePosition).Magnitude <= baseRadius
+end
+
+-- Mencari brainrot di luar base
 local function findBrainrotPartByRarity(targetRarity)
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") or obj:IsA("Model") then
+            -- Cek rarity
             local rarityAttr = obj:GetAttribute("Rarity")
+            local matched = false
             if rarityAttr and string.upper(rarityAttr) == targetRarity then
-                return obj
+                matched = true
+            else
+                local mappedRarity = assetRarityMap[obj.Name]
+                if mappedRarity and mappedRarity == targetRarity then
+                    matched = true
+                else
+                    local parent = obj.Parent
+                    if parent then
+                        local parentRarity = assetRarityMap[parent.Name]
+                        if parentRarity and parentRarity == targetRarity then
+                            matched = true
+                        end
+                    end
+                end
             end
-            local mappedRarity = assetRarityMap[obj.Name]
-            if mappedRarity and mappedRarity == targetRarity then
-                return obj
-            end
-            local parent = obj.Parent
-            if parent then
-                local parentRarity = assetRarityMap[parent.Name]
-                if parentRarity and parentRarity == targetRarity then
+            if matched then
+                local part = getBasePart(obj)
+                if part and not isInsideBase(part.Position) then
                     return obj
                 end
             end
@@ -263,20 +291,7 @@ local function findBrainrotPartByRarity(targetRarity)
     return nil
 end
 
-local function getBasePart(obj)
-    if obj:IsA("BasePart") then
-        return obj
-    elseif obj:IsA("Model") then
-        if obj.PrimaryPart then return obj.PrimaryPart end
-        for _, part in ipairs(obj:GetDescendants()) do
-            if part:IsA("BasePart") then
-                return part
-            end
-        end
-    end
-    return nil
-end
-
+-- Teleport ke brainrot
 local function teleportToBrainrot(obj)
     local part = getBasePart(obj)
     if not part then return false end
@@ -288,15 +303,12 @@ local function teleportToBrainrot(obj)
     return false
 end
 
+-- Ambil brainrot
 local function takeBrainrot(rarity)
     local productId = nil
-    if rarity == "COSMIC" then
-        productId = 3569343071
-    elseif rarity == "ETERNAL" then
-        productId = 3569343339
-    elseif rarity == "SECRET" then
-        productId = 3569343224
-    end
+    if rarity == "COSMIC" then productId = 3569343071
+    elseif rarity == "ETERNAL" then productId = 3569343339
+    elseif rarity == "SECRET" then productId = 3569343224 end
     if productId then
         local remote = game:GetService("ReplicatedStorage"):FindFirstChild("PurchaseStealTakeBack", true)
         if remote then
@@ -307,13 +319,10 @@ local function takeBrainrot(rarity)
             local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
             if playerGui then
                 for _, btn in ipairs(playerGui:GetDescendants()) do
-                    if (btn:IsA("TextButton") or btn:IsA("ImageButton")) then
-                        local text = (btn.Text or btn.Name or ""):lower()
-                        if text:find("take") or text:find("claim") or text:find("collect") then
-                            btn:Click()
-                            print("[AutoSteal] Clicked take button")
-                            return true
-                        end
+                    if (btn:IsA("TextButton") or btn:IsA("ImageButton")) and
+                        (btn.Text:lower():find("take") or btn.Name:lower():find("take")) then
+                        btn:Click()
+                        return true
                     end
                 end
             end
@@ -322,6 +331,7 @@ local function takeBrainrot(rarity)
     return false
 end
 
+-- Loop auto steal
 local function startStealLoop(rarity)
     if stealConnections[rarity] then stealConnections[rarity]:Disconnect() end
     stealConnections[rarity] = RunService.RenderStepped:Connect(function()
@@ -329,7 +339,7 @@ local function startStealLoop(rarity)
         if tick() - lastStolen[rarity] < stealCooldown then return end
         local target = findBrainrotPartByRarity(rarity)
         if target then
-            print("[AutoSteal] Found " .. rarity .. " brainrot:", target.Name)
+            print("[AutoSteal] Found " .. rarity .. " brainrot at " .. tostring(getBasePart(target).Position))
             lastStolen[rarity] = tick()
             teleportToBrainrot(target)
             task.wait(0.5)
@@ -339,13 +349,47 @@ local function startStealLoop(rarity)
     end)
 end
 
--- Toggle untuk Cosmic
+-- ===== GUI ELEMENTS =====
+-- Tombol set posisi base
+GameTab:AddButton({
+    Name = "🏠 Set Base Position (Berdiri di tengah base lalu tekan)",
+    Callback = function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            basePosition = char.HumanoidRootPart.Position
+            OrionLib:MakeNotification({Name = "Base Set", Content = "Posisi base: " .. tostring(basePosition), Time = 3})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "Karakter tidak ditemukan", Time = 2})
+        end
+    end
+})
+
+-- Slider radius base
+GameTab:AddSlider({
+    Name = "🏠 Radius Base (studs)",
+    Min = 50,
+    Max = 500,
+    Default = 150,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 10,
+    ValueName = "studs",
+    Callback = function(value)
+        baseRadius = value
+    end
+})
+
+-- Toggle Cosmic
 GameTab:AddToggle({
-    Name = "💀 Auto Steal Brainrot COSMIC",
+    Name = "💀 Auto Steal Brainrot COSMIC (Luar Base)",
     Default = false,
     Callback = function(state)
         autoSteal.Cosmic = state
         if state then
+            if not basePosition then
+                OrionLib:MakeNotification({Name = "Error", Content = "Set base position dulu!", Time = 2})
+                autoSteal.Cosmic = false
+                return
+            end
             startStealLoop("COSMIC")
             OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Cosmic...", Time = 2})
         else
@@ -354,13 +398,18 @@ GameTab:AddToggle({
     end
 })
 
--- Toggle untuk Eternal
+-- Toggle Eternal
 GameTab:AddToggle({
-    Name = "💀 Auto Steal Brainrot ETERNAL",
+    Name = "💀 Auto Steal Brainrot ETERNAL (Luar Base)",
     Default = false,
     Callback = function(state)
         autoSteal.Eternal = state
         if state then
+            if not basePosition then
+                OrionLib:MakeNotification({Name = "Error", Content = "Set base position dulu!", Time = 2})
+                autoSteal.Eternal = false
+                return
+            end
             startStealLoop("ETERNAL")
             OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Eternal...", Time = 2})
         else
@@ -369,13 +418,18 @@ GameTab:AddToggle({
     end
 })
 
--- Toggle untuk Secret
+-- Toggle Secret
 GameTab:AddToggle({
-    Name = "💀 Auto Steal Brainrot SECRET",
+    Name = "💀 Auto Steal Brainrot SECRET (Luar Base)",
     Default = false,
     Callback = function(state)
         autoSteal.Secret = state
         if state then
+            if not basePosition then
+                OrionLib:MakeNotification({Name = "Error", Content = "Set base position dulu!", Time = 2})
+                autoSteal.Secret = false
+                return
+            end
             startStealLoop("SECRET")
             OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Secret...", Time = 2})
         else
@@ -384,48 +438,32 @@ GameTab:AddToggle({
     end
 })
 
--- Tombol teleport manual untuk Cosmic
-GameTab:AddButton({
-    Name = "📍 Teleport ke Cosmic Terdekat",
-    Callback = function()
-        local target = findBrainrotPartByRarity("COSMIC")
-        if target then
-            teleportToBrainrot(target)
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Cosmic!", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Cosmic", Time = 1})
-        end
+-- Tombol teleport manual (juga terfilter base)
+local function manualTeleport(rarity)
+    local target = findBrainrotPartByRarity(rarity)
+    if target then
+        teleportToBrainrot(target)
+        OrionLib:MakeNotification({Name = "Teleport", Content = "Ke " .. rarity, Time = 1})
+    else
+        OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada " .. rarity .. " di luar base", Time = 1})
     end
+end
+
+GameTab:AddButton({
+    Name = "📍 Teleport ke Cosmic (luar base)",
+    Callback = function() manualTeleport("COSMIC") end
 })
 
--- Tombol teleport manual untuk Eternal
 GameTab:AddButton({
-    Name = "📍 Teleport ke Eternal Terdekat",
-    Callback = function()
-        local target = findBrainrotPartByRarity("ETERNAL")
-        if target then
-            teleportToBrainrot(target)
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Eternal!", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Eternal", Time = 1})
-        end
-    end
+    Name = "📍 Teleport ke Eternal (luar base)",
+    Callback = function() manualTeleport("ETERNAL") end
 })
 
--- Tombol teleport manual untuk Secret
 GameTab:AddButton({
-    Name = "📍 Teleport ke Secret Terdekat",
-    Callback = function()
-        local target = findBrainrotPartByRarity("SECRET")
-        if target then
-            teleportToBrainrot(target)
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Secret!", Time = 1})
-        else
-            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Secret", Time = 1})
-        end
-    end
+    Name = "📍 Teleport ke Secret (luar base)",
+    Callback = function() manualTeleport("SECRET") end
 })
-
+    
 -- Notifikasi awal
 OrionLib:MakeNotification({Name = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 
