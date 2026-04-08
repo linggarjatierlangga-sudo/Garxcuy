@@ -225,10 +225,9 @@ local lastStolen = {
     Secret = 0
 }
 local stealCooldown = 3
-local baseRadius = 150       -- radius base (default)
-local basePosition = nil     -- akan diisi oleh player
+local baseRadius = 150
+local basePosition = nil
 
--- Mapping nama asset ke rarity (untuk fallback jika tidak ada attribute)
 local assetRarityMap = {
     ["Cocofanto Elefanto"] = "COSMIC",
     ["Tralalero Tralala"] = "COSMIC",
@@ -239,7 +238,6 @@ local assetRarityMap = {
     ["Karkerkar Kurkur"] = "SECRET",
 }
 
--- Dapatkan BasePart dari objek
 local function getBasePart(obj)
     if obj:IsA("BasePart") then return obj
     elseif obj:IsA("Model") then
@@ -251,58 +249,46 @@ local function getBasePart(obj)
     return nil
 end
 
--- Cek apakah posisi berada di dalam base (jika basePosition sudah diset)
 local function isInsideBase(pos)
     if not basePosition then return false end
     return (pos - basePosition).Magnitude <= baseRadius
 end
 
--- Fungsi utama mencari brainrot berdasarkan rarity (HANYA yang memiliki Humanoid)
 local function findBrainrotPartByRarity(targetRarity)
     for _, obj in ipairs(workspace:GetDescendants()) do
-        -- Hanya proses Model (karena brainrot adalah model NPC)
         if obj:IsA("Model") then
-            -- Cek apakah objek memiliki Humanoid (cirinya brainrot hidup)
             local humanoid = obj:FindFirstChildOfClass("Humanoid")
-            if not humanoid then
-                -- Jika tidak punya Humanoid, abaikan (bukan brainrot)
-                goto continue
-            end
-            
-            -- Cek rarity
-            local rarityAttr = obj:GetAttribute("Rarity")
-            local matched = false
-            if rarityAttr and string.upper(rarityAttr) == targetRarity then
-                matched = true
-            else
-                -- Fallback ke nama asset
-                local mappedRarity = assetRarityMap[obj.Name]
-                if mappedRarity and mappedRarity == targetRarity then
+            if humanoid then
+                local rarityAttr = obj:GetAttribute("Rarity")
+                local matched = false
+                if rarityAttr and string.upper(rarityAttr) == targetRarity then
                     matched = true
                 else
-                    local parent = obj.Parent
-                    if parent then
-                        local parentRarity = assetRarityMap[parent.Name]
-                        if parentRarity and parentRarity == targetRarity then
-                            matched = true
+                    local mappedRarity = assetRarityMap[obj.Name]
+                    if mappedRarity and mappedRarity == targetRarity then
+                        matched = true
+                    else
+                        local parent = obj.Parent
+                        if parent then
+                            local parentRarity = assetRarityMap[parent.Name]
+                            if parentRarity and parentRarity == targetRarity then
+                                matched = true
+                            end
                         end
                     end
                 end
-            end
-            
-            if matched then
-                local part = getBasePart(obj)
-                if part and not isInsideBase(part.Position) then
-                    return obj
+                if matched then
+                    local part = getBasePart(obj)
+                    if part and not isInsideBase(part.Position) then
+                        return obj
+                    end
                 end
             end
         end
-        ::continue::
     end
     return nil
 end
 
--- Teleport ke brainrot
 local function teleportToBrainrot(obj)
     local part = getBasePart(obj)
     if not part then return false end
@@ -314,7 +300,6 @@ local function teleportToBrainrot(obj)
     return false
 end
 
--- Ambil brainrot (panggil remote)
 local function takeBrainrot(rarity)
     local productId = nil
     if rarity == "COSMIC" then productId = 3569343071
@@ -327,7 +312,6 @@ local function takeBrainrot(rarity)
             print("[AutoSteal] " .. rarity .. " - Purchase sent")
             return true
         else
-            -- Fallback: cari tombol Take di GUI
             local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
             if playerGui then
                 for _, btn in ipairs(playerGui:GetDescendants()) do
@@ -343,7 +327,6 @@ local function takeBrainrot(rarity)
     return false
 end
 
--- Loop auto steal
 local function startStealLoop(rarity)
     if stealConnections[rarity] then stealConnections[rarity]:Disconnect() end
     stealConnections[rarity] = RunService.RenderStepped:Connect(function()
@@ -361,8 +344,7 @@ local function startStealLoop(rarity)
     end)
 end
 
--- ===== GUI ELEMENTS =====
--- Tombol set posisi base
+-- GUI Elements untuk Auto Steal
 GameTab:AddButton({
     Name = "🏠 Set Base Position (Berdiri di tengah base lalu tekan)",
     Callback = function()
@@ -376,7 +358,6 @@ GameTab:AddButton({
     end
 })
 
--- Slider radius base
 GameTab:AddSlider({
     Name = "🏠 Radius Base (studs)",
     Min = 50,
@@ -390,7 +371,6 @@ GameTab:AddSlider({
     end
 })
 
--- Toggle Cosmic
 GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot COSMIC (Luar Base)",
     Default = false,
@@ -410,7 +390,6 @@ GameTab:AddToggle({
     end
 })
 
--- Toggle Eternal
 GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot ETERNAL (Luar Base)",
     Default = false,
@@ -430,7 +409,6 @@ GameTab:AddToggle({
     end
 })
 
--- Toggle Secret
 GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot SECRET (Luar Base)",
     Default = false,
@@ -450,7 +428,6 @@ GameTab:AddToggle({
     end
 })
 
--- Tombol teleport manual (terfilter base dan hanya brainrot dengan Humanoid)
 local function manualTeleport(rarity)
     local target = findBrainrotPartByRarity(rarity)
     if target then
@@ -475,3 +452,9 @@ GameTab:AddButton({
     Name = "📍 Teleport ke Secret (luar base)",
     Callback = function() manualTeleport("SECRET") end
 })
+
+-- Notifikasi awal
+OrionLib:MakeNotification({Name = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
+
+-- Init Orion
+OrionLib:Init()
