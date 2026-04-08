@@ -1,14 +1,22 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ========== ORION LIBRARY ==========
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
-local Window = Rayfield:CreateWindow({
+-- ========== WINDOW ==========
+local Window = OrionLib:MakeWindow({
     Name = "Eye GPT All-in-One Hub",
-    LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "ESP + Aimbot + Auto Steal Brainrot",
-    ConfigurationSaving = {Enabled = false},
-    KeySystem = false
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "EyeGPTConfig",
+    IntroEnabled = true,
+    IntroText = "Eye GPT Hub",
+    IntroIcon = "rbxassetid://4483345998"
 })
 
-local GameTab = Window:CreateTab("Game Exploits", 7734022041)
+-- ========== TAB ==========
+local GameTab = Window:MakeTab({
+    Name = "Game Exploits",
+    Icon = "rbxassetid://7734022041"
+})
 
 -- ========== SERVICES ==========
 local Players = game:GetService("Players")
@@ -85,9 +93,9 @@ local function updateESP()
     end
 end
 
-GameTab:CreateToggle({
+GameTab:AddToggle({
     Name = "🔴 ESP Murderer (Merah) & Sheriff (Biru)",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         espActive = state
         if state then
@@ -100,7 +108,7 @@ GameTab:CreateToggle({
             roleCache = {}
             if espConnection then espConnection:Disconnect() end
             espConnection = RunService.RenderStepped:Connect(updateESP)
-            Rayfield:Notify({Title = "ESP", Content = "Aktif!", Duration = 2})
+            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif!", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
             if highlightFolder then
@@ -164,36 +172,39 @@ local function startAimbotLoop()
     end)
 end
 
-GameTab:CreateToggle({
+GameTab:AddToggle({
     Name = "🎯 Aimbot Khusus Murderer (Auto Aim)",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         aimbotActive = state
         if state then
             startAimbotLoop()
-            Rayfield:Notify({Title = "Aimbot", Content = "Membidik Murderer!", Duration = 2})
+            OrionLib:MakeNotification({Name = "Aimbot", Content = "Membidik Murderer!", Time = 2})
         else
             if aimbotConnection then aimbotConnection:Disconnect(); aimbotConnection = nil end
         end
     end
 })
 
-GameTab:CreateSlider({
+GameTab:AddSlider({
     Name = "FOV Aimbot (Radius Layar)",
-    Range = {50, 300},
+    Min = 50,
+    Max = 300,
+    Default = 150,
+    Color = Color3.fromRGB(255, 255, 255),
     Increment = 10,
-    CurrentValue = 150,
+    ValueName = "px",
     Callback = function(value)
         aimbotFOV = value
     end
 })
 
 -- ========== FLY + NOCLIP ==========
-GameTab:CreateButton({
+GameTab:AddButton({
     Name = "🚀 Load Fly + Noclip",
     Callback = function()
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-And-Noclip-GUI-192488"))()
-        Rayfield:Notify({Title = "Fly + Noclip", Content = "Loaded!", Duration = 2})
+        OrionLib:MakeNotification({Name = "Fly + Noclip", Content = "Loaded!", Time = 2})
     end
 })
 
@@ -215,7 +226,7 @@ local lastStolen = {
 }
 local stealCooldown = 3
 
--- Mapping nama asset ke rarity (dari script yang lo kasih)
+-- Mapping nama asset ke rarity
 local assetRarityMap = {
     -- Cosmic
     ["Cocofanto Elefanto"] = "COSMIC",
@@ -229,21 +240,17 @@ local assetRarityMap = {
     ["Karkerkar Kurkur"] = "SECRET",
 }
 
--- Fungsi mencari objek brainrot berdasarkan rarity
 local function findBrainrotPartByRarity(targetRarity)
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") or obj:IsA("Model") then
-            -- Cek attribute Rarity
             local rarityAttr = obj:GetAttribute("Rarity")
             if rarityAttr and string.upper(rarityAttr) == targetRarity then
                 return obj
             end
-            -- Cek nama objek
             local mappedRarity = assetRarityMap[obj.Name]
             if mappedRarity and mappedRarity == targetRarity then
                 return obj
             end
-            -- Cek parent (jika part di dalam model)
             local parent = obj.Parent
             if parent then
                 local parentRarity = assetRarityMap[parent.Name]
@@ -256,7 +263,6 @@ local function findBrainrotPartByRarity(targetRarity)
     return nil
 end
 
--- Dapatkan BasePart dari objek
 local function getBasePart(obj)
     if obj:IsA("BasePart") then
         return obj
@@ -271,7 +277,6 @@ local function getBasePart(obj)
     return nil
 end
 
--- Teleport ke objek brainrot
 local function teleportToBrainrot(obj)
     local part = getBasePart(obj)
     if not part then return false end
@@ -283,7 +288,6 @@ local function teleportToBrainrot(obj)
     return false
 end
 
--- Ambil brainrot (panggil remote atau klik tombol)
 local function takeBrainrot(rarity)
     local productId = nil
     if rarity == "COSMIC" then
@@ -300,7 +304,6 @@ local function takeBrainrot(rarity)
             print("[AutoSteal] " .. rarity .. " - Purchase sent")
             return true
         else
-            -- Fallback: cari tombol Take di GUI
             local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
             if playerGui then
                 for _, btn in ipairs(playerGui:GetDescendants()) do
@@ -319,7 +322,6 @@ local function takeBrainrot(rarity)
     return false
 end
 
--- Loop auto steal untuk masing-masing rarity
 local function startStealLoop(rarity)
     if stealConnections[rarity] then stealConnections[rarity]:Disconnect() end
     stealConnections[rarity] = RunService.RenderStepped:Connect(function()
@@ -337,88 +339,95 @@ local function startStealLoop(rarity)
     end)
 end
 
--- Toggle untuk masing-masing rarity
-GameTab:CreateToggle({
+-- Toggle untuk Cosmic
+GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot COSMIC",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         autoSteal.Cosmic = state
         if state then
             startStealLoop("COSMIC")
-            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Cosmic...", Duration = 2})
+            OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Cosmic...", Time = 2})
         else
             if stealConnections.Cosmic then stealConnections.Cosmic:Disconnect(); stealConnections.Cosmic = nil end
         end
     end
 })
 
-GameTab:CreateToggle({
+-- Toggle untuk Eternal
+GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot ETERNAL",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         autoSteal.Eternal = state
         if state then
             startStealLoop("ETERNAL")
-            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Eternal...", Duration = 2})
+            OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Eternal...", Time = 2})
         else
             if stealConnections.Eternal then stealConnections.Eternal:Disconnect(); stealConnections.Eternal = nil end
         end
     end
 })
 
-GameTab:CreateToggle({
+-- Toggle untuk Secret
+GameTab:AddToggle({
     Name = "💀 Auto Steal Brainrot SECRET",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         autoSteal.Secret = state
         if state then
             startStealLoop("SECRET")
-            Rayfield:Notify({Title = "Auto Steal", Content = "Mencari Secret...", Duration = 2})
+            OrionLib:MakeNotification({Name = "Auto Steal", Content = "Mencari Secret...", Time = 2})
         else
             if stealConnections.Secret then stealConnections.Secret:Disconnect(); stealConnections.Secret = nil end
         end
     end
 })
 
--- Tombol teleport manual
-GameTab:CreateButton({
+-- Tombol teleport manual untuk Cosmic
+GameTab:AddButton({
     Name = "📍 Teleport ke Cosmic Terdekat",
     Callback = function()
         local target = findBrainrotPartByRarity("COSMIC")
         if target then
             teleportToBrainrot(target)
-            Rayfield:Notify({Title = "Teleport", Content = "Ke Cosmic!", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Cosmic!", Time = 1})
         else
-            Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Cosmic", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Cosmic", Time = 1})
         end
     end
 })
 
-GameTab:CreateButton({
+-- Tombol teleport manual untuk Eternal
+GameTab:AddButton({
     Name = "📍 Teleport ke Eternal Terdekat",
     Callback = function()
         local target = findBrainrotPartByRarity("ETERNAL")
         if target then
             teleportToBrainrot(target)
-            Rayfield:Notify({Title = "Teleport", Content = "Ke Eternal!", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Eternal!", Time = 1})
         else
-            Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Eternal", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Eternal", Time = 1})
         end
     end
 })
 
-GameTab:CreateButton({
+-- Tombol teleport manual untuk Secret
+GameTab:AddButton({
     Name = "📍 Teleport ke Secret Terdekat",
     Callback = function()
         local target = findBrainrotPartByRarity("SECRET")
         if target then
             teleportToBrainrot(target)
-            Rayfield:Notify({Title = "Teleport", Content = "Ke Secret!", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Ke Secret!", Time = 1})
         else
-            Rayfield:Notify({Title = "Teleport", Content = "Tidak ada Secret", Duration = 1})
+            OrionLib:MakeNotification({Name = "Teleport", Content = "Tidak ada Secret", Time = 1})
         end
     end
 })
 
 -- Notifikasi awal
-Rayfield:Notify({Title = "Eye GPT All-in-One Hub", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
+OrionLib:MakeNotification({Name = "Eye GPT Hub", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
+
+-- Init Orion
+OrionLib:Init()
