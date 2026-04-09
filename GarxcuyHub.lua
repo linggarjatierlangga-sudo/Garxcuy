@@ -256,7 +256,6 @@ local function startLoop()
     connection = RunService.RenderStepped:Connect(function()
         if not autoActive or not isMurderer() then return end
         
-        -- Cari target terdekat (radius 700 studs)
         local target = nil
         local minDist = 700
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -292,30 +291,6 @@ GameTab:AddToggle({
             OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700 studs", Time = 2})
         else
             if connection then connection:Disconnect(); connection = nil end
-        end
-    end
-})
-        
-        local target = nil
-        local minDist = 700
-        local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myPos then return end
-        
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (p.Character.HumanoidRootPart.Position - myPos.Position).Magnitude
-                if dist < minDist then
-                    minDist = dist
-                    target = p
-                end
-            end
-        end
-        
-        if target then
-            teleportTo(target)
-            task.wait(0.1)
-            kill(target)
-            OrionLib:MakeNotification({Name = "Kill", Content = "Terbunuh!", Time = 1})
         end
     end
 })
