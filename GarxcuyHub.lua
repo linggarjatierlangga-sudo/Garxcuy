@@ -21,6 +21,12 @@ local TeleportTab = Window:MakeTab({
     Icon = "rbxassetid://4483345998"
 })
 
+-- ========== TAB ==========
+local GameTab = Window:MakeTab({
+    Name = "Game Exploits",
+    Icon = "rbxassetid://7734022041"
+})
+
 -- ========== SERVICES ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -28,51 +34,60 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ========== ESP MURDERER & SHERIFF (FIX TOTAL) ==========
+-- ========== ESP MURDERER & SHERIFF ==========
+local highlightFolder = nil
 local espActive = false
-local espHighlights = {}
 local espConnection = nil
+local roleCache = {}
 
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
-    local char = player.Character
-    if not char then return "Innocent" end
-    
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool then
-        local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
-        if weaponType == "Knife" then return "Murderer" end
-        if weaponType == "Gun" then return "Sheriff" end
-        
-        local toolName = tool.Name:lower()
-        if toolName:find("knife") then return "Murderer" end
-        if toolName:find("gun") or toolName:find("pistol") then return "Sheriff" end
+    if roleCache[player] and (tick() - (roleCache[player].time or 0)) < 1.5 then
+        return roleCache[player].role
     end
-    return "Innocent"
+    local char = player.Character
+    local role = "Innocent"
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool")
+        if tool then
+            local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+            if weaponType == "Knife" then role = "Murderer"
+            elseif weaponType == "Gun" then role = "Sheriff" end
+        end
+    end
+    if role == "Innocent" then
+        local backpack = player:FindFirstChildOfClass("Backpack")
+        if backpack then
+            for _, tool in ipairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") then
+                    local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+                    if weaponType == "Knife" then role = "Murderer"; break
+                    elseif weaponType == "Gun" then role = "Sheriff"; break end
+                end
+            end
+        end
+    end
+    roleCache[player] = {role = role, time = tick()}
+    return role
 end
 
 local function updateESP()
     if not espActive then return end
-    
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
+        if player ~= LocalPlayer and player.Character then
             local role = getPlayerRole(player)
-            
-            local highlight = espHighlights[player]
+            local highlight = highlightFolder and highlightFolder:FindFirstChild(player.Name)
             if not highlight then
                 highlight = Instance.new("Highlight")
-                highlight.Name = player.Name .. "_ESP"
+                highlight.Name = player.Name
+                highlight.Parent = highlightFolder
+                highlight.Adornee = player.Character
                 highlight.FillTransparency = 0.5
                 highlight.OutlineTransparency = 0
-                highlight.Parent = LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
-                espHighlights[player] = highlight
+            else
+                highlight.Adornee = player.Character
             end
-            
-            highlight.Adornee = char
-            
             if role == "Murderer" then
                 highlight.FillColor = Color3.fromRGB(255, 0, 0)
                 highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
@@ -85,13 +100,6 @@ local function updateESP()
             end
         end
     end
-    
-    for player, highlight in pairs(espHighlights) do
-        if not player or not player.Parent or not player.Character then
-            pcall(function() highlight:Destroy() end)
-            espHighlights[player] = nil
-        end
-    end
 end
 
 GameTab:AddToggle({
@@ -100,20 +108,22 @@ GameTab:AddToggle({
     Callback = function(state)
         espActive = state
         if state then
-            for _, h in pairs(espHighlights) do
-                pcall(function() h:Destroy() end)
+            if not highlightFolder then
+                highlightFolder = Instance.new("Folder")
+                highlightFolder.Name = "MM2_ESP"
+                highlightFolder.Parent = game:GetService("CoreGui")
             end
-            espHighlights = {}
-            updateESP()
+            for _, child in ipairs(highlightFolder:GetChildren()) do child:Destroy() end
+            roleCache = {}
             if espConnection then espConnection:Disconnect() end
             espConnection = RunService.RenderStepped:Connect(updateESP)
             OrionLib:MakeNotification({Name = "ESP", Content = "Aktif!", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
-            for _, h in pairs(espHighlights) do
-                pcall(function() h:Destroy() end)
+            if highlightFolder then
+                for _, child in ipairs(highlightFolder:GetChildren()) do child:Destroy() end
             end
-            espHighlights = {}
+            roleCache = {}
         end
     end
 })
