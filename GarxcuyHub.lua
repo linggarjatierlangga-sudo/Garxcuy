@@ -11,7 +11,6 @@ local Window = OrionLib:MakeWindow({
     IntroIcon = "rbxassetid://4483345998"
 })
 
--- ========== TAB ==========
 local GameTab = Window:MakeTab({
     Name = "Game Exploits",
     Icon = "rbxassetid://7734022041"
@@ -31,9 +30,9 @@ local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ========== ESP MURDERER & SHERIFF (FIX) ==========
+-- ========== BOX ESP (ALTERNATIF HIGHLIGHT) ==========
 local espActive = false
-local espHighlights = {}
+local boxes = {}
 local espConnection = nil
 
 local function getPlayerRole(player)
@@ -54,43 +53,78 @@ local function getPlayerRole(player)
     return "Innocent"
 end
 
-local function updateESP()
+local function getRoleColor(role)
+    if role == "Murderer" then
+        return Color3.fromRGB(255, 0, 0)     -- Merah
+    elseif role == "Sheriff" then
+        return Color3.fromRGB(0, 0, 255)     -- Biru
+    else
+        return Color3.fromRGB(0, 255, 0)     -- Hijau
+    end
+end
+
+local function createBox(player)
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0, 60, 0, 80)
+    box.BackgroundColor3 = getRoleColor(getPlayerRole(player))
+    box.BackgroundTransparency = 0.6
+    box.BorderSizePixel = 0
+    box.Parent = game:GetService("CoreGui")
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = player.Name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 12
+    label.Font = Enum.Font.GothamBold
+    label.Parent = box
+    
+    boxes[player] = box
+end
+
+local function updateBox(player, box)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local pos, onScreen = Camera:WorldToViewportPoint(char.HumanoidRootPart.Position)
+        if onScreen then
+            box.Visible = true
+            box.Position = UDim2.new(0, pos.X - 30, 0, pos.Y - 40)
+            -- Update warna berdasarkan role
+            box.BackgroundColor3 = getRoleColor(getPlayerRole(player))
+        else
+            box.Visible = false
+        end
+    else
+        box.Visible = false
+    end
+end
+
+local function updateAllBoxes()
     if not espActive then return end
     
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
-            local role = getPlayerRole(player)
-            
-            local highlight = espHighlights[player]
-            if not highlight then
-                highlight = Instance.new("Highlight")
-                highlight.Name = player.Name .. "_ESP"
-                highlight.FillTransparency = 0.5
-                highlight.OutlineTransparency = 0
-                highlight.Parent = LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
-                espHighlights[player] = highlight
-            end
-            
-            highlight.Adornee = char
-            
-            if role == "Murderer" then
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-            elseif role == "Sheriff" then
-                highlight.FillColor = Color3.fromRGB(0, 0, 255)
-                highlight.OutlineColor = Color3.fromRGB(0, 0, 255)
-            else
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-            end
+    for player, box in pairs(boxes) do
+        if player and player.Parent then
+            updateBox(player, box)
+        else
+            pcall(function() box:Destroy() end)
+            boxes[player] = nil
         end
     end
+end
+
+local function setupESP()
+    -- Hapus semua box lama
+    for _, box in pairs(boxes) do
+        pcall(function() box:Destroy() end)
+    end
+    boxes = {}
     
-    for player, highlight in pairs(espHighlights) do
-        if not player or not player.Parent or not player.Character then
-            pcall(function() highlight:Destroy() end)
-            espHighlights[player] = nil
+    -- Buat box untuk setiap player
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            createBox(player)
         end
     end
 end
@@ -101,23 +135,33 @@ GameTab:AddToggle({
     Callback = function(state)
         espActive = state
         if state then
-            for _, h in pairs(espHighlights) do
-                pcall(function() h:Destroy() end)
-            end
-            espHighlights = {}
-            updateESP()
+            setupESP()
             if espConnection then espConnection:Disconnect() end
-            espConnection = RunService.RenderStepped:Connect(updateESP)
-            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif!", Time = 2})
+            espConnection = RunService.RenderStepped:Connect(updateAllBoxes)
+            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif! (BoxESP)", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
-            for _, h in pairs(espHighlights) do
-                pcall(function() h:Destroy() end)
+            for _, box in pairs(boxes) do
+                pcall(function() box:Destroy() end)
             end
-            espHighlights = {}
+            boxes = {}
         end
     end
 })
+
+-- Update box saat player masuk/keluar
+Players.PlayerAdded:Connect(function(player)
+    if espActive and player ~= LocalPlayer then
+        createBox(player)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if boxes[player] then
+        pcall(function() boxes[player]:Destroy() end)
+        boxes[player] = nil
+    end
+end)
 
 -- ========== FLY + NOCLIP ==========
 GameTab:AddButton({
@@ -203,77 +247,6 @@ GameTab:AddToggle({
             OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700 studs", Time = 2})
         else
             if connection then connection:Disconnect(); connection = nil end
-        end
-    end
-})
-
--- ========== SLIDER JUMP POWER ==========
-GameTab:AddSlider({
-    Name = "Jump Power",
-    Min = 50,
-    Max = 200,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 5,
-    ValueName = "power",
-    Callback = function(value)
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.JumpPower = value
-            end
-        end
-    end
-})
-
--- ========== SLIDER WALK SPEED ==========
-GameTab:AddSlider({
-    Name = "Walk Speed",
-    Min = 16,
-    Max = 200,
-    Default = 16,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "speed",
-    Callback = function(value)
-        local char = LocalPlayer.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = value
-            end
-        end
-    end
-})
-
--- ========== INFINITE JUMP ==========
-local infiniteJumpActive = false
-local infiniteJumpConnection = nil
-
-GameTab:AddToggle({
-    Name = "🦘 Infinite Jump",
-    Default = false,
-    Callback = function(state)
-        infiniteJumpActive = state
-        if state then
-            infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
-                if infiniteJumpActive and LocalPlayer.Character then
-                    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if root then
-                        local bv = Instance.new("BodyVelocity")
-                        bv.Velocity = Vector3.new(0, 50, 0)
-                        bv.MaxForce = Vector3.new(0, math.huge, 0)
-                        bv.Parent = root
-                        game:GetService("Debris"):AddItem(bv, 0.5)
-                    end
-                end
-            end)
-        else
-            if infiniteJumpConnection then
-                infiniteJumpConnection:Disconnect()
-                infiniteJumpConnection = nil
-            end
         end
     end
 })
