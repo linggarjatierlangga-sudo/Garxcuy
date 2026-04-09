@@ -30,36 +30,59 @@ local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ========== DRAWING ESP (BOX + NAME + TRACER) ==========
+-- ========== ESP DENGAN DETEKSI ROLE MAKSIMAL ==========
 local espObjects = {}
 local espActive = false
 local espConnection = nil
 
+-- Fungsi deteksi role (gabungan dari berbagai sumber)
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
-    local char = player.Character
-    if not char then return "Innocent" end
     
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool then
-        local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
-        if weaponType == "Knife" then return "Murderer" end
-        if weaponType == "Gun" then return "Sheriff" end
-        
-        local toolName = tool.Name:lower()
-        if toolName:find("knife") then return "Murderer" end
-        if toolName:find("gun") or toolName:find("pistol") then return "Sheriff" end
+    -- 1. Cek dari atribut player
+    local roleAttr = player:GetAttribute("Role") or player:GetAttribute("PlayerRole")
+    if roleAttr then
+        local roleUpper = string.upper(tostring(roleAttr))
+        if roleUpper:find("MURDER") then return "Murderer" end
+        if roleUpper:find("SHERIFF") then return "Sheriff" end
     end
+    
+    -- 2. Cek dari leaderstats (jika ada)
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local roleStat = leaderstats:FindFirstChild("Role") or leaderstats:FindFirstChild("Team")
+        if roleStat then
+            local roleValue = tostring(roleStat.Value):upper()
+            if roleValue:find("MURDER") then return "Murderer" end
+            if roleValue:find("SHERIFF") then return "Sheriff" end
+        end
+    end
+    
+    -- 3. Cek dari tool yang dipegang (fallback)
+    local char = player.Character
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool")
+        if tool then
+            local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+            if weaponType == "Knife" then return "Murderer" end
+            if weaponType == "Gun" then return "Sheriff" end
+            
+            local toolName = tool.Name:lower()
+            if toolName:find("knife") then return "Murderer" end
+            if toolName:find("gun") or toolName:find("pistol") then return "Sheriff" end
+        end
+    end
+    
     return "Innocent"
 end
 
 local function getRoleColor(role)
     if role == "Murderer" then
-        return Color3.fromRGB(255, 0, 0)
+        return Color3.fromRGB(255, 0, 0)     -- Merah
     elseif role == "Sheriff" then
-        return Color3.fromRGB(0, 0, 255)
+        return Color3.fromRGB(0, 0, 255)     -- Biru
     else
-        return Color3.fromRGB(0, 255, 0)
+        return Color3.fromRGB(0, 255, 0)     -- Hijau
     end
 end
 
@@ -183,7 +206,6 @@ GameTab:AddToggle({
     Callback = function(state)
         espActive = state
         if state then
-            -- Buat ESP untuk semua player
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and not espObjects[player] then
                     createESPForPlayer(player)
@@ -191,7 +213,7 @@ GameTab:AddToggle({
             end
             if espConnection then espConnection:Disconnect() end
             espConnection = RunService.RenderStepped:Connect(updateESP)
-            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif! (Drawing ESP)", Time = 2})
+            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif! (Multi-Detection)", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
             for player, _ in pairs(espObjects) do
@@ -223,7 +245,7 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL + TELEPORT (MURDERER ONLY) ==========
+-- ========== AUTO KILL + TELEPORT ==========
 local killRemote = nil
 for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     if remote:IsA("RemoteEvent") and (remote.Name:lower():find("stab") or remote.Name:lower():find("kill")) then
@@ -252,8 +274,7 @@ local function kill(target)
 end
 
 local function isMurderer()
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
-    return tool and (tool:GetAttribute("MurderMysteryWeaponType") == "Knife" or tool.Name:lower():find("knife"))
+    return getPlayerRole(LocalPlayer) == "Murderer"
 end
 
 local autoActive = false
@@ -302,7 +323,7 @@ GameTab:AddToggle({
     end
 })
 
--- ========== TELEPORT PLAYER (DAFTAR NAMA) ==========
+-- ========== TELEPORT PLAYER ==========
 TeleportTab:AddParagraph("📌 Teleport Player", "Klik nama player untuk teleport.")
 
 local playerSection = TeleportTab:AddSection("Daftar Player")
