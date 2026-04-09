@@ -2,7 +2,7 @@
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "LINGGAR 💗 ARA",
+    Name = "GAR N CUY BOCAH EPEP",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "GAR CONFIG",
@@ -11,6 +11,7 @@ local Window = OrionLib:MakeWindow({
     IntroIcon = "rbxassetid://4483345998"
 })
 
+-- ========== TAB ==========
 local GameTab = Window:MakeTab({
     Name = "Game Exploits",
     Icon = "rbxassetid://7734022041"
@@ -21,6 +22,7 @@ local TeleportTab = Window:MakeTab({
     Icon = "rbxassetid://4483345998"
 })
 
+-- ========== SERVICES ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -125,7 +127,6 @@ GameTab:AddToggle({
 -- ========== EXUNYS AIMBOT (HANYA MURDERER) ==========
 local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src.lua"))()
 
--- Fungsi cek Murderer
 local function isMurderer(player)
     local char = player.Character
     if char then
@@ -139,8 +140,6 @@ local function isMurderer(player)
     return false
 end
 
--- Override fungsi GetClosestPlayer biar cuma target Murderer
-local originalGetClosestPlayer = Aimbot.GetClosestPlayer
 Aimbot.GetClosestPlayer = function()
     local closest = nil
     local shortestDist = Aimbot.FOVSettings.Radius or 2000
@@ -162,7 +161,6 @@ Aimbot.GetClosestPlayer = function()
     return closest
 end
 
--- Konfigurasi Aimbot
 Aimbot.Settings = {
     Enabled = true,
     TeamCheck = false,
@@ -184,7 +182,6 @@ Aimbot.FOVSettings = {
     LockedColor = Color3.fromRGB(0, 255, 0)
 }
 
--- Load aimbot
 Aimbot:Load()
 
 local aimbotActive = false
@@ -343,5 +340,77 @@ GameTab:AddButton({
     end
 })
 
+-- ========== SLIDER JUMP POWER ==========
+GameTab:AddSlider({
+    Name = "Jump Power",
+    Min = 50,
+    Max = 200,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 5,
+    ValueName = "power",
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.JumpPower = value
+            end
+        end
+    end
+})
+
+-- ========== SLIDER WALK SPEED ==========
+GameTab:AddSlider({
+    Name = "Walk Speed",
+    Min = 16,
+    Max = 200,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = value
+            end
+        end
+    end
+})
+
+-- ========== INFINITE JUMP ==========
+local infiniteJumpActive = false
+local infiniteJumpConnection = nil
+
+GameTab:AddToggle({
+    Name = "🦘 Infinite Jump",
+    Default = false,
+    Callback = function(state)
+        infiniteJumpActive = state
+        if state then
+            infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if infiniteJumpActive and LocalPlayer.Character then
+                    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local bv = Instance.new("BodyVelocity")
+                        bv.Velocity = Vector3.new(0, 50, 0)
+                        bv.MaxForce = Vector3.new(0, math.huge, 0)
+                        bv.Parent = root
+                        game:GetService("Debris"):AddItem(bv, 0.5)
+                    end
+                end
+            end)
+        else
+            if infiniteJumpConnection then
+                infiniteJumpConnection:Disconnect()
+                infiniteJumpConnection = nil
+            end
+        end
+    end
+})
+
+-- ========== NOTIFIKASI ==========
 OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 OrionLib:Init()
