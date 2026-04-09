@@ -350,5 +350,86 @@ Players.PlayerRemoving:Connect(updatePlayerListUI)
 -- Update pertama kali
 updatePlayerListUI()
 
+-- ========== TAB TELEPORT PLAYER ==========
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport Player",
+    Icon = "rbxassetid://4483345998"
+})
+
+-- Load module
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src.lua"))()
+
+-- Fungsi cek apakah pemain adalah Murderer
+local function isMurderer(player)
+    local char = player.Character
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool")
+        if tool then
+            local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+            if weaponType == "Knife" then return true end
+            if tool.Name:lower():find("knife") then return true end
+        end
+    end
+    return false
+end
+
+-- Simpan fungsi asli GetClosestPlayer
+local originalGetClosestPlayer = Aimbot.GetClosestPlayer
+
+-- Override fungsi GetClosestPlayer
+Aimbot.GetClosestPlayer = function()
+    -- Cari pemain terdekat yang merupakan Murderer
+    local closest = nil
+    local shortestDist = Aimbot.FOVSettings.Radius or 2000
+    local mousePos = game:GetService("UserInputService"):GetMouseLocation()
+    local camera = workspace.CurrentCamera
+    
+    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+        if player ~= game:GetService("Players").LocalPlayer and isMurderer(player) then
+            local char = player.Character
+            if char and char:FindFirstChild("Head") then
+                local screenPos, onScreen = camera:WorldToViewportPoint(char.Head.Position)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        closest = player
+                    end
+                end
+            end
+        end
+    end
+    
+    Aimbot.Locked = closest
+    return closest
+end
+
+-- Konfigurasi lain (sama seperti di atas)
+Aimbot.Settings = {
+    Enabled = true,
+    TeamCheck = false,
+    AliveCheck = true,
+    WallCheck = false,
+    Sensitivity = 0,
+    Sensitivity2 = 3.5,
+    LockMode = 2, -- pake mousemoverel biar lebih stabil
+    LockPart = "Head",
+    TriggerKey = Enum.UserInputType.MouseButton2,
+    Toggle = false
+}
+
+Aimbot.FOVSettings = {
+    Enabled = true,
+    Visible = true,
+    Radius = 150,
+    Color = Color3.fromRGB(255, 0, 0),
+    LockedColor = Color3.fromRGB(0, 255, 0)
+}
+
+-- Load aimbot
+Aimbot:Load()
+
+print("✅ Aimbot aktif! Hanya membidik Murderer.")
+
 OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 OrionLib:Init()
