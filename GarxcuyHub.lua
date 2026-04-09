@@ -15,12 +15,6 @@ local GameTab = Window:MakeTab({
     Name = "Game Exploits",
     Icon = "rbxassetid://7734022041"
 })
-
-local TeleportTab = Window:MakeTab({
-    Name = "Teleport Player",
-    Icon = "rbxassetid://4483345998"
-})
-
 -- ========== TAB ==========
 local GameTab = Window:MakeTab({
     Name = "Game Exploits",
@@ -127,7 +121,6 @@ GameTab:AddToggle({
         end
     end
 })
-
 -- ========== FLY + NOCLIP ==========
 GameTab:AddButton({
     Name = "🚀 Load Fly + Noclip",
