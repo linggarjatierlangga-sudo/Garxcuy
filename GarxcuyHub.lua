@@ -350,8 +350,8 @@ Players.PlayerRemoving:Connect(updatePlayerListUI)
 -- Update pertama kali
 updatePlayerListUI()
 
--- ========== TAB TELEPORT PLAYER ==========
-local TeleportTab = Window:MakeTab({
+-- ========== AIMBOT ==========
+local Aimbot = Window:MakeTab({
     Name = "Teleport Player",
     Icon = "rbxassetid://4483345998"
 })
