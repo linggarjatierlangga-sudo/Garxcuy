@@ -205,30 +205,43 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL ALL (MURDERER ONLY) ==========
+-- ========== AUTO KILL ALL (MURDERER ONLY) - VIA GLOBAL FUNCTIONS ==========
 -- Masukkan ke dalam tab Game Exploits di Orion Hub
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
--- Cari remote dari script asli
-local Network = require(ReplicatedStorage.Library.Client.Network)
-local Constants = require(ReplicatedStorage.Library.Globals.Constants)
-local KillRemote = Network and Constants and Constants.NETWORK_MAP and Constants.NETWORK_MAP.MurderMystery and Constants.NETWORK_MAP.MurderMystery.REQUEST_WEAPON_KNIFE_STAB
-local ThrowRemote = Network and Constants and Constants.NETWORK_MAP and Constants.NETWORK_MAP.MurderMystery and Constants.NETWORK_MAP.MurderMystery.REQUEST_WEAPON_KNIFE_THROW
-
--- Fallback: cari remote manual
-if not KillRemote then
-    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-        if remote:IsA("RemoteEvent") and (remote.Name:find("KnifeStab") or remote.Name:find("Stab") or remote.Name:find("Kill")) then
-            KillRemote = remote
-            break
+-- Cari fungsi global yang mungkin tersedia
+local function findGlobalKillFunction()
+    -- Cek fungsi dari script yang sudah di-load
+    for _, funcName in ipairs({"_G.KillFunction", "_G.MurdererKill", "_G.Stab", "_G.KnifeStab", "_G.RequestKill"}) do
+        local success, result = pcall(function()
+            return loadstring("return " .. funcName)()
+        end)
+        if success and type(result) == "function" then
+            return result
         end
     end
+    return nil
 end
+
+-- Cari remote event yang tepat
+local function findKillRemote()
+    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
+            local name = remote.Name:lower()
+            if name:find("knifestab") or name:find("stab") or name:find("kill") or name:find("murderer") then
+                return remote
+            end
+        end
+    end
+    return nil
+end
+
+local killRemote = findKillRemote()
+local killFunction = findGlobalKillFunction()
 
 -- Fungsi cek apakah kita Murderer
 local function isMurderer()
@@ -247,21 +260,34 @@ end
 -- Fungsi membunuh satu pemain
 local function killPlayer(player)
     if not player or not player.Character then return end
-    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
     
-    -- Metode 1: Panggil remote stab (jika ada)
-    if KillRemote and KillRemote:IsA("RemoteEvent") then
+    -- Metode 1: Panggil remote dengan parameter yang benar
+    if killRemote then
         pcall(function()
-            KillRemote:FireServer({tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool"), targetUserId = player.UserId})
+            -- Coba berbagai format parameter
+            killRemote:FireServer(player)
+            killRemote:FireServer(player.UserId)
+            killRemote:FireServer({target = player, tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")})
+            killRemote:FireServer({targetUserId = player.UserId})
         end)
     end
     
-    -- Metode 2: Panggil fungsi global (jika ada)
-    if _G.KnifeStabFunction then
+    -- Metode 2: Panggil fungsi global
+    if killFunction then
         pcall(function()
-            _G.KnifeStabFunction(player)
+            killFunction(player)
+            killFunction(player.UserId)
         end)
+    end
+    
+    -- Metode 3: Simulasi click pada tombol "Kill" di GUI (jika ada)
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        for _, btn in ipairs(playerGui:GetDescendants()) do
+            if btn:IsA("TextButton") and (btn.Text:lower():find("kill") or btn.Name:lower():find("kill")) then
+                pcall(function() btn:Click() end)
+            end
+        end
     end
 end
 
@@ -295,7 +321,7 @@ local function startAutoKill()
     end)
 end
 
--- Toggle di GUI
+-- Toggle di GUI (pastikan GameTab sudah ada)
 GameTab:AddToggle({
     Name = "🔪 Auto Kill All (Murderer Only)",
     Default = false,
