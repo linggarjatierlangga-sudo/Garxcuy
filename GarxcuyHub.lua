@@ -295,15 +295,6 @@ GameTab:AddToggle({
         end
     end
 })
-
--- Tombol manual
-GameTab:AddButton({
-    Name = "🔪 Kill Terdekat (Manual)",
-    Callback = function()
-        if not isMurderer() then
-            OrionLib:MakeNotification({Name = "Error", Content = "Bukan Murderer!", Time = 1})
-            return
-        end
         
         local target = nil
         local minDist = 700
