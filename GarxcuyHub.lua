@@ -40,7 +40,7 @@ local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
     local char = player.Character
     if not char then return "Innocent" end
-    
+   
     local tool = char:FindFirstChildWhichIsA("Tool")
     if tool then
         local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
