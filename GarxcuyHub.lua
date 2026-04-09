@@ -245,7 +245,13 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL + TELEPORT ==========
+-- ========== AUTO KILL + TELEPORT (MURDERER ONLY) ==========
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Cari remote kill
 local killRemote = nil
 for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     if remote:IsA("RemoteEvent") and (remote.Name:lower():find("stab") or remote.Name:lower():find("kill")) then
@@ -254,6 +260,7 @@ for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     end
 end
 
+-- Teleport ke target
 local function teleportTo(target)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and target and target.Character then
@@ -266,6 +273,7 @@ local function teleportTo(target)
     return false
 end
 
+-- Bunuh target
 local function kill(target)
     if killRemote then
         pcall(function() killRemote:FireServer(target) end)
@@ -273,10 +281,13 @@ local function kill(target)
     end
 end
 
+-- Cek Murderer
 local function isMurderer()
-    return getPlayerRole(LocalPlayer) == "Murderer"
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+    return tool and (tool:GetAttribute("MurderMysteryWeaponType") == "Knife" or tool.Name:lower():find("knife"))
 end
 
+-- Loop auto kill
 local autoActive = false
 local connection = nil
 
@@ -309,6 +320,7 @@ local function startLoop()
     end)
 end
 
+-- Toggle GUI
 GameTab:AddToggle({
     Name = "🔪 Auto Kill + Teleport (Murderer Only)",
     Default = false,
@@ -322,7 +334,6 @@ GameTab:AddToggle({
         end
     end
 })
-
 -- ========== TELEPORT PLAYER ==========
 TeleportTab:AddParagraph("📌 Teleport Player", "Klik nama player untuk teleport.")
 
