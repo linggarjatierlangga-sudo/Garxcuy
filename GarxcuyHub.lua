@@ -2,7 +2,7 @@
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "GAR N CUY BOCAH EPEP",
+    Name = "LINGGAR 💗 ARA",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "GAR CONFIG",
@@ -91,7 +91,7 @@ local function updateESP()
 end
 
 GameTab:AddToggle({
-    Name = "🔴 ESP Murderer (Merah) & Sheriff (Biru)",
+    Name = "🔴 ESP Murderer & Sheriff",
     Default = false,
     Callback = function(state)
         espActive = state
@@ -205,7 +205,7 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL + TELEPORT (MURDERER ONLY) ==========
+-- ========== AUTO KILL (MURDERER ONLY) ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -293,12 +293,6 @@ GameTab:AddToggle({
             if connection then connection:Disconnect(); connection = nil end
         end
     end
-})
-
--- ========== TAB TELEPORT PLAYER ==========
-local TeleportTab = Window:MakeTab({
-    Name = "Teleport Player",
-    Icon = "rbxassetid://4483345998"
 })
 
 -- ========== TAB TELEPORT PLAYER ==========
