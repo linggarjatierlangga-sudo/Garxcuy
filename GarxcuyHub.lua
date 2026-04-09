@@ -212,99 +212,96 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
--- Cari remote untuk kill
-local killRemote = nil
-local possibleRemotes = {
-    ReplicatedStorage:FindFirstChild("KnifeHit", true),
-    ReplicatedStorage:FindFirstChild("MurdererKill", true),
-    ReplicatedStorage:FindFirstChild("Stab", true),
-    ReplicatedStorage:FindFirstChild("KillPlayer", true),
-    ReplicatedStorage:FindFirstChild("Attack", true),
-}
+-- Cari remote dari script asli
+local Network = require(ReplicatedStorage.Library.Client.Network)
+local Constants = require(ReplicatedStorage.Library.Globals.Constants)
+local KillRemote = Network and Constants and Constants.NETWORK_MAP and Constants.NETWORK_MAP.MurderMystery and Constants.NETWORK_MAP.MurderMystery.REQUEST_WEAPON_KNIFE_STAB
+local ThrowRemote = Network and Constants and Constants.NETWORK_MAP and Constants.NETWORK_MAP.MurderMystery and Constants.NETWORK_MAP.MurderMystery.REQUEST_WEAPON_KNIFE_THROW
 
-for _, remote in ipairs(possibleRemotes) do
-    if remote and remote:IsA("RemoteEvent") then
-        killRemote = remote
-        break
-    end
-end
-
--- Fungsi mendapatkan semua pemain (kecuali diri sendiri)
-local function getAllPlayers()
-    local list = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            table.insert(list, player)
+-- Fallback: cari remote manual
+if not KillRemote then
+    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+        if remote:IsA("RemoteEvent") and (remote.Name:find("KnifeStab") or remote.Name:find("Stab") or remote.Name:find("Kill")) then
+            KillRemote = remote
+            break
         end
     end
-    return list
 end
 
--- Fungsi kill semua
-local function killAll()
-    if not killRemote then
-        warn("[AutoKill] Remote tidak ditemukan!")
-        return
-    end
-    
-    for _, player in ipairs(getAllPlayers()) do
-        pcall(function()
-            killRemote:FireServer(player)
-            print("[AutoKill] Kill:", player.Name)
-        end)
-    end
-end
-
--- Auto kill loop (aktif jika menjadi Murderer)
-local autoKillActive = false
-local autoKillConnection = nil
-local isMurderer = false
-
--- Fungsi cek apakah kita Murderer (dari atribut atau senjata)
-local function checkIsMurderer()
+-- Fungsi cek apakah kita Murderer
+local function isMurderer()
     local char = LocalPlayer.Character
     if char then
         local tool = char:FindFirstChildWhichIsA("Tool")
         if tool then
             local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
-            if weaponType == "Knife" then
-                return true
-            end
-            if tool.Name:lower():find("knife") then
-                return true
-            end
+            if weaponType == "Knife" then return true end
+            if tool.Name:lower():find("knife") then return true end
         end
     end
     return false
 end
 
--- Loop auto kill
+-- Fungsi membunuh satu pemain
+local function killPlayer(player)
+    if not player or not player.Character then return end
+    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Metode 1: Panggil remote stab (jika ada)
+    if KillRemote and KillRemote:IsA("RemoteEvent") then
+        pcall(function()
+            KillRemote:FireServer({tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool"), targetUserId = player.UserId})
+        end)
+    end
+    
+    -- Metode 2: Panggil fungsi global (jika ada)
+    if _G.KnifeStabFunction then
+        pcall(function()
+            _G.KnifeStabFunction(player)
+        end)
+    end
+end
+
+-- Fungsi kill semua pemain
+local function killAllPlayers()
+    if not isMurderer() then
+        warn("[AutoKill] Kamu bukan Murderer!")
+        return
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            killPlayer(player)
+            task.wait(0.1)
+        end
+    end
+end
+
+-- Auto kill loop
+local autoKillActive = false
+local autoKillConnection = nil
+
 local function startAutoKill()
     if autoKillConnection then autoKillConnection:Disconnect() end
     autoKillConnection = RunService.RenderStepped:Connect(function()
         if not autoKillActive then return end
-        
-        isMurderer = checkIsMurderer()
-        if isMurderer then
-            killAll()
-            task.wait(0.5) -- jeda biar gak terlalu cepat
+        if isMurderer() then
+            killAllPlayers()
+            task.wait(0.5)
         end
     end)
 end
 
--- Toggle di GUI (masukkan ke GameTab)
+-- Toggle di GUI
 GameTab:AddToggle({
     Name = "🔪 Auto Kill All (Murderer Only)",
     Default = false,
     Callback = function(state)
         autoKillActive = state
         if state then
-            if not killRemote then
-                OrionLib:MakeNotification({Name = "Error", Content = "Remote kill tidak ditemukan!", Time = 3})
-                autoKillActive = false
-                return
-            end
             startAutoKill()
             OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! (Hanya saat Murderer)", Time = 2})
         else
@@ -313,12 +310,12 @@ GameTab:AddToggle({
     end
 })
 
--- Tombol kill manual (test)
+-- Tombol kill manual
 GameTab:AddButton({
     Name = "🔪 Kill All (Manual)",
     Callback = function()
-        if checkIsMurderer() then
-            killAll()
+        if isMurderer() then
+            killAllPlayers()
             OrionLib:MakeNotification({Name = "Kill", Content = "Semua pemain terbunuh!", Time = 1})
         else
             OrionLib:MakeNotification({Name = "Error", Content = "Kamu bukan Murderer!", Time = 1})
