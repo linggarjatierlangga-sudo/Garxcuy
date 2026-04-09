@@ -205,5 +205,126 @@ GameTab:AddButton({
     end
 })
 
+-- ========== AUTO KILL ALL (MURDERER ONLY) ==========
+-- Masukkan ke dalam tab Game Exploits di Orion Hub
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Cari remote untuk kill
+local killRemote = nil
+local possibleRemotes = {
+    ReplicatedStorage:FindFirstChild("KnifeHit", true),
+    ReplicatedStorage:FindFirstChild("MurdererKill", true),
+    ReplicatedStorage:FindFirstChild("Stab", true),
+    ReplicatedStorage:FindFirstChild("KillPlayer", true),
+    ReplicatedStorage:FindFirstChild("Attack", true),
+}
+
+for _, remote in ipairs(possibleRemotes) do
+    if remote and remote:IsA("RemoteEvent") then
+        killRemote = remote
+        break
+    end
+end
+
+-- Fungsi mendapatkan semua pemain (kecuali diri sendiri)
+local function getAllPlayers()
+    local list = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(list, player)
+        end
+    end
+    return list
+end
+
+-- Fungsi kill semua
+local function killAll()
+    if not killRemote then
+        warn("[AutoKill] Remote tidak ditemukan!")
+        return
+    end
+    
+    for _, player in ipairs(getAllPlayers()) do
+        pcall(function()
+            killRemote:FireServer(player)
+            print("[AutoKill] Kill:", player.Name)
+        end)
+    end
+end
+
+-- Auto kill loop (aktif jika menjadi Murderer)
+local autoKillActive = false
+local autoKillConnection = nil
+local isMurderer = false
+
+-- Fungsi cek apakah kita Murderer (dari atribut atau senjata)
+local function checkIsMurderer()
+    local char = LocalPlayer.Character
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool")
+        if tool then
+            local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+            if weaponType == "Knife" then
+                return true
+            end
+            if tool.Name:lower():find("knife") then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Loop auto kill
+local function startAutoKill()
+    if autoKillConnection then autoKillConnection:Disconnect() end
+    autoKillConnection = RunService.RenderStepped:Connect(function()
+        if not autoKillActive then return end
+        
+        isMurderer = checkIsMurderer()
+        if isMurderer then
+            killAll()
+            task.wait(0.5) -- jeda biar gak terlalu cepat
+        end
+    end)
+end
+
+-- Toggle di GUI (masukkan ke GameTab)
+GameTab:AddToggle({
+    Name = "🔪 Auto Kill All (Murderer Only)",
+    Default = false,
+    Callback = function(state)
+        autoKillActive = state
+        if state then
+            if not killRemote then
+                OrionLib:MakeNotification({Name = "Error", Content = "Remote kill tidak ditemukan!", Time = 3})
+                autoKillActive = false
+                return
+            end
+            startAutoKill()
+            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! (Hanya saat Murderer)", Time = 2})
+        else
+            if autoKillConnection then autoKillConnection:Disconnect(); autoKillConnection = nil end
+        end
+    end
+})
+
+-- Tombol kill manual (test)
+GameTab:AddButton({
+    Name = "🔪 Kill All (Manual)",
+    Callback = function()
+        if checkIsMurderer() then
+            killAll()
+            OrionLib:MakeNotification({Name = "Kill", Content = "Semua pemain terbunuh!", Time = 1})
+        else
+            OrionLib:MakeNotification({Name = "Error", Content = "Kamu bukan Murderer!", Time = 1})
+        end
+    end
+})
+
 OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 OrionLib:Init()
