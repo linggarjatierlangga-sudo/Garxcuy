@@ -16,12 +16,14 @@ local GameTab = Window:MakeTab({
     Icon = "rbxassetid://7734022041"
 })
 
+-- ========== SERVICES ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ========== ESP MURDERER & SHERIFF ==========
 local highlightFolder = nil
@@ -116,86 +118,6 @@ GameTab:AddToggle({
     end
 })
 
--- ========== AIMBOT KHUSUS MURDERER ==========
-local aimbotActive = false
-local aimbotConnection = nil
-local aimbotFOV = 150
-
-local function getClosestMurderer()
-    local closest = nil
-    local shortestDist = aimbotFOV
-    local mousePos = UserInputService:GetMouseLocation()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if getPlayerRole(player) == "Murderer" then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if dist < shortestDist then
-                        shortestDist = dist
-                        closest = player
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-local function aimAtMurderer()
-    local target = getClosestMurderer()
-    if not target then return end
-    local hrp = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-    if onScreen then
-        local mousePos = UserInputService:GetMouseLocation()
-        local deltaX = screenPos.X - mousePos.X
-        local deltaY = screenPos.Y - mousePos.Y
-        if syn and syn.input then
-            syn.input.MoveMouse(deltaX, deltaY)
-        elseif mouse1move then
-            mouse1move(deltaX, deltaY)
-        elseif mousemoverel then
-            mousemoverel(deltaX, deltaY)
-        end
-    end
-end
-
-local function startAimbotLoop()
-    if aimbotConnection then aimbotConnection:Disconnect() end
-    aimbotConnection = RunService.RenderStepped:Connect(function()
-        if aimbotActive then aimAtMurderer() end
-    end)
-end
-
-GameTab:AddToggle({
-    Name = "🎯 Aimbot Khusus Murderer (Auto Aim)",
-    Default = false,
-    Callback = function(state)
-        aimbotActive = state
-        if state then
-            startAimbotLoop()
-            OrionLib:MakeNotification({Name = "Aimbot", Content = "Membidik Murderer!", Time = 2})
-        else
-            if aimbotConnection then aimbotConnection:Disconnect(); aimbotConnection = nil end
-        end
-    end
-})
-
-GameTab:AddSlider({
-    Name = "FOV Aimbot (Radius Layar)",
-    Min = 50,
-    Max = 300,
-    Default = 150,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 10,
-    ValueName = "px",
-    Callback = function(value)
-        aimbotFOV = value
-    end
-})
-
 -- ========== FLY + NOCLIP ==========
 GameTab:AddButton({
     Name = "🚀 Load Fly + Noclip",
@@ -206,11 +128,6 @@ GameTab:AddButton({
 })
 
 -- ========== AUTO KILL + TELEPORT (MURDERER ONLY) ==========
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 -- Cari remote kill
 local killRemote = nil
 for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
@@ -220,7 +137,6 @@ for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     end
 end
 
--- Teleport ke target
 local function teleportTo(target)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and target and target.Character then
@@ -233,7 +149,6 @@ local function teleportTo(target)
     return false
 end
 
--- Bunuh target
 local function kill(target)
     if killRemote then
         pcall(function() killRemote:FireServer(target) end)
@@ -241,13 +156,11 @@ local function kill(target)
     end
 end
 
--- Cek Murderer
 local function isMurderer()
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
     return tool and (tool:GetAttribute("MurderMysteryWeaponType") == "Knife" or tool.Name:lower():find("knife"))
 end
 
--- Loop auto kill
 local autoActive = false
 local connection = nil
 
@@ -280,7 +193,6 @@ local function startLoop()
     end)
 end
 
--- Toggle GUI
 GameTab:AddToggle({
     Name = "🔪 Auto Kill + Teleport (Murderer Only)",
     Default = false,
@@ -295,62 +207,77 @@ GameTab:AddToggle({
     end
 })
 
--- ========== TAB TELEPORT PLAYER ==========
-local TeleportTab = Window:MakeTab({
-    Name = "Teleport Player",
-    Icon = "rbxassetid://4483345998"
-})
-
--- Info di tab
-TeleportTab:AddParagraph("📌 Teleport Player", "Klik nama player untuk teleport.")
-
--- Buat frame untuk daftar player (menggunakan elemen Orion)
-local playerSection = TeleportTab:AddSection("Daftar Player")
-
--- Variabel untuk menyimpan tombol-tombol player
-local playerButtons = {}
-
--- Fungsi update daftar player
-local function updatePlayerListUI()
-    -- Hapus tombol lama
-    for _, btn in ipairs(playerButtons) do
-        pcall(function() btn:Destroy() end)
-    end
-    playerButtons = {}
-    
-    -- Buat tombol untuk setiap player
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local btn = playerSection:CreateButton({
-                Name = player.Name .. " [" .. (player.DisplayName or player.Name) .. "]",
-                Callback = function()
-                    local char = LocalPlayer.Character
-                    local targetChar = player.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                        char.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, 2, 2)
-                        OrionLib:MakeNotification({Name = "Teleport", Content = "Ke " .. player.Name, Time = 1})
-                    else
-                        OrionLib:MakeNotification({Name = "Error", Content = "Gagal teleport!", Time = 1})
-                    end
-                end
-            })
-            table.insert(playerButtons, btn)
+-- ========== SLIDER JUMP POWER ==========
+GameTab:AddSlider({
+    Name = "Jump Power",
+    Min = 50,
+    Max = 200,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 5,
+    ValueName = "power",
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.JumpPower = value
+            end
         end
     end
-    
-    if #playerButtons == 0 then
-        playerSection:CreateLabel("Tidak ada player lain.")
+})
+
+-- ========== SLIDER WALK SPEED ==========
+GameTab:AddSlider({
+    Name = "Walk Speed",
+    Min = 16,
+    Max = 200,
+    Default = 16,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(value)
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = value
+            end
+        end
     end
-end
+})
 
--- Update saat player masuk/keluar
-Players.PlayerAdded:Connect(updatePlayerListUI)
-Players.PlayerRemoving:Connect(updatePlayerListUI)
+-- ========== INFINITE JUMP ==========
+local infiniteJumpActive = false
+local infiniteJumpConnection = nil
 
--- Update pertama kali
-updatePlayerListUI()
+GameTab:AddToggle({
+    Name = "🦘 Infinite Jump",
+    Default = false,
+    Callback = function(state)
+        infiniteJumpActive = state
+        if state then
+            infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if infiniteJumpActive and LocalPlayer.Character then
+                    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local bv = Instance.new("BodyVelocity")
+                        bv.Velocity = Vector3.new(0, 50, 0)
+                        bv.MaxForce = Vector3.new(0, math.huge, 0)
+                        bv.Parent = root
+                        game:GetService("Debris"):AddItem(bv, 0.5)
+                    end
+                end
+            end)
+        else
+            if infiniteJumpConnection then
+                infiniteJumpConnection:Disconnect()
+                infiniteJumpConnection = nil
+            end
+        end
+    end
+})
 
+-- ========== NOTIFIKASI ==========
 OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 OrionLib:Init()
-
-bro ada bagian yang kehapus ga kira kiraa
