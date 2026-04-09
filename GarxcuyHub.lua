@@ -301,90 +301,60 @@ local TeleportTab = Window:MakeTab({
     Icon = "rbxassetid://4483345998"
 })
 
--- ========== DAFTAR PLAYER ==========
-local playerListFrame = Instance.new("ScrollingFrame")
-playerListFrame.Size = UDim2.new(0, 280, 0, 350)
-playerListFrame.Position = UDim2.new(0.5, -140, 0, 10)
-playerListFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-playerListFrame.BackgroundTransparency = 0.2
-playerListFrame.BorderSizePixel = 0
-playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerListFrame.ScrollBarThickness = 6
-playerListFrame.Parent = TeleportTab.Frame
-
--- Layout untuk tombol
-local playerLayout = Instance.new("UIListLayout")
-playerLayout.Padding = UDim.new(0, 8)
-playerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-playerLayout.Parent = playerListFrame
-
--- Fungsi update daftar player
-local function updatePlayerList()
-    -- Hapus semua tombol lama
-    for _, child in ipairs(playerListFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-    
-    -- Buat tombol untuk setiap player (kecuali diri sendiri)
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -10, 0, 35)
-            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-            btn.Text = player.Name .. " [" .. (player.DisplayName or player.Name) .. "]"
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.TextSize = 14
-            btn.Font = Enum.Font.Gotham
-            btn.BackgroundTransparency = 0.4
-            btn.Parent = playerListFrame
-            
-            -- Hover effect
-            btn.MouseEnter:Connect(function()
-                btn.BackgroundTransparency = 0.1
-                btn.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-            end)
-            btn.MouseLeave:Connect(function()
-                btn.BackgroundTransparency = 0.4
-                btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-            end)
-            
-            -- Teleport ketika diklik
-            btn.MouseButton1Click:Connect(function()
-                local char = LocalPlayer.Character
-                local targetChar = player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, 2, 2)
-                    OrionLib:MakeNotification({Name = "Teleport", Content = "Ke " .. player.Name, Time = 1})
-                else
-                    OrionLib:MakeNotification({Name = "Error", Content = "Gagal teleport!", Time = 1})
-                end
-            end)
-        end
-    end
-    
-    -- Update canvas size
-    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, playerLayout.AbsoluteContentSize.Y + 10)
-end
-
--- Update daftar saat player masuk/keluar
-Players.PlayerAdded:Connect(updatePlayerList)
-Players.PlayerRemoving:Connect(updatePlayerList)
-
--- Update setiap 2 detik
-task.spawn(function()
-    while true do
-        task.wait(2)
-        updatePlayerList()
-    end
-end)
-
--- Panggil pertama kali
-updatePlayerList()
+-- ========== TAB TELEPORT PLAYER ==========
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport Player",
+    Icon = "rbxassetid://4483345998"
+})
 
 -- Info di tab
-TeleportTab:AddParagraph("📌 Info", "Klik nama player untuk teleport ke posisinya.")
+TeleportTab:AddParagraph("📌 Teleport Player", "Klik nama player untuk teleport.")
+
+-- Buat frame untuk daftar player (menggunakan elemen Orion)
+local playerSection = TeleportTab:AddSection("Daftar Player")
+
+-- Variabel untuk menyimpan tombol-tombol player
+local playerButtons = {}
+
+-- Fungsi update daftar player
+local function updatePlayerListUI()
+    -- Hapus tombol lama
+    for _, btn in ipairs(playerButtons) do
+        pcall(function() btn:Destroy() end)
+    end
+    playerButtons = {}
+    
+    -- Buat tombol untuk setiap player
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local btn = playerSection:CreateButton({
+                Name = player.Name .. " [" .. (player.DisplayName or player.Name) .. "]",
+                Callback = function()
+                    local char = LocalPlayer.Character
+                    local targetChar = player.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                        char.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, 2, 2)
+                        OrionLib:MakeNotification({Name = "Teleport", Content = "Ke " .. player.Name, Time = 1})
+                    else
+                        OrionLib:MakeNotification({Name = "Error", Content = "Gagal teleport!", Time = 1})
+                    end
+                end
+            })
+            table.insert(playerButtons, btn)
+        end
+    end
+    
+    if #playerButtons == 0 then
+        playerSection:CreateLabel("Tidak ada player lain.")
+    end
+end
+
+-- Update saat player masuk/keluar
+Players.PlayerAdded:Connect(updatePlayerListUI)
+Players.PlayerRemoving:Connect(updatePlayerListUI)
+
+-- Update pertama kali
+updatePlayerListUI()
 
 OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
 OrionLib:Init()
