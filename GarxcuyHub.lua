@@ -225,7 +225,41 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL + TELEPORT (RADIUS 700) ==========
+-- ========== AUTO KILL + TELEPORT (MURDERER ONLY) - MOBILE VERSION ==========
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Panel debug buat HP
+local debugGui = Instance.new("ScreenGui")
+debugGui.Name = "AutoKillDebug"
+debugGui.Parent = game:GetService("CoreGui")
+debugGui.ResetOnSpawn = false
+
+local debugFrame = Instance.new("Frame")
+debugFrame.Size = UDim2.new(0, 200, 0, 80)
+debugFrame.Position = UDim2.new(0, 10, 0, 100)
+debugFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+debugFrame.BackgroundTransparency = 0.3
+debugFrame.BorderSizePixel = 0
+debugFrame.Parent = debugGui
+
+local debugText = Instance.new("TextLabel")
+debugText.Size = UDim2.new(1, 0, 1, 0)
+debugText.BackgroundTransparency = 1
+debugText.TextColor3 = Color3.fromRGB(255, 255, 255)
+debugText.TextSize = 12
+debugText.Font = Enum.Font.Code
+debugText.TextWrapped = true
+debugText.Text = "Auto Kill: OFF\nStatus: -"
+debugText.Parent = debugFrame
+
+local function updateDebug(msg1, msg2)
+    debugText.Text = "Auto Kill: " .. (msg1 or "OFF") .. "\nStatus: " .. (msg2 or "-")
+end
+
+-- Cari remote kill
 local killRemotes = {}
 for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     if remote:IsA("RemoteEvent") then
@@ -236,43 +270,75 @@ for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     end
 end
 
-local function killPlayer(target)
-    if #killRemotes == 0 then return false end
-    for _, remote in ipairs(killRemotes) do
-        pcall(function() remote:FireServer(target) end)
-        pcall(function() remote:FireServer(target.Character) end)
-        pcall(function() remote:FireServer(target.UserId) end)
-        pcall(function() remote:FireServer({target = target, userId = target.UserId}) end)
-    end
-    return true
-end
+updateDebug("OFF", "Remote: " .. #killRemotes)
 
-local function teleportToTarget(target)
+-- Teleport ke target
+local function teleportTo(target)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and target and target.Character then
         local hrp = target.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            char.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(2, 0, 2)
+            char.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 2, 2)
             return true
         end
     end
     return false
 end
 
-local function isMurderer()
-    return getPlayerRole(LocalPlayer) == "Murderer"
+-- Bunuh target
+local function kill(target)
+    if #killRemotes == 0 then return false end
+    local success = false
+    for _, remote in ipairs(killRemotes) do
+        success = pcall(function() remote:FireServer(target) end) or success
+        success = pcall(function() remote:FireServer(target.Character) end) or success
+        success = pcall(function() remote:FireServer(target.UserId) end) or success
+    end
+    return success
 end
 
-local autoActive = false
-local autoConnection = nil
+-- Cek Murderer (deteksi dari tool + backpack)
+local function isMurderer()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    if tool then
+        local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+        if weaponType == "Knife" then return true end
+        if tool.Name:lower():find("knife") then return true end
+    end
+    
+    local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+                if weaponType == "Knife" then return true end
+                if tool.Name:lower():find("knife") then return true end
+            end
+        end
+    end
+    return false
+end
 
-local function startAutoKill()
-    if autoConnection then autoConnection:Disconnect() end
-    autoConnection = RunService.RenderStepped:Connect(function()
-        if not autoActive or not isMurderer() then return end
+-- Loop auto kill
+local autoActive = false
+local connection = nil
+local lastKillTime = 0
+
+local function startLoop()
+    if connection then connection:Disconnect() end
+    connection = RunService.RenderStepped:Connect(function()
+        if not autoActive then return
+        if not isMurderer() then 
+            updateDebug("ON", "Bukan Murderer")
+            return 
+        end
+        if tick() - lastKillTime < 1.5 then return end
         
         local target = nil
-        local minDist = 700  -- <-- RADIUS 700 STUDSSSS
+        local minDist = 700
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not myPos then return end
         
@@ -287,28 +353,71 @@ local function startAutoKill()
         end
         
         if target then
-            teleportToTarget(target)
+            updateDebug("ON", "Target: " .. target.Name)
+            teleportTo(target)
             task.wait(0.1)
-            killPlayer(target)
+            if kill(target) then
+                lastKillTime = tick()
+                updateDebug("ON", "Killed: " .. target.Name)
+            end
             task.wait(0.5)
+        else
+            updateDebug("ON", "Mencari target...")
         end
     end)
 end
 
+-- Toggle GUI
 GameTab:AddToggle({
-    Name = "🔪 Auto Kill + Teleport (Murderer Only) - Radius 700",
+    Name = "🔪 Auto Kill + Teleport (Murderer Only)",
     Default = false,
     Callback = function(state)
         autoActive = state
         if state then
             if #killRemotes == 0 then
-                OrionLib:MakeNotification({Name = "Error", Content = "Tidak ada remote kill ditemukan!", Time = 3})
+                OrionLib:MakeNotification({Name = "Error", Content = "Tidak ada remote kill!", Time = 3})
+                updateDebug("OFF", "No remote")
                 return
             end
-            startAutoKill()
-            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700 studs", Time = 2})
+            startLoop()
+            updateDebug("ON", "Mencari target...")
+            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700", Time = 2})
         else
-            if autoConnection then autoConnection:Disconnect(); autoConnection = nil end
+            if connection then connection:Disconnect(); connection = nil end
+            updateDebug("OFF", "Dimatikan")
+        end
+    end
+})
+
+-- Tombol manual
+GameTab:AddButton({
+    Name = "🔪 Test Kill Terdekat",
+    Callback = function()
+        if not isMurderer() then
+            OrionLib:MakeNotification({Name = "Error", Content = "Bukan Murderer!", Time = 1})
+            return
+        end
+        
+        local target = nil
+        local minDist = 700
+        local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not myPos then return end
+        
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (p.Character.HumanoidRootPart.Position - myPos.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    target = p
+                end
+            end
+        end
+        
+        if target then
+            teleportTo(target)
+            task.wait(0.1)
+            kill(target)
+            OrionLib:MakeNotification({Name = "Kill", Content = "Terbunuh!", Time = 1})
         end
     end
 })
