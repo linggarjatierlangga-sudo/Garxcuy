@@ -226,11 +226,6 @@ GameTab:AddButton({
 })
 
 -- ========== AUTO KILL + TELEPORT (MURDERER ONLY) - MOBILE VERSION ==========
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 -- Panel debug buat HP
 local debugGui = Instance.new("ScreenGui")
 debugGui.Name = "AutoKillDebug"
