@@ -225,7 +225,7 @@ GameTab:AddButton({
     end
 })
 
--- ========== AUTO KILL + TELEPORT ==========
+-- ========== AUTO KILL + TELEPORT (RADIUS 700) ==========
 local killRemotes = {}
 for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
     if remote:IsA("RemoteEvent") then
@@ -272,7 +272,7 @@ local function startAutoKill()
         if not autoActive or not isMurderer() then return end
         
         local target = nil
-        local minDist = 30
+        local minDist = 700  -- <-- RADIUS 700 STUDSSSS
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not myPos then return end
         
@@ -296,7 +296,7 @@ local function startAutoKill()
 end
 
 GameTab:AddToggle({
-    Name = "🔪 Auto Kill + Teleport (Murderer Only)",
+    Name = "🔪 Auto Kill + Teleport (Murderer Only) - Radius 700",
     Default = false,
     Callback = function(state)
         autoActive = state
@@ -306,7 +306,7 @@ GameTab:AddToggle({
                 return
             end
             startAutoKill()
-            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Jarak 30 studs", Time = 2})
+            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700 studs", Time = 2})
         else
             if autoConnection then autoConnection:Disconnect(); autoConnection = nil end
         end
