@@ -18,18 +18,18 @@ local GameTab = Window:MakeTab({
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ========== ESP SIMPLE (DRAWING TEXT) ==========
-local espObjects = {}
+-- ========== ESP HIGHLIGHT ==========
+local espHighlights = {}
 local espActive = false
 local espConnection = nil
 
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
     
-    -- 1. CEK BACKPACK (INVENTORY)
     local backpack = player:FindFirstChildOfClass("Backpack")
     if backpack then
         for _, tool in ipairs(backpack:GetChildren()) do
@@ -43,7 +43,6 @@ local function getPlayerRole(player)
         end
     end
     
-    -- 2. CEK TANGAN (YANG SEDANG DIPEGANG)
     local char = player.Character
     if char then
         local tool = char:FindFirstChildWhichIsA("Tool")
@@ -65,64 +64,142 @@ local function getRoleColor(role)
     else return Color3.fromRGB(0, 255, 0) end
 end
 
-local function createESP(player)
+local function createHighlight(player)
     if player == LocalPlayer then return end
-    local text = Drawing.new("Text")
-    text.Center = true
-    text.Size = 14
-    text.Font = 2
-    text.Outline = true
-    text.OutlineColor = Color3.fromRGB(0, 0, 0)
-    text.Visible = false
-    espObjects[player] = text
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name .. "_ESP"
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = game:GetService("CoreGui")
+    espHighlights[player] = highlight
 end
 
-local function removeESP(player)
-    if espObjects[player] then
-        espObjects[player]:Remove()
-        espObjects[player] = nil
+local function removeHighlight(player)
+    if espHighlights[player] then
+        espHighlights[player]:Destroy()
+        espHighlights[player] = nil
     end
 end
 
-local function updateESP()
+local function updateHighlights()
     if not espActive then return end
-    for player, text in pairs(espObjects) do
+    for player, highlight in pairs(espHighlights) do
         local char = player.Character
         local role = getPlayerRole(player)
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local rootPart = char.HumanoidRootPart
-            local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-            if onScreen then
-                text.Text = player.Name .. " [" .. role .. "]"
-                text.Position = Vector2.new(pos.X, pos.Y - 30)
-                text.Color = getRoleColor(role)
-                text.Visible = true
-            else
-                text.Visible = false
-            end
+        if char then
+            highlight.Adornee = char
+            highlight.FillColor = getRoleColor(role)
+            highlight.OutlineColor = getRoleColor(role)
+            highlight.Enabled = true
         else
-            text.Visible = false
+            highlight.Enabled = false
         end
     end
 end
 
 GameTab:AddToggle({
-    Name = "🔴 ESP Murderer & Sheriff",
+    Name = "🔴 ESP Highlight (Murderer Merah, Sheriff Biru)",
     Default = false,
     Callback = function(state)
         espActive = state
         if state then
             for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and not espObjects[player] then
-                    createESP(player)
+                if player ~= LocalPlayer and not espHighlights[player] then
+                    createHighlight(player)
                 end
             end
             if espConnection then espConnection:Disconnect() end
-            espConnection = RunService.RenderStepped:Connect(updateESP)
-            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif!", Time = 2})
+            espConnection = RunService.RenderStepped:Connect(updateHighlights)
+            OrionLib:MakeNotification({Name = "ESP", Content = "Highlight Aktif!", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
-            for player, _ in pairs(espObjects) do removeESP(player) end
+            for player, _ in pairs(espHighlights) do removeHighlight(player) end
+        end
+    end
+})
+
+Players.PlayerAdded:Connect(function(player)
+    if espActive and player ~= LocalPlayer then createHighlight(player) end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if espHighlights[player] then removeHighlight(player) end
+end)
+
+-- ========== SILENT AIM (HANYA KE MURDERER) ==========
+local silentActive = false
+local silentHooked = false
+local originalFireServer = nil
+
+local function getClosestMurdererForSilent()
+    local closest = nil
+    local shortestDist = 300
+    local cameraPos = Camera.CFrame.Position
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and getPlayerRole(player) == "Murderer" then
+            local targetPart = player.Character:FindFirstChild("HumanoidRootPart")
+            if targetPart then
+                local dist = (targetPart.Position - cameraPos).Magnitude
+                if dist < shortestDist then
+                    shortestDist = dist
+                    closest = player
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Fungsi untuk hook semua remote event yang berhubungan dengan tembak
+local function hookShootRemotes()
+    if silentHooked then return end
+    silentHooked = true
+    
+    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+        if remote:IsA("RemoteEvent") then
+            local name = remote.Name:lower()
+            if name:find("shoot") or name:find("fire") or name:find("gun") or name:find("attack") then
+                local oldFire = remote.FireServer
+                remote.FireServer = function(self, ...)
+                    if silentActive then
+                        local target = getClosestMurdererForSilent()
+                        local args = {...}
+                        
+                        if target and target.Character then
+                            -- Coba berbagai format parameter
+                            if type(args[1]) == "table" then
+                                args[1].target = target
+                                args[1].targetUserId = target.UserId
+                                args[1].Target = target
+                                args[1].UserId = target.UserId
+                            end
+                            -- Jika parameter pertama adalah string atau angka
+                            if #args == 1 then
+                                return oldFire(self, target)
+                            end
+                            return oldFire(self, unpack(args))
+                        end
+                    end
+                    return oldFire(self, ...)
+                end
+            end
+        end
+    end
+end
+
+-- Toggle Silent Aim
+GameTab:AddToggle({
+    Name = "🔫 Silent Aim (Auto Hit ke Murderer)",
+    Default = false,
+    Callback = function(state)
+        silentActive = state
+        if state then
+            hookShootRemotes()
+            OrionLib:MakeNotification({Name = "Silent Aim", Content = "Aktif! Peluru auto ngarah ke Murderer", Time = 2})
+        else
+            OrionLib:MakeNotification({Name = "Silent Aim", Content = "Dimatikan", Time = 1})
         end
     end
 })
