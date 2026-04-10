@@ -1,21 +1,20 @@
--- ========== RAYFIELD LIBRARY ==========
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ========== ORION LIBRARY ==========
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
-local Window = Rayfield:CreateWindow({
+local Window = OrionLib:MakeWindow({
     Name = "GAR N CUY BOCAH EPEP",
-    LoadingTitle = "Loading Exploits...",
-    LoadingSubtitle = "ESP + Auto Kill + Teleport",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "GARConfig",
-        FileName = "Config"
-    },
-    KeySystem = false
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "GAR CONFIG",
+    IntroEnabled = true,
+    IntroText = "ASSALAMUALAIKUM MAMANGG",
+    IntroIcon = "rbxassetid://4483345998"
 })
 
--- ========== TABS ==========
-local GameTab = Window:CreateTab("Game Exploits", 7734022041)
-local TeleportTab = Window:CreateTab("Teleport Player", 4483345998)
+local GameTab = Window:MakeTab({
+    Name = "Game Exploits",
+    Icon = "rbxassetid://7734022041"
+})
 
 -- ========== SERVICES ==========
 local Players = game:GetService("Players")
@@ -31,7 +30,6 @@ local espObjects = {}
 local espActive = false
 local espConnection = nil
 
--- Fungsi deteksi role (dari backpack + tangan + atribut)
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
     
@@ -79,11 +77,11 @@ end
 
 local function getRoleColor(role)
     if role == "Murderer" then
-        return Color3.fromRGB(255, 0, 0)     -- Merah
+        return Color3.fromRGB(255, 0, 0)
     elseif role == "Sheriff" then
-        return Color3.fromRGB(0, 0, 255)     -- Biru
+        return Color3.fromRGB(0, 0, 255)
     else
-        return Color3.fromRGB(0, 255, 0)     -- Hijau
+        return Color3.fromRGB(0, 255, 0)
     end
 end
 
@@ -195,10 +193,9 @@ local function updateESP()
     end
 end
 
--- Toggle ESP
-GameTab:CreateToggle({
+GameTab:AddToggle({
     Name = "🔴 ESP Murderer (Merah) & Sheriff (Biru)",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         espActive = state
         if state then
@@ -209,13 +206,22 @@ GameTab:CreateToggle({
             end
             if espConnection then espConnection:Disconnect() end
             espConnection = RunService.RenderStepped:Connect(updateESP)
-            Rayfield:Notify({Title = "ESP", Content = "Aktif! (Deteksi Backpack)", Duration = 2})
+            OrionLib:MakeNotification({Name = "ESP", Content = "Aktif! (Deteksi Backpack)", Time = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
             for player, _ in pairs(espObjects) do
                 removeESPForPlayer(player)
             end
         end
+    end
+})
+
+-- ========== FLY + NOCLIP ==========
+GameTab:AddButton({
+    Name = "🚀 Load Fly + Noclip",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-And-Noclip-GUI-192488"))()
+        OrionLib:MakeNotification({Name = "Fly + Noclip", Content = "Loaded!", Time = 2})
     end
 })
 
@@ -289,77 +295,24 @@ local function startAutoKill()
     end)
 end
 
-GameTab:CreateToggle({
+GameTab:AddToggle({
     Name = "🔪 Auto Kill + Teleport (Murderer Only)",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         autoActive = state
         if state then
             if #killRemotes == 0 then
-                Rayfield:Notify({Title = "Error", Content = "Tidak ada remote kill ditemukan!", Duration = 3})
+                OrionLib:MakeNotification({Name = "Error", Content = "Tidak ada remote kill ditemukan!", Time = 3})
                 return
             end
             startAutoKill()
-            Rayfield:Notify({Title = "Auto Kill", Content = "Aktif! Jarak 30 studs", Duration = 2})
+            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Jarak 30 studs", Time = 2})
         else
             if autoConnection then autoConnection:Disconnect(); autoConnection = nil end
         end
     end
 })
 
--- ========== TELEPORT PLAYER ==========
-TeleportTab:CreateParagraph("📌 Teleport Player", "Klik nama player untuk teleport.")
-
-local playerSection = nil
-local playerButtons = {}
-
-local function updatePlayerListUI()
-    if playerSection then
-        for _, btn in ipairs(playerButtons) do
-            pcall(function() btn:Destroy() end)
-        end
-        playerButtons = {}
-        playerSection:Destroy()
-    end
-    
-    playerSection = TeleportTab:CreateSection("Daftar Player")
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local btn = playerSection:CreateButton({
-                Name = player.Name .. " [" .. (player.DisplayName or player.Name) .. "]",
-                Callback = function()
-                    local char = LocalPlayer.Character
-                    local targetChar = player.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                        char.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, 2, 2)
-                        Rayfield:Notify({Title = "Teleport", Content = "Ke " .. player.Name, Duration = 1})
-                    else
-                        Rayfield:Notify({Title = "Error", Content = "Gagal teleport!", Duration = 1})
-                    end
-                end
-            })
-            table.insert(playerButtons, btn)
-        end
-    end
-    
-    if #playerButtons == 0 then
-        playerSection:CreateLabel("Tidak ada player lain.")
-    end
-end
-
-Players.PlayerAdded:Connect(updatePlayerListUI)
-Players.PlayerRemoving:Connect(updatePlayerListUI)
-updatePlayerListUI()
-
--- ========== FLY + NOCLIP ==========
-GameTab:CreateButton({
-    Name = "🚀 Load Fly + Noclip",
-    Callback = function()
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-And-Noclip-GUI-192488"))()
-        Rayfield:Notify({Title = "Fly + Noclip", Content = "Loaded!", Duration = 2})
-    end
-})
-
 -- ========== NOTIFIKASI ==========
-Rayfield:Notify({Title = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
+OrionLib:MakeNotification({Name = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Time = 3})
+OrionLib:Init()
