@@ -26,34 +26,32 @@ local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ========== ESP MURDERER & SHERIFF ==========
+-- ========== ESP DENGAN DETEKSI BACKPACK ==========
 local espObjects = {}
 local espActive = false
 local espConnection = nil
 
+-- Fungsi deteksi role (dari backpack + tangan + atribut)
 local function getPlayerRole(player)
     if player == LocalPlayer then return "Local" end
     
-    -- 1. Cek dari atribut player
-    local roleAttr = player:GetAttribute("Role") or player:GetAttribute("PlayerRole")
-    if roleAttr then
-        local roleUpper = string.upper(tostring(roleAttr))
-        if roleUpper:find("MURDER") then return "Murderer" end
-        if roleUpper:find("SHERIFF") then return "Sheriff" end
-    end
-    
-    -- 2. Cek dari leaderstats
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local roleStat = leaderstats:FindFirstChild("Role") or leaderstats:FindFirstChild("Team")
-        if roleStat then
-            local roleValue = tostring(roleStat.Value):upper()
-            if roleValue:find("MURDER") then return "Murderer" end
-            if roleValue:find("SHERIFF") then return "Sheriff" end
+    -- 1. CEK BACKPACK (INVENTORY) - PALING AKURAT
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
+                if weaponType == "Knife" then return "Murderer" end
+                if weaponType == "Gun" then return "Sheriff" end
+                
+                local toolName = tool.Name:lower()
+                if toolName:find("knife") then return "Murderer" end
+                if toolName:find("gun") or toolName:find("pistol") then return "Sheriff" end
+            end
         end
     end
     
-    -- 3. Cek dari tool yang dipegang (fallback)
+    -- 2. CEK TANGAN (YANG SEDANG DIPEGANG)
     local char = player.Character
     if char then
         local tool = char:FindFirstChildWhichIsA("Tool")
@@ -68,16 +66,24 @@ local function getPlayerRole(player)
         end
     end
     
+    -- 3. CEK ATRIBUT PLAYER (FALLBACK)
+    local roleAttr = player:GetAttribute("Role") or player:GetAttribute("PlayerRole")
+    if roleAttr then
+        local roleUpper = string.upper(tostring(roleAttr))
+        if roleUpper:find("MURDER") then return "Murderer" end
+        if roleUpper:find("SHERIFF") then return "Sheriff" end
+    end
+    
     return "Innocent"
 end
 
 local function getRoleColor(role)
     if role == "Murderer" then
-        return Color3.fromRGB(255, 0, 0)
+        return Color3.fromRGB(255, 0, 0)     -- Merah
     elseif role == "Sheriff" then
-        return Color3.fromRGB(0, 0, 255)
+        return Color3.fromRGB(0, 0, 255)     -- Biru
     else
-        return Color3.fromRGB(0, 255, 0)
+        return Color3.fromRGB(0, 255, 0)     -- Hijau
     end
 end
 
@@ -203,7 +209,7 @@ GameTab:CreateToggle({
             end
             if espConnection then espConnection:Disconnect() end
             espConnection = RunService.RenderStepped:Connect(updateESP)
-            Rayfield:Notify({Title = "ESP", Content = "Aktif!", Duration = 2})
+            Rayfield:Notify({Title = "ESP", Content = "Aktif! (Deteksi Backpack)", Duration = 2})
         else
             if espConnection then espConnection:Disconnect(); espConnection = nil end
             for player, _ in pairs(espObjects) do
@@ -248,17 +254,7 @@ local function teleportToTarget(target)
 end
 
 local function isMurderer()
-    local char = LocalPlayer.Character
-    if not char then return false end
-    local tool = char:FindFirstChildWhichIsA("Tool")
-    if tool then
-        local weaponType = tool:GetAttribute("MurderMysteryWeaponType")
-        if weaponType == "Knife" then return true end
-        if tool.Name:lower():find("knife") then return true end
-    end
-    local role = LocalPlayer:GetAttribute("Role") or LocalPlayer:GetAttribute("PlayerRole")
-    if role and string.upper(tostring(role)):find("MURDER") then return true end
-    return false
+    return getPlayerRole(LocalPlayer) == "Murderer"
 end
 
 local autoActive = false
@@ -355,6 +351,15 @@ end
 Players.PlayerAdded:Connect(updatePlayerListUI)
 Players.PlayerRemoving:Connect(updatePlayerListUI)
 updatePlayerListUI()
+
+-- ========== FLY + NOCLIP ==========
+GameTab:CreateButton({
+    Name = "🚀 Load Fly + Noclip",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fly-And-Noclip-GUI-192488"))()
+        Rayfield:Notify({Title = "Fly + Noclip", Content = "Loaded!", Duration = 2})
+    end
+})
 
 -- ========== NOTIFIKASI ==========
 Rayfield:Notify({Title = "GAR N CUY", Content = "Loaded! Buka tab Game Exploits.", Duration = 3})
