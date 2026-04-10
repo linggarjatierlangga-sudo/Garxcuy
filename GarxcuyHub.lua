@@ -2,7 +2,7 @@
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Seven7-lua/Roblox/main/Librarys/Orion/Orion.lua')))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "GAR N CUY",
+    Name = "LINGGAR 💗 ARA",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "GAR_CONFIG",
