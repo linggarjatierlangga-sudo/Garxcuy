@@ -136,7 +136,7 @@ local function startAutoKill()
         if not autoActive or not isMurderer() then return end
         
         local target = nil
-        local minDist = 700
+        local minDist = 900
         local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not myPos then return end
         
@@ -170,7 +170,7 @@ GameTab:AddToggle({
                 return
             end
             startAutoKill()
-            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 700", Time = 2})
+            OrionLib:MakeNotification({Name = "Auto Kill", Content = "Aktif! Radius 900", Time = 2})
         else
             if autoConnection then autoConnection:Disconnect(); autoConnection = nil end
         end
@@ -222,7 +222,7 @@ end
 
 local function getClosestMurderer()
     local closest = nil
-    local minDist = 700
+    local minDist = 900
     local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not myPos then return nil end
     
